@@ -1,0 +1,12 @@
+{
+    "python.testing.unittestEnabled": true,
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestArgs": [
+        "-v",          // Verbose output
+        "-s",          // Start directory
+        "./tests",     // Path to your tests
+        "-p",          // Test file pattern
+        "test_*.py"    // File name pattern for tests
+    ],
+    "python.analysis.typeCheckingMode": "strict"
+}
