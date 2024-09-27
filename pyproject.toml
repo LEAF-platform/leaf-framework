@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "core"
+name = "leaf_core"
 version = "0.1.0"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = ["core"]
