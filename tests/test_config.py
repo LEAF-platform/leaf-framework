@@ -1,15 +1,15 @@
 
-# Test the config.py module
+# Test the config_loader.py module
 
 import os
 import unittest
 
-from core import config
+from core import config_loader
 
 class TestConfig(unittest.TestCase):
     def test_config(self):
         # Initialize the config
-        config = config.Config('config.ini')
+        config = config_loader.Config('config.ini')
         assert isinstance(config.config, config.ConfigParser)
 
         # Check if the config file exists

@@ -6,13 +6,17 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 class MQTTClient:
-    def __init__(self, broker_host: str, broker_port: int, client_id: str, callback_api_version: object = mqtt.CallbackAPIVersion.VERSION2, protocol: int = mqtt.MQTTv5):
+    def __init__(self, broker_host: str, broker_port: int, broker_username: str, broker_password, client_id: str, protocol: mqtt.MQTTv5 = mqtt.MQTTv5, callback_api_version: int = 2) -> None:
         self.broker_host = broker_host
         self.broker_port = broker_port
+        self.broker_username = broker_username
+        self.broker_password = broker_password
         self.client_id = client_id
         self.protocol = mqtt.MQTTv5
         self.callback_api_version = callback_api_version
-        self.client: mqtt.Client = mqtt.Client(client_id=client_id, callback_api_version=callback_api_version, protocol=protocol)
+        self.client: mqtt.Client = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2
+        )
 
         # Attach callback methods for connection, messages, etc.
         self.client.on_connect = self.on_connect
@@ -21,6 +25,8 @@ class MQTTClient:
     def connect(self) -> None:
         """Connects to the MQTT broker."""
         logging.info(f"Connecting to MQTT broker at {self.broker_host}:{self.broker_port}")
+        if self.broker_username and self.broker_password:
+            self.client.username_pw_set(self.broker_username, self.broker_password)
         self.client.connect(self.broker_host, self.broker_port)
         self.client.loop_start()  # Start the network loop
 
@@ -38,7 +44,7 @@ class MQTTClient:
 
     def publish(self, topic: str, message: str) -> None:
         """Publish a message to a given MQTT topic."""
-        logging.info(f"Publishing message to topic {topic}: {message}")
+        logging.debug(f"Publishing message to topic {topic}: {message}")
         self.client.publish(topic, message)
 
     def on_message(self, client: mqtt.Client, userdata: object, msg: mqtt.MQTTMessage) -> None:

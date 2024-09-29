@@ -1,34 +1,41 @@
-import unittest
-import os
+import asyncio
 import gzip
 import json
-import asyncio
-from core.components.indpensim.indpensim_adapter import main, set_global_data, get_global_data, set_global_start_time, get_global_start_time
 import logging
+import os
+import unittest
 from datetime import datetime
+from time import sleep
+
+import core.start as core
+from core.components.indpensim.indpensim_adapter import main, set_global_data, set_global_start_time, get_global_data, \
+    get_size_global_data
 
 # Set the logging level
 logging.basicConfig(level=logging.INFO)
 
 class TestIndPenSim(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        # Initialize the MQTT client
-        init_mqtt()
+        # Initialize the program
+        logging.info("Initializing the program")
+        asyncio.create_task(core.main('../../../config.ini'))
+        logging.info("Program initialized")
         # Set the global start time
         set_global_start_time(datetime.strptime("2024-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
-        # Start main() in the background
+        # Start the main program after a few seconds
+        while core.get_keydb_client() is None:
+            logging.info("Waiting for KeyDB client to be initialized")
+            await asyncio.sleep(1)
+        logging.info(f"KeyDB client initialized of size {core.get_keydb_client().client.dbsize()}")
         logging.info("Starting the main program")
-        self.main_task = asyncio.create_task(main())
-        logging.info("Main program started")
+        asyncio.create_task(main())
 
     async def asyncTearDown(self) -> None:
-        # Cancel the main program task after test finishes
-        logging.info("Stopping the main program")
-        self.main_task.cancel()
-        try:
-            await self.main_task
-        except asyncio.CancelledError:
-            logging.info("Main program task cancelled")
+        # Check global data
+        while get_size_global_data() > 0:
+            logging.info("Waiting for global data to be processed")
+            await asyncio.sleep(1)
+
 
     async def test_process_data(self) -> None:
         logging.info("Testing the processing of data")
@@ -43,8 +50,8 @@ class TestIndPenSim(unittest.IsolatedAsyncioTestCase):
         
         # Only accept .csv.gz files
         for file in files:
-            if file != 'IndPenSim_V3_Batch_1_top10.csv.gz':
-                continue
+            # if file != 'IndPenSim_V3_Batch_1_top10.csv.gz':
+            #     continue
             if not file.endswith(".csv.gz"):
                 logging.info(f"Skipping file: {file}")
                 continue
@@ -63,10 +70,10 @@ class TestIndPenSim(unittest.IsolatedAsyncioTestCase):
                         for key in list(data.keys()):
                             if key.isdigit():
                                 del data[key]
-                        
+
                         # Check if the dictionary is not empty
                         self.assertGreater(len(data), 0)
-                        
+
                         # Turn it into a JSON object
                         content = json.dumps(data)
                         
@@ -87,32 +94,10 @@ class TestIndPenSim(unittest.IsolatedAsyncioTestCase):
                                     pass
                             # Send the valid JSON to a global variable in the main program
                             set_global_data(json_object)
-                            logging.info("Data sent to the main program")
-                            
-                            # Allow a brief pause to simulate the processing delay
-                            await asyncio.sleep(1)  # Use async sleep
-                            
                         except json.JSONDecodeError:
                             self.fail("Invalid JSON content")
 
-
-def init_mqtt():
-        from core.mqtt_client import MQTTClient
-        
-        # Initialize the MQTT client
-        mqtt_client = MQTTClient(broker_host='test.mosquitto.org', broker_port=1883, client_id='MyMQTTClient')
-
-        # Connect to the MQTT broker
-        mqtt_client.connect()
-
-        # Subscribe to a topic (for receiving messages)
-        mqtt_client.subscribe("leaf/component/indpensim")
-
-        # Publish a message to a topic (for sending messages)
-        mqtt_client.publish("leaf/component/indpensim", "Sensor data here")
-    
 if __name__ == '__main__':
     unittest.main()
-    init_mqtt()
     set_global_start_time(datetime.strptime("2024-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
     

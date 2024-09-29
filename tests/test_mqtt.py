@@ -1,8 +1,11 @@
-import unittest
-from core.mqtt_client import MQTTClient
-from datetime import datetime
-import time
 import logging
+import time
+import unittest
+from datetime import datetime
+
+import redis
+
+from core.mqtt_client import MQTTClient
 
 logging.basicConfig(level=logging.INFO)
 
@@ -57,6 +60,40 @@ class TestMQTTClient(unittest.TestCase):
                 self.mqtt_client.publish("leaf-test/topic", test_message)
             # Sleep briefly before checking again
             time.sleep(0.1)
+
+    def testKeyDB(self):
+        logging.info("Running testKeyDB integration")
+        # Connect to the KeyDB server
+        self.db = redis.Redis(host='localhost', port=6379, db=0)
+        # Store a test key-value pair
+        key = 'test_key'
+        value = 'test_value'
+        self.db.set(key, value)
+        # Retrieve the value from KeyDB
+        result = self.db.get(key).decode('utf-8')
+        logging.info(f"Retrieved value: {result}")
+        # Check if the retrieved value matches the original value
+        self.assertEqual(result, value)
+        # Subscribe to the KeyDB channel
+        self.mqtt_client.subscribe("leaf-test/keydb")
+        # Wait for 1 second to allow the subscription to take effect
+        time.sleep(1)
+        # Sent message to the MQTT broker
+        self.mqtt_client.publish("leaf-test/keydb", value)
+        message_received = False
+        while message_received is False:
+            if len(self.received_messages) > 0:
+                for message in self.received_messages:
+                    logging.info(f"Received message: {message}")
+                    # Ensure the received message is the one we sent
+                    self.assertEqual(message, value)
+                    logging.info("Test passed.")
+                    message_received = True
+            else:
+                time.sleep(0.1)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
