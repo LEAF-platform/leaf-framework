@@ -1,22 +1,53 @@
 # core/mqtt_client.py
+import uuid
 
 import paho.mqtt.client as mqtt
 import logging
 
+from paho.mqtt.enums import CallbackAPIVersion
+
+from core.config_loader import Config
+
 logging.basicConfig(level=logging.DEBUG)
 
 class MQTTClient:
-    def __init__(self, broker_host: str, broker_port: int, broker_username: str, broker_password, client_id: str, protocol: mqtt.MQTTv5 = mqtt.MQTTv5, callback_api_version: int = 2) -> None:
-        self.broker_host = broker_host
-        self.broker_port = broker_port
-        self.broker_username = broker_username
-        self.broker_password = broker_password
-        self.client_id = client_id
-        self.protocol = mqtt.MQTTv5
-        self.callback_api_version = callback_api_version
-        self.client: mqtt.Client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION2
-        )
+    def __init__(self, config: Config):
+        # 2. Initialize the MQTT client
+        # Initialize username and password attributes to None
+        self.broker_host = config.get('mqtt', 'broker')
+        self.broker_port = config.get_int('mqtt', 'port')
+        ############################################################################################################
+        # Credentials
+        self.mqtt_username = None
+        self.mqtt_password = None
+        if config.has_option('mqtt', 'username'):
+            self.mqtt_username = config.get('mqtt', 'username')
+            logging.info(f"MQTT username: {self.mqtt_username}")
+        if config.has_option('mqtt', 'password'):
+            self.mqtt_password = config.get('mqtt', 'password')
+            logging.info("MQTT password set")
+        ############################################################################################################
+        if config.has_option('mqtt', 'client_id'):
+            self.mqtt_clientid = config.get('mqtt', 'clientid')
+        else:
+            self.mqtt_clientid = uuid.uuid4().hex
+            logging.info(f"Generated client ID: {self.mqtt_clientid}")
+        ############################################################################################################
+        if config.has_option('mqtt', 'transport'):
+            self.transport = config.get('mqtt', 'transport')
+        else:
+            self.transport = 'tcp'
+        ############################################################################################################
+        # Protocol
+        if config.has_option('mqtt', 'protocol'):
+            self.protocol = mqtt.MQTTv5 if '5' in config.get('mqtt', 'protocol')  else mqtt.MQTTv311
+            logging.info(f"MQTT protocol: {self.protocol}")
+        else:
+            self.protocol = mqtt.MQTTv311
+            logging.info(f"MQTT protocol: {self.protocol}")
+        ############################################################################################################
+
+        self.client: mqtt.Client = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2, client_id=self.mqtt_clientid, protocol=self.protocol, transport=self.transport)
 
         # Attach callback methods for connection, messages, etc.
         self.client.on_connect = self.on_connect
@@ -25,8 +56,8 @@ class MQTTClient:
     def connect(self) -> None:
         """Connects to the MQTT broker."""
         logging.info(f"Connecting to MQTT broker at {self.broker_host}:{self.broker_port}")
-        if self.broker_username and self.broker_password:
-            self.client.username_pw_set(self.broker_username, self.broker_password)
+        if self.mqtt_username and self.mqtt_password:
+            self.client.username_pw_set(self.mqtt_username, self.mqtt_password)
         self.client.connect(self.broker_host, self.broker_port)
         self.client.loop_start()  # Start the network loop
 
@@ -42,10 +73,9 @@ class MQTTClient:
         logging.info(f"Subscribing to topic: {topic}")
         self.client.subscribe(topic)
 
-    def publish(self, topic: str, message: str) -> None:
-        """Publish a message to a given MQTT topic."""
-        logging.debug(f"Publishing message to topic {topic}: {message}")
-        self.client.publish(topic, message)
+    def publish(self, topic: str, message: str) -> mqtt.MQTTMessageInfo:
+        """Publish a message to a given MQTT topic and return the result."""
+        return self.client.publish(topic, message)
 
     def on_message(self, client: mqtt.Client, userdata: object, msg: mqtt.MQTTMessage) -> None:
         """Callback when a message is received on a subscribed topic."""

@@ -42,5 +42,7 @@ class Config:
     def to_dict(self):
         return self.config._sections
 
-    
+    def has_option(self, param, param1):
+        return self.config.has_option(param, param1)
+
     

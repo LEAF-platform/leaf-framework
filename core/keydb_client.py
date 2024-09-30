@@ -3,6 +3,8 @@ import asyncio
 import logging
 import json
 
+from paho.mqtt.client import MQTT_ERR_SUCCESS
+
 logging.basicConfig(level=logging.INFO)
 
 class AsyncKeyDBClient:
@@ -59,7 +61,12 @@ class AsyncKeyDBClient:
                         logging.error("No topic found in the message")
                         continue
                     # Publish to MQTT broker
-                    mqtt_client.publish(topic, json.dumps(message, indent=4, sort_keys=True))
+                    mqtt_info = mqtt_client.publish(topic, json.dumps(message, indent=4, sort_keys=True))
+                    logging.info(f"Published message to topic {topic}: {mqtt_info}")
+                    if mqtt_info.rc == MQTT_ERR_SUCCESS:
+                        logging.info(f"Message published successfully to topic: {topic}")
+                    else:
+                        logging.error(f"Failed to publish message to topic: {topic}. Return code: {mqtt_info.rc}")
                     # Optionally remove the message after publishing
                     await self.client.delete(key)
 

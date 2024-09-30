@@ -26,14 +26,7 @@ async def main(config_file):
     # Print dict
     print(config.to_dict())
 
-    # 2. Initialize the MQTT client
-    mqtt_broker = config.get('mqtt', 'broker')
-    mqtt_port = config.get_int('mqtt', 'port')
-    mqtt_username = config.get('mqtt', 'username')
-    mqtt_password = config.get('mqtt', 'password')
-    mqtt_clientid = config.get('mqtt', 'clientid')
-
-    mqtt_client = MQTTClient(broker_host=mqtt_broker, broker_port=mqtt_port, broker_username=mqtt_username, broker_password=mqtt_password, client_id=mqtt_clientid)
+    mqtt_client = MQTTClient(config)
 
     # 3. Initialize KeyDB client
     keydb_host = config.get('keydb', 'host')
