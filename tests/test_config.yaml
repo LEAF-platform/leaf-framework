@@ -1,0 +1,14 @@
+EQUIPMENT:
+  code: BioLector1
+  write_file: tmp.csv
+
+EQUIPMENT_DATA:
+  instance_id: biolector_devonshire5
+  institute: NCL
+
+OUTPUT:
+  code: MQTTAdapter
+  broker_address: localhost
+  port: 1883
+  username: mcrowther
+  password: Radeon12300

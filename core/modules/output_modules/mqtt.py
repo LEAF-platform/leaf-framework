@@ -20,8 +20,8 @@ logger = logging.getLogger()
 
 class MQTT(OutputModule):
     def __init__(self, broker, port=None, 
-                 username=None,password=None):
-        super().__init__()
+                 username=None,password=None,fallback=None):
+        super().__init__(fallback=fallback)
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
@@ -39,14 +39,19 @@ class MQTT(OutputModule):
 
     
     def transmit(self, topic,data=None,retain=False):
-        print(f'Transmit: {topic} - {data} - Retain: {retain}')
+        print(topic,data)
         if isinstance(data, dict):
             data = json.dumps(data)
         elif data is not None and not isinstance(data, str):
             data = str(data)
-        self.client.publish(topic=topic, 
-                            payload=data, 
-                            qos=0, retain=retain)
+        result = self.client.publish(topic=topic, 
+                                     payload=data, 
+                                     qos=0, retain=retain)
+        if result.rc != mqtt.MQTT_ERR_SUCCESS:
+            if self._fallback is not None:
+                self._fallback.transmit(topic,data=data)
+            else:
+                logger.error(f"Failed to send message: {result.rc}")
 
     def get_existing_ids(self):
         topic = metadata_manager.details()

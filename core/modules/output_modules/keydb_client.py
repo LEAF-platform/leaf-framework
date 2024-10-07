@@ -1,73 +1,40 @@
-import aioredis
-import asyncio
+import redis
 import logging
 import json
 
-from paho.mqtt.client import MQTT_ERR_SUCCESS
-
+from core.modules.output_modules.output_module import OutputModule
 logging.basicConfig(level=logging.INFO)
 
-class AsyncKeyDBClient:
-    def __init__(self, host, port=6379, db=0):
+class KEYDB(OutputModule):
+    def __init__(self, host, port=6379, db=0, fallback=None):
+        super().__init__(fallback=fallback)
         self.host = host
         self.port = port
         self.db = db
         self.client = None
 
-    async def connect(self):
-        self.client = await aioredis.create_redis_pool(
-            (self.host, self.port), db=self.db
-        )
+    def connect(self):
+        self.client = redis.StrictRedis(host=self.host, 
+                                        port=self.port, 
+                                        db=self.db)
 
-    async def store_message(self, key, message):
-        # Use the DBSIZE command to get the number of keys
-        num_keys = await self.client.dbsize()
-        print(f"Number of keys in the database: {num_keys}")
-        await self.client.set(key, message)
+    def transmit(self, topic, data=None):
+        try:
+            self.client.set(topic, data)
+            logging.info(f"Transmit data to key '{topic}'")
+            return True
+        except redis.RedisError as e:
+            if self._fallback is not None:
+                self._fallback.transmit(topic,data=data)
+            logging.error(f"Transmit data to key '{topic}': {str(e)}")
+            return False
 
-    async def retrieve_message(self, key):
-        message = await self.client.get(key)
-        if message:
-            return message.decode('utf-8')
-        return None
-
-    async def close(self):
-        self.client.close()
-        await self.client.wait_closed()
-
-    async def run_forever(self, mqtt_client):
-        # Keep polling for messages in an asynchronous loop
-        while True:
-            keys = await self.client.keys('*')
-            logging.debug(f"Keys: {keys}")
-            for key in keys:
-                message = await self.retrieve_message(key.decode('utf-8'))
-                # Message should be in JSON format
-                if not message:
-                    logging.error("No message found in the key")
-                    continue
-                # Check if format is JSON
-                try:
-                    message = json.loads(message)
-                except json.JSONDecodeError:
-                    logging.error("Invalid JSON message, removing key")
-                    await self.client.delete(key)
-                    continue
-                # Topic should be in the message
-                if message:
-                    logging.info(f"Message: {message}")
-                    topic = message['tags']['topic']
-                    if not topic:
-                        logging.error("No topic found in the message")
-                        continue
-                    # Publish to MQTT broker
-                    mqtt_info = mqtt_client.publish(topic, json.dumps(message, indent=4, sort_keys=True))
-                    logging.info(f"Published message to topic {topic}: {mqtt_info}")
-                    if mqtt_info.rc == MQTT_ERR_SUCCESS:
-                        logging.info(f"Message published successfully to topic: {topic}")
-                    else:
-                        logging.error(f"Failed to publish message to topic: {topic}. Return code: {mqtt_info.rc}")
-                    # Optionally remove the message after publishing
-                    await self.client.delete(key)
-
-            await asyncio.sleep(5)  # Poll every 5 seconds
+    def retrieve(self, key):
+        try:
+            message = self.client.get(key)
+            if message:
+                return message.decode('utf-8')
+            return None
+        except redis.RedisError as e:
+            logging.error(f"No data for key '{key}': {str(e)}")
+            return None

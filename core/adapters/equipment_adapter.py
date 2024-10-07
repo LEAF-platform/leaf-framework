@@ -37,10 +37,15 @@ class EquipmentAdapter:
         """
         Signal the proxy to stop.
         """
-        #self._client.flush(topics.bioreactors.details(self._reactor_id))
-        #self._client.flush(topics.bioreactors.running(self._reactor_id))
-        #self._client.flush(topics.bioreactors.start(self._reactor_id))
+        # Needs reworking really.
+        for process in self._processes:
+            for phase in process._phases:
+                phase._output.flush(metadata_manager.details())
+                phase._output.flush(metadata_manager.running())
+                phase._output.flush(metadata_manager.experiment.start())
+                phase._output.flush(metadata_manager.experiment.start())
         self._stop_event.set()
+        self._watcher.stop()
 
 class AbstractInterpreter(ABC):
     def __init__(self):

@@ -3,6 +3,7 @@ import copy
 import uuid
 import csv
 from datetime import datetime
+from threading import Thread
 import time
 
 # Bioreactor
@@ -205,6 +206,30 @@ class Biolector1Adapter(Bioreactor):
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p,measure_p,stop_p]
         mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data,watcher,mock_process,interpreter)
-
+        super().__init__(instance_data,watcher,mock_process,
+                         interpreter)
         metadata_manager.add_equipment_data(metadata_fn)
+        self._write_file = write_file
+
+
+    def simulate(self,filepath,wait=None,delay=None):
+        if wait is None:
+            wait = 10
+
+        if os.path.isfile(self._write_file):
+            raise ValueError("Trying to run test when the file exists.")
+        
+        proxy_thread = Thread(target=self.start)
+        proxy_thread.start()
+        if delay is not None:
+            print(f'Delay for {delay} seconds.')
+            time.sleep(delay)
+            print("Delay finished.")
+
+        interpreter.simulate(filepath,self._write_file,wait)
+        time.sleep(wait)
+        os.remove(self._write_file)
+
+        self.stop()
+        proxy_thread.join()
+
