@@ -20,8 +20,14 @@ curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 with open(curr_dir + '/../test_config.yaml', 'r') as file:
     config = yaml.safe_load(file)
-broker = config["OUTPUT"]["broker_address"]
-port = int(config["OUTPUT"]["port"])
+
+mqtt_config = None
+for plugin in config["OUTPUT"]:
+    if plugin['plugin'] == 'MQTTAdapter':
+        mqtt_config = plugin
+
+# broker = config["OUTPUT"]["broker_address"]
+# port = int(config["OUTPUT"]["port"])
 # un = config["OUTPUT"]["username"]
 # pw = config["OUTPUT"]["password"]
 watch_file = os.path.join("tmp.txt")
@@ -54,8 +60,8 @@ class TestBiolector1(unittest.TestCase):
         if os.path.isfile(watch_file):
             os.remove(watch_file)
 
-        self.mock_client = MockBioreactorClient(broker, port) #,username=un,password=pw)
-        self.output = MQTT(broker,port) # ,username=un,password=pw)
+        self.mock_client = MockBioreactorClient(mqtt_config['broker'], mqtt_config['port']) #,username=un,password=pw)
+        self.output = MQTT(mqtt_config['broker'],mqtt_config['port']) # ,username=un,password=pw)
         self.instance_data = {"instance_id" : "test_biolector123","institute" : "test_ins"}
         self._adapter = Biolector1Adapter(self.instance_data,
                                           self.output,
