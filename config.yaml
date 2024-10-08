@@ -1,5 +1,5 @@
 EQUIPMENT:
-  code: BioLector1
+  adapter: BioLector1
   write_file: tmp.csv
 
 EQUIPMENT_DATA:
@@ -7,20 +7,20 @@ EQUIPMENT_DATA:
   institute: NCL
 
 OUTPUTS:
-  - code: MQTT
+  - plugin: MQTT
     broker: localhost
     port: 1883
     username: mcrowther
     password: Radeon12300
     fallback: KEYDB
 
-  - code: KEYDB
+  - plugin: KEYDB
     host: localhost
     port: 6379
     db: 0
     fallback: FILE
 
-  - code: FILE
+  - plugin: FILE
     filename: local.json
     fallback: null
 
