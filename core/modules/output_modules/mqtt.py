@@ -19,22 +19,27 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger()
 
 class MQTT(OutputModule):
-    def __init__(self, broker, port=None, 
+    def __init__(self, broker, port=1883,
                  username=None,password=None,fallback=None, clientid=None, protocol=mqtt.MQTTv311, transport="tcp", tls=False):
         super().__init__(fallback=fallback)
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        self.protocol = mqtt.MQTTv5 if '5' in protocol  else mqtt.MQTTv311
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=self.protocol, transport=transport, client_id=clientid)
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_connect_failure = self.on_connect_failure
         self.client.on_log = self.on_log
         self.client.on_message = self.on_message
         self.enable_logger()
-        if port is None:
-            port = 1883
+        self.session_start_time = time.time()
+
         if username is not None and password is not None:
             self.client.username_pw_set(username,password)
-        self.session_start_time = time.time()
+        if tls:
+            self.client.tls_set()
+            self.client.tls_insecure_set(True)
+
         self.client.connect(broker, port, 60)
+
         self.client.loop_start()
         self.messages = {}
 
