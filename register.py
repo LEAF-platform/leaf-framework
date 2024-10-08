@@ -2,6 +2,9 @@ import importlib
 import json
 import importlib.util
 import os
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 adapter_dir = os.path.join("core","adapters")
 equipment_adapter_dirs = [os.path.join(adapter_dir,"core_adapters"),
@@ -12,13 +15,17 @@ output_adapter_dir = os.path.join("core","modules","output_modules")
 
 def get_equipment_adapter(code):
     for adapter_dir in equipment_adapter_dirs:
+        logging.debug(f"Checking {adapter_dir}")
         if os.path.exists(adapter_dir):
+            logging.debug(f"Found {adapter_dir}")
             for root, dirs, files in os.walk(adapter_dir):
                 for file in files:
                     if file.endswith(".json"):
+                        logging.debug(f"Checking {file}")
                         json_fp = os.path.join(root, file)
                         with open(json_fp, 'r') as f:
                             data = json.load(f)
+                            logging.debug(f"Checking {equipment_key} in {data}")
                             if equipment_key in data and data[equipment_key] == code:
                                 python_fn = file.replace('.json', '.py')
                                 python_fp = os.path.join(root, python_fn)
