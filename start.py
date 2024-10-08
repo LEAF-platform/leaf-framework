@@ -99,7 +99,7 @@ def main():
     # Get the equipment module TODO (AKA adapters?)
     equipment_requirements = config["EQUIPMENT"]
     # TODO what is equipment code?
-    equipment_code = equipment_requirements.pop("code")
+    equipment_code = equipment_requirements.pop("adapter")
     # Adapters for the different equipment in your laboratory
     adapter = register.get_equipment_adapter(equipment_code)
     instance_data = config["EQUIPMENT_DATA"]
