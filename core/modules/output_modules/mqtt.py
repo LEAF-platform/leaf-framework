@@ -1,3 +1,6 @@
+from typing import Literal
+from uuid import uuid4
+
 import paho.mqtt.client as mqtt
 import time
 import logging
@@ -20,9 +23,12 @@ logger = logging.getLogger()
 
 class MQTT(OutputModule):
     def __init__(self, broker, port=1883,
-                 username=None,password=None,fallback=None, clientid=None, protocol=mqtt.MQTTv311, transport="tcp", tls=False):
+                 username=None,password=None,fallback=None, clientid=uuid4(), protocol="v3", transport: Literal['tcp', 'websockets', 'unix']='tcp', tls: bool=False):
         super().__init__(fallback=fallback)
-        self.protocol = mqtt.MQTTv5 if '5' in protocol  else mqtt.MQTTv311
+        self.protocol = mqtt.MQTTv5 if '5' in protocol.__str__()  else mqtt.MQTTv311
+        logging.debug(f"MQTT protocol: {self.protocol}")
+        logging.debug(f"MQTT transport: {transport}")
+        logging.debug(f"MQTT client ID: {clientid}")
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=self.protocol, transport=transport, client_id=clientid)
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
