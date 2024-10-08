@@ -1,0 +1,43 @@
+# Define stages of the pipeline
+stages:
+  - setup
+  - test
+
+# Job to set up the environment
+setup_environment:
+  stage: setup
+  image: python:3.12  # Use Python 3.12 official Docker image
+  before_script:
+    - pip install poetry  # Install Poetry
+    - poetry install  # Install dependencies from pyproject.toml
+  script:
+    - poetry check  # Optional: Check if the pyproject.toml file is valid
+  artifacts:
+    paths:
+      - .venv/  # Cache the virtual environment to speed up later jobs
+
+# Job to run tests
+test:
+  stage: test
+  image: python:3.12  # Use Python 3.12 official Docker image
+  before_script:
+    - pip install poetry  # Install Poetry
+    - poetry install  # Install dependencies from pyproject.toml
+  script:
+    - poetry run pytest  # Run your tests using pytest (or unittest)
+  artifacts:
+    reports:
+      junit: report.xml  # Save test results in JUnit format (optional)
+  coverage: '/TOTAL.+?(\d+\%)$/'  # Example regex for code coverage percentage if pytest coverage is used
+
+# Optional: Code coverage if using pytest-cov
+after_script:
+  - poetry run coverage xml  # Generate a coverage report if you use coverage.py
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .venv/  # Cache the virtual environment
+    - poetry.lock  # Cache lock file
+    - __pycache__/  # Cache Python bytecode
+
