@@ -23,7 +23,7 @@ logger = logging.getLogger()
 
 class MQTT(OutputModule):
     def __init__(self, broker, port=1883,
-                 username=None,password=None,fallback=None, clientid=uuid4(), protocol="v3", transport: Literal['tcp', 'websockets', 'unix']='tcp', tls: bool=False):
+                 username=None,password=None,fallback=None, clientid: str=str(uuid4()), protocol="v3", transport: Literal['tcp', 'websockets', 'unix']='tcp', tls: bool=False):
         super().__init__(fallback=fallback)
         self.protocol = mqtt.MQTTv5 if '5' in protocol.__str__()  else mqtt.MQTTv311
         logging.debug(f"MQTT protocol: {self.protocol}")
