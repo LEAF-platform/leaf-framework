@@ -20,11 +20,12 @@ logger = logging.getLogger()
 
 class MQTT(OutputModule):
     def __init__(self, broker, port=None, 
-                 username=None,password=None,fallback=None):
+                 username=None,password=None,fallback=None, clientid=None, protocol=mqtt.MQTTv311, transport="tcp", tls=False):
         super().__init__(fallback=fallback)
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
+        self.client.on_connect_failure = self.on_connect_failure
         self.client.on_log = self.on_log
         self.client.on_message = self.on_message
         self.enable_logger()
@@ -97,6 +98,9 @@ class MQTT(OutputModule):
             reconnect_delay = min(reconnect_delay, MAX_RECONNECT_DELAY)
             reconnect_count += 1
         logger.error(f"Unable to reconnect")
+
+    def on_connect_failure(self, client, userdata, flags, rc, metadata):
+        logger.error(f"Failed to connect: {rc}")
 
     def on_log(self, client, userdata, paho_log_level, message):
         if paho_log_level == mqtt.LogLevel.MQTT_LOG_ERR:
