@@ -27,7 +27,10 @@ from core.adapters.equipment_adapter import AbstractInterpreter
 from mock_mqtt_client import MockBioreactorClient
 from core.metadata_manager.metadata import metadata_manager
 
-with open('../test_config.yaml', 'r') as file:
+# Current location of this script
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+
+with open(curr_dir + '/../test_config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 broker = config["OUTPUT"]["broker_address"]
 port = int(config["OUTPUT"]["port"])

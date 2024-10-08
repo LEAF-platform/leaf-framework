@@ -22,14 +22,16 @@ from core.modules.process_modules.discrete_module import DiscreteProcess
 from mock_mqtt_client import MockBioreactorClient
 from core.metadata_manager.metadata import metadata_manager
 
-with open('../../test_config.yaml', 'r') as file:
+# Current location of this script
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+
+with open(curr_dir + '/../../test_config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 broker = config["OUTPUT"]["broker_address"]
 port = int(config["OUTPUT"]["port"])
 un = config["OUTPUT"]["username"]
 pw = config["OUTPUT"]["password"]
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
 test_file_dir = os.path.join(curr_dir,"..","static_files")
 test_file = os.path.join(test_file_dir,"ecoli-GFP-mCherry_inter.csv")
 initial_file = os.path.join(test_file_dir,"biolector1_metadata.csv")
