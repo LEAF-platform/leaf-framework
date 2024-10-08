@@ -1,4 +1,4 @@
-from core.modules.phase_modules.measure import MeasurePhase
+from core.metadata_manager.metadata import metadata_manager
 from core.modules.phase_modules.measure import MeasurePhase
 
 
