@@ -1,5 +1,3 @@
-import os
-
 from core.modules.input_modules.event_watcher import EventWatcher
 
 class DBWatcher(EventWatcher):

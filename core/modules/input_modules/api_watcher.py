@@ -1,7 +1,3 @@
-import os
-
-from core.modules.input_modules.event_watcher import EventWatcher
-
 from core.modules.input_modules.event_watcher import EventWatcher
 class APIWatcher(EventWatcher):
     def __init__(self, file_path, start_callback=None,

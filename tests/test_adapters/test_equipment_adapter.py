@@ -1,10 +1,12 @@
 import os
-import sys
-import unittest
-import yaml
-import time
-from threading import Thread
 import shutil
+import sys
+import time
+import unittest
+from threading import Thread
+
+import yaml
+
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
@@ -17,9 +19,7 @@ from core.modules.measurement_modules.o2 import O2
 from core.modules.measurement_modules.ph import pH
 from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.control import ControlPhase
-from core.modules.process_modules.continous_module import ContinousProcess
 from core.modules.process_modules.discrete_module import DiscreteProcess
-from mock_mqtt_client import MockBioreactorClient
 
 from core.adapters.core_adapters.bioreactor import Bioreactor
 from core.adapters.equipment_adapter import AbstractInterpreter
@@ -94,7 +94,7 @@ class MockBioreactor(Bioreactor):
         mock_process = [DiscreteProcess(phase)]
         super().__init__(instance_data,watcher,mock_process,MockBioreactorInterpreter())
 
-# Note the tests havent been updated here since the rework.
+# Note the tests haven't been updated here since the rework.
 class TestBioreactor(unittest.TestCase):
     def setUp(self):
         if not os.path.isfile(text_watch_file):

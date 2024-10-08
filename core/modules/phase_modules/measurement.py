@@ -1,6 +1,7 @@
-import os
 from core.modules.phase_modules.measure import MeasurePhase
-from core.metadata_manager.metadata import metadata_manager
+from core.modules.phase_modules.measure import MeasurePhase
+
+
 class MeasurementPhase(MeasurePhase):
     def __init__(self, output_adapter,measurements):
         term_builder = metadata_manager.experiment.measurement

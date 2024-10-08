@@ -9,7 +9,7 @@ class MeasurePhase(PhaseModule):
     def update(self,data=None,**kwargs):
         if self._interpreter is not None:
             # Standard terms perhaps??
-            # Need to figure out here if how measurements are properly accessesd..
+            # Need to figure out here if how measurements are properly accessesd.
             data = self._interpreter.measurement(data,self._measurements)
             exp_id = self._interpreter.id
             print(exp_id)

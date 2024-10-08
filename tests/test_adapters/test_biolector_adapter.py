@@ -1,11 +1,11 @@
 import os
-import sys
-import unittest
-import time
-import yaml
 import shutil
-import csv
+import sys
+import time
+import unittest
 from threading import Thread
+
+import yaml
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))

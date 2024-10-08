@@ -5,10 +5,9 @@ import logging
 import os
 import unittest
 from datetime import datetime
-from time import sleep
 
 import core.start as core
-from core.components.indpensim.indpensim_adapter import main, set_global_data, set_global_start_time, get_global_data, \
+from core.components.indpensim.indpensim_adapter import main, set_global_data, set_global_start_time, \
     get_size_global_data
 
 # Set the logging level

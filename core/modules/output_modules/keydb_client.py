@@ -1,8 +1,9 @@
-import redis
 import logging
-import json
+
+import redis
 
 from core.modules.output_modules.output_module import OutputModule
+
 logging.basicConfig(level=logging.INFO)
 
 class KEYDB(OutputModule):

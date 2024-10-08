@@ -126,7 +126,7 @@ class Biolector1Interpreter(AbstractInterpreter):
     def measurement(self,data,measurements):        
         # The file is created with content and 
         # therefore update is called.
-        # Dont want to do anything
+        # Don't want to do anything
         if data[-1][0] == "READING":
             return None
         data = data[::-1]
