@@ -24,7 +24,7 @@ test:
     - pip install poetry  # Install Poetry
     - poetry install  # Install dependencies from pyproject.toml
   script:
-    - poetry run pytest  # Run your tests using pytest (or unittest)
+    - poetry run unittest  # Run your tests using unittest
   artifacts:
     reports:
       junit: report.xml  # Save test results in JUnit format (optional)
