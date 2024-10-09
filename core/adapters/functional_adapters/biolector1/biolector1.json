@@ -1,0 +1,38 @@
+{
+    "class" : "Biolector1Adapter",
+    "equipment_id": "BioLector1",
+    "version": "1.0",
+    "manufacturer": "m2p-labs GmbH",
+    "device_type": "Microbioreactor",
+    "application": "High-throughput cultivation and analysis",
+    "features": {
+      "multi-parallel_cultivation": true,
+      "real_time_monitoring": true,
+      "optical_density_measurement": true,
+      "fluorescence_detection": true,
+      "pH_measurement": true,
+      "oxygen_measurement": true,
+      "temperature_control": true,
+      "shaking_speed_control": true
+    },
+    "supported_media_volumes": "200 µL to 1000 µL",
+    "measurement_range": {
+      "optical_density": "0.1 to 10 OD",
+      "fluorescence": "Low to High (relative units)",
+      "pH_range": "4.0 to 9.0",
+      "oxygen_saturation": "0% to 100%"
+    },
+    "parameters": {
+      "shaking_speed_rpm": "200 to 1500 RPM",
+      "temperature_control_range": "20°C to 50°C"
+    },
+    "interface": {
+      "data_export": "CSV, XML",
+      "connectivity": "USB, Ethernet",
+      "software": "BioLection Software"
+    },
+    "power_supply": "110-240V AC, 50/60Hz",
+    "dimensions": "300mm x 400mm x 200mm",
+    "weight": "10kg"
+  }
+  
