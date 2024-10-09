@@ -66,8 +66,7 @@ class FileWatcher(FileSystemEventHandler,EventWatcher):
                 self._observer.start()
         except RuntimeError as e:
             if "already scheduled" in str(e):
-                print(e)
-                logging.error(f"Watchdog error: {e}")
+                raise ValueError(f'Two adapters are watching the same file: {self._file_name}')
             else:
                 raise
         super().start()
