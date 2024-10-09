@@ -1,4 +1,5 @@
 import os
+import signal
 import threading
 import time
 import logging
@@ -139,7 +140,6 @@ def _run_simulation_in_thread(adapter, filename, interval):
     thread.start()
     return thread
 
-
 def main():
     logger.info("Starting the proxy.")
     args = parse_args()
@@ -147,10 +147,10 @@ def main():
         logger.debug("Debug logging enabled.")
         logger.setLevel(logging.DEBUG)
 
-    logging.debug(f"Loading configuration file: {args.config}")
+    logger.debug(f"Loading configuration file: {args.config}")
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
-    logging.info(f"Configuration: {args.config} loaded.")
+    logger.info(f"Configuration: {args.config} loaded.")
 
     output = _get_output_module(config)
 
@@ -174,7 +174,7 @@ def main():
                 raise NotImplementedError(
                     f"Adapter {equipment_id} does not support simulation."
                 )
-            logging.info(f"Simulator started for instance {instance_id}.")
+            logger.info(f"Simulator started for instance {instance_id}.")
             if not os.path.isfile(simulated["filename"]):
                 raise ValueError(f'{simulated["filename"]} doesnt exist')
 
@@ -183,21 +183,27 @@ def main():
             )
             adapter_threads.append(thread)
         else:
-            logging.info(f"Proxy started for instance {instance_id}.")
+            logger.info(f"Proxy started for instance {instance_id}.")
             thread = _start_adapter_in_thread(adapter)
             adapter_threads.append(thread)
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logging.info("Shutting down all adapters...")
+    def signal_handler(sig: int, frame: object) -> None:
+        logger.info("Received SIGINT (KeyboardInterrupt). Exiting gracefully...")
+        logger.info("Shutting down all adapters...")
         for adapter in adapters:
             try:
                 adapter.stop()
-                logging.info(f"Adapter for {adapter} stopped successfully.")
+                logger.info(f"Adapter for {adapter} stopped successfully.")
             except Exception as e:
-                logging.info(f"Error stopping adapter: {e}")
+                logger.info(f"Error stopping adapter: {e}")
+        logger.info("Exiting...")
+        os._exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    while True:
+        logger.debug("Main thread running.")
+        time.sleep(1)
 
 
 if __name__ == "__main__":
