@@ -12,8 +12,6 @@ RECONNECT_RATE = 2
 MAX_RECONNECT_COUNT = 12
 MAX_RECONNECT_DELAY = 60
 
-logging.basicConfig(level=logging.DEBUG)
-
 class MQTT(OutputModule):
     def __init__(self, broker, port=1883,
                  username=None,password=None,fallback=None, 

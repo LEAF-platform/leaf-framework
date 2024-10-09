@@ -14,17 +14,16 @@ DEBUG = False
 
 # Configure logging
 logger = logging.getLogger(__name__)
-logger.propagate = False  # Prevent the logger from passing logs to the parent/root logger
 logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler("app.log")
 file_handler.setLevel(logging.DEBUG)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+#console_handler = logging.StreamHandler()
+#console_handler.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(formatter)
-console_handler.setFormatter(formatter)
+#console_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
-logger.addHandler(console_handler)
+#logger.addHandler(console_handler)
 
 adapters = []
 
@@ -57,19 +56,19 @@ def parse_args() -> argparse.Namespace:
 
 
 def signal_handler(signal_received, frame):
-    logging.info("Shutting down gracefully.")
+    logger.info("Shutting down gracefully.")
     stop_all_adapters()
     sys.exit(0)
 
 
 def stop_all_adapters():
-    logging.info("Shutting down all adapters.")
+    logger.info("Shutting down all adapters.")
     for adapter in adapters:
         try:
             adapter.stop()
-            logging.info(f"Adapter for {adapter} stopped successfully.")
+            logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
-            logging.error(f"Error stopping adapter: {e}")
+            logger.error(f"Error stopping adapter: {e}")
 
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -126,12 +125,12 @@ def _process_instance(instance, output):
     adapter = register.get_equipment_adapter(equipment_code)
     manager = MetadataManager()
     if data["instance_id"] in _get_existing_ids(output, manager):
-        raise ValueError(f'ID: {data["instance_id"]} is taken.')
-
+        logger.error(f'ID: {data["instance_id"]} is taken.')
+        #raise ValueError(f'ID: {data["instance_id"]} is taken.')
     try:
         equipment_adapter = adapter(data, output, **requirements)
     except ValueError as ex:
-        logging.error(f"Error initialising {data['instance_id']}: {ex}")
+        logger.error(f"Error initialising {data['instance_id']}: {ex}")
         return None
 
     return equipment_adapter
@@ -151,7 +150,7 @@ def _run_simulation_in_thread(adapter, filename, interval):
     print(f"Running simulation: {adapter}")
 
     def simulation():
-        logging.info(
+        logger.info(
             f"Starting simulation using file {filename} with interval {interval}."
         )
         adapter.simulate(filename, interval)
@@ -166,24 +165,23 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
     stop_all_adapters()
 
 
 sys.excepthook = handle_exception
 
-
 def main():
-    logging.info("Starting the proxy.")
+    logger.info("Starting the proxy.")
     args = parse_args()
     if args.debug:
-        logging.debug("Debug logging enabled.")
+        logger.debug("Debug logging enabled.")
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug(f"Loading configuration file: {args.config}")
+    logger.debug(f"Loading configuration file: {args.config}")
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
-    logging.info(f"Configuration: {args.config} loaded.")
+    logger.info(f"Configuration: {args.config} loaded.")
 
     output = _get_output_module(config)
 
@@ -207,7 +205,7 @@ def main():
                     raise NotImplementedError(
                         f"Adapter {equipment_id} does not support simulation."
                     )
-                logging.info(f"Simulator started for instance {instance_id}.")
+                logger.info(f"Simulator started for instance {instance_id}.")
                 if not os.path.isfile(simulated["filename"]):
                     raise ValueError(f'{simulated["filename"]} doesn\'t exist')
 
@@ -216,7 +214,7 @@ def main():
                 )
                 adapter_threads.append(thread)
             else:
-                logging.info(f"Proxy started for instance {instance_id}.")
+                logger.info(f"Proxy started for instance {instance_id}.")
                 thread = _start_adapter_in_thread(adapter)
                 adapter_threads.append(thread)
 
@@ -224,16 +222,16 @@ def main():
             time.sleep(1)
 
     except KeyboardInterrupt:
-        logging.info("Keyboard interrupt received.")
+        logger.info("Keyboard interrupt received.")
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
+        logger.error(f"An unexpected error occurred: {e}")
     finally:
         stop_all_adapters()
-        logging.info("Proxy stopped.")
+        logger.info("Proxy stopped.")
 
     for thread in adapter_threads:
-        thread.join()  # Wait for each thread to finish
-    logging.info("All adapter threads have been stopped.")
+        thread.join()
+    logger.info("All adapter threads have been stopped.")
 
 
 if __name__ == "__main__":

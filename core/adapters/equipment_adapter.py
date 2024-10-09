@@ -24,6 +24,11 @@ class EquipmentAdapter:
         self._metadata_manager.load_from_file(metadata_fn)
         self._metadata_manager.add_equipment_data(instance_data)
 
+    def __str__(self):
+        ins_id = self._metadata_manager.get_instance_id()
+        equip_id = self._metadata_manager.get_equipment_id()
+        return f'{ins_id} - {equip_id}'
+    
     def start(self):
         """
         Start all watchers and keep the proxy running until interrupted.

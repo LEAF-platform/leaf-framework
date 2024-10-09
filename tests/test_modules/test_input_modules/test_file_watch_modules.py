@@ -25,6 +25,15 @@ class TestFileWatcher(unittest.TestCase):
             shutil.rmtree(test_file_dir)
         time.sleep(2)
 
+    def test_file_watcher_no_arg(self):
+        def mock_callback(data):
+            print(data)
+        text_watch_file = ""
+        watcher = FileWatcher(text_watch_file,
+                              MetadataManager(),
+                              measurement_callbacks=mock_callback)
+        watcher.start()
+        
     def test_file_watcher_change(self):
         def mod_file(filename, interval, count):
             for _ in range(count):

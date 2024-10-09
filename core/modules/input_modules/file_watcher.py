@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -60,8 +61,14 @@ class FileWatcher(FileSystemEventHandler,EventWatcher):
         self._stop_callbacks.remove(callback)
         
     def start(self):
-        if not self._observer.is_alive():
-            self._observer.start()
+        try:
+            if not self._observer.is_alive():
+                self._observer.start()
+        except RuntimeError as e:
+            if "already scheduled" in str(e):
+                raise ValueError(f'Two adapters are watching the same file: {self._file_name}')
+            else:
+                raise
         super().start()
 
     def stop(self):

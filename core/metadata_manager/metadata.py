@@ -57,9 +57,16 @@ class MetadataManager:
     def is_called(self, action, term):
         return action.split("/")[-1] == term.split("/")[-1]
 
-    def get_instance_id(self, topic):
-        return topic.split("/")[2]
-
+    def get_instance_id(self, topic=None):
+        if topic is not None:
+            return topic.split("/")[2]
+        if equipment_key in self._metadata:
+            return self._metadata[equipment_key]["instance_id"]
+        
+    def get_equipment_id(self):
+        if equipment_key in self._metadata:
+            return self._metadata[equipment_key]["equipment_id"]
+        
     def __getattr__(self, item):
         """Dynamically handle attribute access based on equipment terms."""
         if hasattr(self.equipment_terms, item):
