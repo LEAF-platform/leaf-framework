@@ -127,7 +127,6 @@ def _process_instance(instance, output):
     if data["instance_id"] in _get_existing_ids(output, manager):
         logger.error(f'ID: {data["instance_id"]} is taken.')
         #raise ValueError(f'ID: {data["instance_id"]} is taken.')
-
     try:
         equipment_adapter = adapter(data, output, **requirements)
     except ValueError as ex:
