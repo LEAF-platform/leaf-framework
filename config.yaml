@@ -15,21 +15,21 @@ EQUIPMENT_INSTANCES:
         instance_id: biolector_manchester4
         institute: MAN
       requirements:
-        write_file: tmp2.csv
+        write_file: tmp.csv
   - equipment:
       adapter: BioLector1
       data:
         instance_id: biolector_london22
         institute: LDN
       requirements:
-        write_file: tmp3.csv
+        write_file: tmp.csv
 
 OUTPUTS:
   - plugin: MQTT
-    broker: test.mosquitto.org
+    broker: localhost
     port: 1883
-#    username: mcrowther
-#    password: Radeon12300
+    username: mcrowther
+    password: Radeon12300
     fallback: KEYDB
 
   - plugin: KEYDB
