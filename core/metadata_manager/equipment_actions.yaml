@@ -1,0 +1,6 @@
+details: <institute>/<equipment_id>/<instance_id>/details
+running: <institute>/<equipment_id>/<instance_id>/running
+experiment:
+  start: <institute>/<equipment_id>/<instance_id>/experiment/start
+  stop: <institute>/<equipment_id>/<instance_id>/experiment/stop
+  measurement: <institute>/<equipment_id>/<instance_id>/experiment/<experiment_id>/measurement

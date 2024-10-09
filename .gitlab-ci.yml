@@ -1,0 +1,46 @@
+# Define stages of the pipeline
+stages:
+  - setup
+  - test
+
+# Job to set up the environment
+setup_environment:
+  stage: setup
+  image: python:3.12  # Use Python 3.12 official Docker image
+  before_script:
+    - pip install --upgrade pip  # Upgrade pip to the latest version
+    - pip install -r requirements.txt  # Install dependencies from requirements.txt
+  script:
+    - python -m pip check  # Optional: Check if the installed packages have compatibility issues
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .venv/  # Cache the virtual environment to speed up later jobs (if you use virtual environments)
+      - requirements.txt  # Cache requirements file
+      - __pycache__/  # Cache Python bytecode
+
+# Job to run tests
+test:
+  stage: test
+  image: python:3.12  # Use Python 3.12 official Docker image
+  before_script:
+    - pip install --upgrade pip  # Upgrade pip to the latest version
+    - pip install -r requirements.txt  # Install dependencies from requirements.txt
+  script:
+    - python -m unittest discover -s tests  # Run your tests using unittest
+  timeout: 1 minutes  # Set job timeout which probably needs to be increased in the future
+  artifacts:
+    reports:
+      junit: report.xml  # Save test results in JUnit format (optional)
+  coverage: '/TOTAL.+?(\d+\%)$/'  # Example regex for code coverage percentage if pytest coverage is used
+
+# Optional: Code coverage if using pytest-cov
+after_script:
+  - coverage xml  # Generate a coverage report if you use coverage.py (Optional, remove if not using coverage)
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .venv/  # Cache the virtual environment (if using virtualenv)
+    - requirements.txt  # Cache requirements file
+    - __pycache__/  # Cache Python bytecode

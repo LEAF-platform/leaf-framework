@@ -1,0 +1,43 @@
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: BioLector1
+      data:
+        instance_id: biolector_devonshire10
+        institute: NCL
+      requirements:
+        write_file: tmp.csv
+      simulation:
+        filename: tests/static_files/biolector1_full.csv
+        interval: 60
+  - equipment:
+      adapter: BioLector1
+      data:
+        instance_id: biolector_manchester4
+        institute: MAN
+      requirements:
+        write_file: tmp2.csv
+  - equipment:
+      adapter: BioLector1
+      data:
+        instance_id: biolector_london22
+        institute: LDN
+      requirements:
+        write_file: tmp3.csv
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: test.mosquitto.org
+    port: 1883
+#    username: mcrowther
+#    password: Radeon12300
+    fallback: KEYDB
+
+  - plugin: KEYDB
+    host: localhost
+    port: 6379
+    db: 0
+    fallback: FILE
+
+  - plugin: FILE
+    filename: local.json
+    fallback: null

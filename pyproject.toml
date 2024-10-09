@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "core"
+version = "0.1.0"
+description = "LabEquipment Adapter Framework (LEAF)"
+authors = ["core"]
+license = "Apache 2.0"
+readme = "README.md"
+repository = "https://gitlab.com/LabEquipmentAdapterFramework/leaf"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+coverage = "^7.0"
