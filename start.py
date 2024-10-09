@@ -15,7 +15,7 @@ logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler("app.log")
 file_handler.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+console_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(formatter)
 console_handler.setFormatter(formatter)
@@ -54,6 +54,7 @@ def parse_args() -> argparse.Namespace:
 
 def _get_existing_ids(output_module, metadata_manager):
     topic = metadata_manager.details()
+    logger.debug(f"Subscribing to topic: {topic}")
     output_module.subscribe(topic)
     time.sleep(2)
     output_module.unsubscribe(topic)
@@ -100,13 +101,16 @@ def _process_instance(instance, output):
     requirements = instance["requirements"]
     adapter = register.get_equipment_adapter(equipment_code)
     manager = MetadataManager()
+    existing_ids = _get_existing_ids(output, manager)
+    logger.debug(f"Existing IDs: {existing_ids}")
     if data["instance_id"] in _get_existing_ids(output, manager):
-        raise ValueError(f'ID: {data["instance_id"]} is taken.')
+        # raise ValueError(f'ID: {data["instance_id"]} is taken.')
+        logger.warning(f"ID: {data['instance_id']} is taken.")
 
     try:
         equipment_adapter = adapter(data, output, **requirements)
     except ValueError as ex:
-        logging.error(f"Error processing instance {data['instance_id']}: {ex}")
+        logger.error(f"Error processing instance {data['instance_id']}: {ex}")
         return None
 
     return equipment_adapter
@@ -123,9 +127,9 @@ def _start_adapter_in_thread(adapter):
 
 def _run_simulation_in_thread(adapter, filename, interval):
     """Run the adapter's simulate function in a separate thread."""
-    print(f"Running simulation: {adapter}")
+    logger.info(f"Running simulation: {adapter}")
     def simulation():
-        logging.info(
+        logger.info(
             f"Starting simulation using file {filename} with interval {interval}."
         )
         adapter.simulate(filename, interval)
@@ -137,11 +141,11 @@ def _run_simulation_in_thread(adapter, filename, interval):
 
 
 def main():
-    logging.info("Starting the proxy.")
+    logger.info("Starting the proxy.")
     args = parse_args()
     if args.debug:
-        logging.debug("Debug logging enabled.")
-        logging.basicConfig(level=logging.DEBUG)
+        logger.debug("Debug logging enabled.")
+        logger.setLevel(logging.DEBUG)
 
     logging.debug(f"Loading configuration file: {args.config}")
     with open(args.config, "r") as file:
