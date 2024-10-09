@@ -14,6 +14,7 @@ DEBUG = False
 
 # Configure logging
 logger = logging.getLogger(__name__)
+logger.propagate = False  # Prevent the logger from passing logs to the parent/root logger
 logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler("app.log")
 file_handler.setLevel(logging.DEBUG)
