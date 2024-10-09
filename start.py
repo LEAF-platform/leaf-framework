@@ -125,7 +125,8 @@ def _process_instance(instance, output):
     adapter = register.get_equipment_adapter(equipment_code)
     manager = MetadataManager()
     if data["instance_id"] in _get_existing_ids(output, manager):
-        raise ValueError(f'ID: {data["instance_id"]} is taken.')
+        logger.error(f'ID: {data["instance_id"]} is taken.')
+        #raise ValueError(f'ID: {data["instance_id"]} is taken.')
 
     try:
         equipment_adapter = adapter(data, output, **requirements)
@@ -170,7 +171,6 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 
 sys.excepthook = handle_exception
-
 
 def main():
     logger.info("Starting the proxy.")
