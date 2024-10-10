@@ -11,7 +11,7 @@ from core.components.indpensim.indpensim_adapter import main, set_global_data, s
     get_size_global_data
 
 # Set the logging level
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class TestIndPenSim(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:

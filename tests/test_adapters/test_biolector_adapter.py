@@ -16,7 +16,7 @@ from mock_mqtt_client import MockBioreactorClient
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 # Current location of this script
 curr_dir = os.path.dirname(os.path.realpath(__file__))

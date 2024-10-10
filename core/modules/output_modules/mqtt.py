@@ -12,7 +12,10 @@ RECONNECT_RATE = 2
 MAX_RECONNECT_COUNT = 12
 MAX_RECONNECT_DELAY = 60
 
-logging.basicConfig(level=logging.DEBUG)
+from core.modules.logger_modules.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
+
 
 class MQTT(OutputModule):
     def __init__(self, broker, port=1883,
@@ -22,10 +25,10 @@ class MQTT(OutputModule):
                  tls: bool=False):
         super().__init__(fallback=fallback)
         self.protocol = mqtt.MQTTv5 if '5' in protocol.__str__() else mqtt.MQTTv311
-        logging.debug(f"MQTT protocol: {self.protocol}")
-        logging.debug(f"MQTT transport: {transport}")
-        logging.debug(f"MQTT client ID: {clientid}")
-        logging.debug(f"MQTT TLS: {tls}")
+        logger.debug(f"MQTT protocol: {self.protocol}")
+        logger.debug(f"MQTT transport: {transport}")
+        logger.debug(f"MQTT client ID: {clientid}")
+        logger.debug(f"MQTT TLS: {tls}")
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, 
                                   protocol=self.protocol, 
@@ -39,14 +42,14 @@ class MQTT(OutputModule):
         self.session_start_time = time.time()
 
         if username is not None and password is not None:
-            logging.debug(f"MQTT username: {username}")
+            logger.debug(f"MQTT username: {username}")
             self.client.username_pw_set(username,password)
         if tls:
-            logging.debug(f"MQTT TLS enabled")
+            logger.debug(f"MQTT TLS enabled")
             self.client.tls_set()
             self.client.tls_insecure_set(True)
 
-        logging.debug(f"Connecting to MQTT broker at {broker}:{port}")
+        logger.debug(f"Connecting to MQTT broker at {broker}:{port}")
         self.client.connect(broker, port, 60)
 
         self.client.loop_start()
@@ -58,6 +61,7 @@ class MQTT(OutputModule):
             data = json.dumps(data)
         elif data is not None and not isinstance(data, str):
             data = str(data)
+        logger.debug(f"Transmitting message to {topic}: {data}")
         result = self.client.publish(topic=topic, 
                                      payload=data, 
                                      qos=0, retain=retain)
@@ -65,7 +69,7 @@ class MQTT(OutputModule):
             if self._fallback is not None:
                 self._fallback.transmit(topic,data=data)
             else:
-                logging.error(f"Failed to send message: {result.rc}")
+                logger.error(f"Failed to send message: {result.rc}")
 
     def flush(self,topic):
         self.client.publish(topic=topic, 
@@ -74,27 +78,27 @@ class MQTT(OutputModule):
         
     def on_connect(self, client, userdata, flags, rc, metadata):
         if rc != 0:
-            logging.error(f"Failed to connect: {rc}")
+            logger.error(f"Failed to connect: {rc}")
 
     def on_disconnect(self, client, userdata, flags, rc, metadata):
-        logging.error(f"Disconnected: {rc}")
+        logger.error(f"Disconnected: {rc}")
         reconnect_count, reconnect_delay = 0, FIRST_RECONNECT_DELAY
         while reconnect_count < MAX_RECONNECT_COUNT:
-            logging.info(f"Retry: {reconnect_count}")
+            logger.info(f"Retry: {reconnect_count}")
             time.sleep(reconnect_delay)
             try:
                 client.reconnect()
-                logging.info(f"Reconnected")
+                logger.info(f"Reconnected")
                 return
             except Exception as err:
                 pass
             reconnect_delay *= RECONNECT_RATE
             reconnect_delay = min(reconnect_delay, MAX_RECONNECT_DELAY)
             reconnect_count += 1
-        logging.error(f"Unable to reconnect")
+        logger.error(f"Unable to reconnect")
 
     def on_connect_failure(self, client, userdata, flags, rc, metadata):
-        logging.error(f"Failed to connect: {rc}")
+        logger.error(f"Failed to connect: {rc}")
 
     def on_log(self, client, userdata, paho_log_level, message):
         if paho_log_level == mqtt.LogLevel.MQTT_LOG_ERR:

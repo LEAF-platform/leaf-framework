@@ -35,7 +35,7 @@ class EventWatcher:
     def measurement_callbacks(self):
         return self._measurement_callbacks
 
-    def add_measurement_callback(self, callback):
+    def add_measurement_callback(self, callback) -> None:
         self._measurement_callbacks.append(callback)
 
     def remove_measurement_callback(self,callback):

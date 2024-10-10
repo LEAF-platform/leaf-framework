@@ -5,7 +5,7 @@ EQUIPMENT_INSTANCES:
         instance_id: biolector_devonshire10
         institute: NCL
       requirements:
-        write_file: tmp.csv
+        write_file: tmp1.csv
       simulation:
         filename: tests/static_files/biolector1_full.csv
         interval: 60
@@ -23,6 +23,23 @@ EQUIPMENT_INSTANCES:
         institute: LDN
       requirements:
         write_file: tmp3.csv
+  - equipment:
+      adapter: IndPenSim
+      data:
+        instance_id: IndPenSimulator
+        institute: WU
+      requirements:
+        write_file: tmp4.csv
+        input_file: tests/static_files/IndPenSim_V3_Batch_1.csv.gz
+  - equipment:
+      adapter: IndPenSim
+      data:
+        instance_id: IndPenSimulator2
+        institute: WU
+      requirements:
+        write_file: tmp5.csv
+        input_file: tests/static_files/IndPenSim_V3_Batch_1.csv.gz
+
 
 OUTPUTS:
   - plugin: MQTT

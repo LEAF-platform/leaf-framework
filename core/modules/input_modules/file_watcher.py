@@ -43,7 +43,7 @@ class FileWatcher(FileSystemEventHandler,EventWatcher):
     def start_callbacks(self):
         return self._start_callbacks
 
-    def add_start_callback(self, callback):
+    def add_start_callback(self, callback) -> None:
         self._start_callbacks.append(callback)
 
     def remove_start_callback(self,callback):
@@ -53,7 +53,7 @@ class FileWatcher(FileSystemEventHandler,EventWatcher):
     def stop_callbacks(self):
         return self._start_callbacks
 
-    def add_stop_callback(self, callback):
+    def add_stop_callback(self, callback) -> None:
         self._stop_callbacks.append(callback)
 
     def remove_stop_callback(self,callback):

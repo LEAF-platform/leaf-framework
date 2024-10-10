@@ -1,6 +1,6 @@
 from core.modules.phase_modules.control import ControlPhase
 class StartPhase(ControlPhase):
-    def __init__(self, output_adapter,metadata_manager):
+    def __init__(self, output_adapter,metadata_manager) -> None:
         term_builder = metadata_manager.experiment.start
         super().__init__(output_adapter,term_builder,metadata_manager)
 

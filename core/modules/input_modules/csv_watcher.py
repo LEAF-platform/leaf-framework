@@ -6,7 +6,7 @@ from core.modules.input_modules.file_watcher import FileWatcher
 
 class CSVWatcher(FileWatcher):
     def __init__(self, file_path,metadata_manager, start_callbacks=None,
-                 measurement_callbacks=None, stop_callbacks=None,delimeter=";"):
+                 measurement_callbacks=None, stop_callbacks=None,delimeter: str=";") -> None:
         super().__init__(file_path,metadata_manager,start_callbacks,
                          measurement_callbacks,stop_callbacks)
         self._delimeter=delimeter
