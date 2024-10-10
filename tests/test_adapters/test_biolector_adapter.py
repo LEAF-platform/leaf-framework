@@ -5,12 +5,14 @@ import time
 import unittest
 from threading import Thread
 import yaml
+import csv
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
+from core.adapters.functional_adapters.biolector1.biolector1 import interpreter
 from core.modules.output_modules.mqtt import MQTT
 from mock_mqtt_client import MockBioreactorClient
 
@@ -18,10 +20,9 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Current location of this script
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-with open(curr_dir + '/../test_config.yaml', 'r') as file:
+with open(os.path.join(curr_dir,"..","test_config.yaml"), 'r') as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
@@ -57,6 +58,28 @@ def _modify_file():
 def _delete_file():
     if os.path.isfile(watch_file):
         os.remove(watch_file)
+
+class TestBiolector1Interpreter(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def _metadata_run(self):
+        with open(initial_file, 'r', encoding='latin-1') as file:
+            data = list(csv.reader(file, delimiter=";"))  
+        return interpreter.metadata(data)
+
+    def test_metadata(self):
+        result = self._metadata_run()
+        print(result)
+
+    def test_measurement(self):
+        result = self._metadata_run()
+        with open(measurement_file, 'r', encoding='latin-1') as file:
+            data = list(csv.reader(file, delimiter=";"))  
+        result = interpreter.measurement(data)
+
+    def test_simulate(self):
+        pass
 
 class TestBiolector1(unittest.TestCase):
     def setUp(self):

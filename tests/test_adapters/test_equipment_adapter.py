@@ -14,9 +14,6 @@ sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.modules.output_modules.mqtt import MQTT
 from core.modules.input_modules.file_watcher import FileWatcher
-from core.modules.measurement_modules.biomass import Biomass
-from core.modules.measurement_modules.o2 import O2
-from core.modules.measurement_modules.ph import pH
 from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.control import ControlPhase
 from core.modules.process_modules.discrete_module import DiscreteProcess
@@ -71,7 +68,7 @@ class MockBioreactorInterpreter(AbstractInterpreter):
     def metadata(self,data):
         return data
 
-    def measurement(self,data,measurements):
+    def measurement(self,data):
         return data
     
     def simulate(self):
@@ -83,11 +80,10 @@ class MockBioreactor(Bioreactor):
         #metadata_manager.add_equipment_data(instance_data)
         watcher = FileWatcher(fp,metadata_manager)
         output = MQTT(broker,port,username=un,password=pw,clientid=None)
-        measurements = [Biomass(),O2(),pH()]
         start_p = ControlPhase(output,metadata_manager.experiment.start,metadata_manager)
         stop_p = ControlPhase(output,metadata_manager.experiment.stop,metadata_manager)
         measure_p = MeasurePhase(output,metadata_manager.experiment.measurement,
-                                 metadata_manager,measurements)
+                                 metadata_manager)
         details_p = ControlPhase(output,metadata_manager.details,metadata_manager)
 
         watcher.add_start_callback(start_p.update)

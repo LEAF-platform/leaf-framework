@@ -14,16 +14,13 @@ from core.modules.process_modules.discrete_module import DiscreteProcess
 # Phases
 from core.modules.phase_modules.start import StartPhase
 from core.modules.phase_modules.stop import StopPhase
-from core.modules.phase_modules.measurement import MeasurementPhase
+from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.initialisation import InitialisationPhase
 # Watcher
 from core.modules.input_modules.csv_watcher import CSVWatcher
-# Measurements
-from core.modules.measurement_modules.biomass import Biomass
-from core.modules.measurement_modules.o2 import O2
-from core.modules.measurement_modules.ph import pH
 
 from core.metadata_manager.metadata import MetadataManager
+from core.measurement_terms.manager import measurement_manager
 # Note the biolector json file is an example, not a concrete decision on terms...
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, 'biolector1.json')
@@ -31,6 +28,8 @@ metadata_fn = os.path.join(current_dir, 'biolector1.json')
 class Biolector1Interpreter(AbstractInterpreter):
     def __init__(self):
         super().__init__()
+        self._TARGET_PARAMS_KEY = "target_parameters"
+        self._SENSORS_KEY = "sensors"
         self._filtermap = None
         self._parameters = None
         self._sensors = None
@@ -118,31 +117,36 @@ class Biolector1Interpreter(AbstractInterpreter):
         self.TIMESTAMP_KEY : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         self.EXPERIMENT_ID_KEY : self.id}
         if self._parameters is not None:
-            payload[self.TARGET_PARAMS_KEY] = self._parameters
+            payload[self._TARGET_PARAMS_KEY] = self._parameters
         if  self._sensors is not None:
-            payload[self.SENSORS_KEY] = self._sensors
+            payload[self._SENSORS_KEY] = self._sensors
         return payload
     
-    def measurement(self,data,measurements):        
+    def measurement(self,data):        
         # The file is created with content and 
         # therefore update is called.
         # Dont want to do anything
         if data[-1][0] == "READING":
             return None
+        metadata = {self.TIMESTAMP_KEY : datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         data = data[::-1]
         update = {}
         if data[0][0] == "R":
             data = data[1:]
         reading = data[0][0]
+        print(self._filtermap)
         for row in data:
             if len(row) == 0:
                 continue
             if row[0] == "R":
                 continue
             if row[0] != reading:
-                return {self.TIMESTAMP_KEY : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        self.UPDATE_KEY : update}
+                return metadata,update
             fs_code = int(row[4])
+            # TODO: Basically need to use the filtermap to route the measurements to objects.
+            # Gonna need a rework here... Do we have to just do a 
+            # direct map i.e. "Filtername" : Measurement, or can we be fancy?
+            # My suspicsion is no, we cant.
             name = self._get_filtername(fs_code)
             if name not in update:
                 update[name] = {}
@@ -156,8 +160,8 @@ class Biolector1Interpreter(AbstractInterpreter):
             gain = sensor_data["GAIN"]
             value = amplitude
             update[name][well_num]["value"] = value
-        return {self.TIMESTAMP_KEY : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                self.UPDATE_KEY : update}
+        
+        return metadata,update
 
     def simulate(self,read_file,write_file,wait):
         def write(chunk):
@@ -195,10 +199,9 @@ class Biolector1Adapter(Bioreactor):
     def __init__(self,instance_data,output,write_file=None):
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file,metadata_manager)
-        measurements = [Biomass(),O2(),pH()]
         start_p = StartPhase(output,metadata_manager)
         stop_p = StopPhase(output,metadata_manager)
-        measure_p = MeasurementPhase(output,measurements,metadata_manager)
+        measure_p = MeasurePhase(output,metadata_manager)
         details_p = InitialisationPhase(output,metadata_manager)
 
         watcher.add_start_callback(start_p.update)

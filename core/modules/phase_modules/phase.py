@@ -1,16 +1,10 @@
 
 
 class PhaseModule:
-    def __init__(self,output_adapter,term_builder,metadata_manager,
-                 measurements=None,interpreter=None):
+    def __init__(self,output_adapter,term_builder,
+                 metadata_manager,interpreter=None):
         super().__init__()
         self._output = output_adapter
-        if measurements is None:
-            self._measurements = []
-        elif not isinstance(measurements,(list,set,tuple)): 
-            self._measurements = [measurements]
-        else:
-            self._measurements = measurements
         self._interpreter = interpreter
         self._term_builder = term_builder
         self._metadata_manager = metadata_manager

@@ -11,9 +11,6 @@ sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.modules.output_modules.mqtt import MQTT
 from core.modules.input_modules.file_watcher import FileWatcher
-from core.modules.measurement_modules.biomass import Biomass
-from core.modules.measurement_modules.o2 import O2
-from core.modules.measurement_modules.ph import pH
 from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.control import ControlPhase
 
@@ -67,11 +64,9 @@ class TestMeasurePhase(unittest.TestCase):
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
         self.watcher = FileWatcher(text_watch_file,self._metadata_manager)
         output = MQTT(broker,port,username=un,password=pw,clientid=None)
-        measurements = [Biomass(),O2(),pH()]
         self._module = MeasurePhase(output,
                                     self._metadata_manager.experiment.measurement,
-                                    self._metadata_manager,
-                                    measurements)
+                                    self._metadata_manager)
         self._mock_experiment="test_experiment_id"
         self.watcher.add_measurement_callback(self._mock_update)
 
