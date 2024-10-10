@@ -25,7 +25,7 @@ class EventWatcher:
     def initialise_callbacks(self):
         return self._initialise_callbacks
 
-    def add_initialise_callback(self, callback):
+    def add_initialise_callback(self, callback) -> None:
         self._initialise_callbacks.append(callback)
 
     def remove_initialise_callback(self,callback):
