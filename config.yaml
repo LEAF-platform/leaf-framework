@@ -35,11 +35,13 @@ EQUIPMENT_INSTANCES:
       adapter: IndPenSim
       data:
         instance_id: IndPenSimulator2
-        institute: WU
+        institute: unlock
       requirements:
         write_file: tmp5.csv
-        input_file: tests/static_files/IndPenSim_V3_Batch_1.csv.gz
-
+        start_date: 2021-01-01
+      simulation:
+        filename: tests/static_files/IndPenSim_V3_Batch_1.csv.gz
+        interval: 1
 
 OUTPUTS:
   - plugin: MQTT
