@@ -2,7 +2,7 @@ import configparser
 import logging
 import os
 
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 
 class Config:

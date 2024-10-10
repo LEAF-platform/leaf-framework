@@ -10,21 +10,9 @@ import sys
 import register as register
 from core.metadata_manager.metadata import MetadataManager
 
-DEBUG = False
+from core.modules.logger_modules.logger_utils import get_logger
 
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.propagate = False  # Prevent the logger from passing logs to the parent/root logger
-logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler("app.log")
-file_handler.setLevel(logging.DEBUG)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-file_handler.setFormatter(formatter)
-console_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
+logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 adapters = []
 
@@ -56,13 +44,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def signal_handler(signal_received, frame):
+def signal_handler(signal_received, frame) -> None:
     logging.info("Shutting down gracefully.")
     stop_all_adapters()
     sys.exit(0)
 
 
-def stop_all_adapters():
+def stop_all_adapters() -> None:
     logging.info("Shutting down all adapters.")
     for adapter in adapters:
         try:
@@ -81,7 +69,7 @@ def _get_existing_ids(output_module, metadata_manager):
     output_module.subscribe(topic)
     time.sleep(2)
     output_module.unsubscribe(topic)
-    ids = []
+    ids: list[str] = []
     for k, v in output_module.messages.items():
         if metadata_manager.is_called(k, topic):
             ids.append(metadata_manager.get_instance_id(k))
@@ -126,7 +114,7 @@ def _process_instance(instance, output):
     adapter = register.get_equipment_adapter(equipment_code)
     manager = MetadataManager()
     if data["instance_id"] in _get_existing_ids(output, manager):
-        raise ValueError(f'ID: {data["instance_id"]} is taken.')
+        logger.warning(f'ID: {data["instance_id"]} is taken.')
 
     try:
         equipment_adapter = adapter(data, output, **requirements)
@@ -139,7 +127,7 @@ def _process_instance(instance, output):
 
 def _start_adapter_in_thread(adapter):
     """Run the adapter's start function in a separate thread."""
-    print(f"Running adapter: {adapter}")
+    logger.info(f"Running adapter: {adapter}")
     thread = threading.Thread(target=adapter.start)
     thread.daemon = True
     thread.start()
@@ -148,7 +136,7 @@ def _start_adapter_in_thread(adapter):
 
 def _run_simulation_in_thread(adapter, filename, interval):
     """Run the adapter's simulate function in a separate thread."""
-    print(f"Running simulation: {adapter}")
+    logger.info(f"Running simulation: {adapter}")
 
     def simulation():
         logging.info(
@@ -178,7 +166,7 @@ def main():
     args = parse_args()
     if args.debug:
         logging.debug("Debug logging enabled.")
-        logging.basicConfig(level=logging.DEBUG)
+        # logging.basicConfig(level=logging.DEBUG)
 
     logging.debug(f"Loading configuration file: {args.config}")
     with open(args.config, "r") as file:
@@ -227,6 +215,7 @@ def main():
         logging.info("Keyboard interrupt received.")
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
+        e.with_traceback()
     finally:
         stop_all_adapters()
         logging.info("Proxy stopped.")
