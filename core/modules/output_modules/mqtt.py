@@ -61,7 +61,7 @@ class MQTT(OutputModule):
             data = json.dumps(data)
         elif data is not None and not isinstance(data, str):
             data = str(data)
-        elif data == None:
+        elif data is None:
             logger.error(f"No data was provided")
             data = ""
         logger.debug(f"Transmitting message to {topic}: {data[:50]}")

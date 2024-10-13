@@ -1,8 +1,12 @@
+import logging
 import os
 import time
 import csv
 
 from core.modules.input_modules.file_watcher import FileWatcher
+from core.modules.logger_modules.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 class CSVWatcher(FileWatcher):
     def __init__(self, file_path,metadata_manager, start_callbacks=None,

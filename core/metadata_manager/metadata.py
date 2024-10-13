@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any
 
 import yaml
 import os
@@ -27,8 +28,7 @@ class MetadataManager:
         try:
             with open(filepath, "r") as file:
                 yaml_content = yaml.safe_load(file)
-                self.equipment_terms: EquipmentTerms = EquipmentTerms(yaml_content,
-                                                      self._metadata)
+                self.equipment_terms: EquipmentTerms = EquipmentTerms(yaml_content,self._metadata)
         except FileNotFoundError:
             print(f"YAML file {filepath} not found.")
 
@@ -52,7 +52,7 @@ class MetadataManager:
         """Set a specific metadata value."""
         self._metadata[key] = value
 
-    def get_equipment_data(self) -> dict:
+    def get_equipment_data(self) -> dict[str, str]:
         if equipment_key in self._metadata:
             return self._metadata[equipment_key]
 
@@ -78,7 +78,7 @@ class MetadataManager:
 
 
 class EquipmentTerms:
-    def __init__(self, dictionary, metadata) -> None:
+    def __init__(self, dictionary: dict[str, Any], metadata: dict[str, Any]) -> None:
         """
         Initialize EquipmentTerms with YAML dictionary and metadata.
         The metadata dictionary is used to dynamically replace

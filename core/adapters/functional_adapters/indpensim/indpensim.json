@@ -1,8 +1,0 @@
-{
-  "class" : "IndPenSimAdapter",
-  "equipment_id": "IndPenSim",
-  "version": "1.0",
-  "manufacturer": "industrialpenicillinsimulation",
-  "device_type": "SimulationReactor",
-  "application": "High-throughput cultivation and analysis"
-}

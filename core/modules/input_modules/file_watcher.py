@@ -1,17 +1,22 @@
 import os
 import time
-
+import logging
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from core.modules.input_modules.event_watcher import EventWatcher
 
-class FileWatcher(FileSystemEventHandler,EventWatcher):
-    def __init__(self, file_path,metadata_manager, start_callbacks=None,
+from core.modules.logger_modules.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
+
+
+class FileWatcher(FileSystemEventHandler, EventWatcher):
+    def __init__(self, file_path, metadata_manager, start_callbacks=None,
                  measurement_callbacks=None, stop_callbacks=None):
         super(FileWatcher, self).__init__(metadata_manager,
                                           measurement_callbacks=measurement_callbacks)
-        
+        logger.debug(f"Initialising FileWatcher with file path {file_path}")
         self._path, self._file_name = os.path.split(file_path)
         if self._path == "":
             self._path = "."
