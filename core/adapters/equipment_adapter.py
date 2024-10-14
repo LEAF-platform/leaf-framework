@@ -66,7 +66,8 @@ class AbstractInterpreter(ABC):
         self.id = 'undefined'
         self.TIMESTAMP_KEY = "timestamp"
         self.EXPERIMENT_ID_KEY = "experiment_id"
-    
+        self.MEASUREMENT_HEADING_KEY = "measurement_types"
+        
     @abstractmethod
     def metadata(self,data):
         pass

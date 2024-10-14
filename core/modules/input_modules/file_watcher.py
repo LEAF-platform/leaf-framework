@@ -24,7 +24,7 @@ class FileWatcher(FileSystemEventHandler,EventWatcher):
             self._start_callbacks = [start_callbacks]
         else:
             self._start_callbacks = start_callbacks
-
+        
         if stop_callbacks is None:
             self._stop_callbacks = []
         elif not isinstance(stop_callbacks,(list,set,tuple)):

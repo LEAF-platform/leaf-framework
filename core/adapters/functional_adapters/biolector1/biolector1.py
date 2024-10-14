@@ -22,12 +22,13 @@ metadata_fn = os.path.join(current_dir, 'biolector1.json')
 
 
 class Biolector1Adapter(Bioreactor):
-    def __init__(self,instance_data,output,write_file=None):
+    def __init__(self,instance_data,output,write_file=None,stagger_transmit=False):
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file,metadata_manager)
         start_p = StartPhase(output,metadata_manager)
         stop_p = StopPhase(output,metadata_manager)
-        measure_p = MeasurePhase(output,metadata_manager)
+        measure_p = MeasurePhase(output,metadata_manager,
+                                 stagger_transmit=stagger_transmit)
         details_p = InitialisationPhase(output,metadata_manager)
 
         watcher.add_start_callback(start_p.update)
@@ -35,8 +36,8 @@ class Biolector1Adapter(Bioreactor):
         watcher.add_stop_callback(stop_p.update)
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p,measure_p,stop_p]
-        mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data,watcher,mock_process,
+        process = [DiscreteProcess(phase)]
+        super().__init__(instance_data,watcher,process,
                          Biolector1Interpreter(),
                          metadata_manager=metadata_manager)
         self._write_file = write_file

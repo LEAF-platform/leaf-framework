@@ -108,7 +108,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             elif row[0] == 'READING':
                 in_filtersets = False
                 continue
-
+            
             if in_filtersets and row[FILTERSET_ID_IDX].strip().isdigit():
                 filterset_id = int(row[FILTERSET_ID_IDX].strip())
                 filtersets[filterset_id] = {
@@ -150,9 +150,14 @@ class Biolector1Interpreter(AbstractInterpreter):
         # Dont want to do anything
         if data[-1][0] == "READING":
             return None
-        metadata = {self.TIMESTAMP_KEY : datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         data = data[::-1]
-        update = {}
+        measurements = {}
+        update = {"measurement" : "Biolector1",
+                  "tags": {"project": "indpensim"},
+                  "fields" : measurements,
+                  "timestamp" : datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                  }
+        
         if data[0][0] == "R":
             data = data[1:]
         reading = data[0][0]
@@ -162,7 +167,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             if row[0] == "R":
                 continue
             if row[0] != reading:
-                return metadata,update
+                return update
             fs_code = int(row[4])
 
 
@@ -174,8 +179,8 @@ class Biolector1Interpreter(AbstractInterpreter):
             well_num = row[1]
             amplitude = row[5]
 
-            if measurement.term not in update:
-                update[measurement.term] = []
+            if measurement.term not in measurements:
+                measurements[measurement.term] = []
             
             '''
             Keep these out bc dont really know how to make a final "Value"
@@ -186,8 +191,9 @@ class Biolector1Interpreter(AbstractInterpreter):
             measurement_data = {"value" : value,
                                 "name":name,
                                 "well_num":well_num}
-            update[measurement.term].append(measurement_data)
-        return metadata,update
+            measurements[measurement.term].append(measurement_data)
+
+        return update
 
     def simulate(self,read_file,write_file,wait):
         def write(chunk):

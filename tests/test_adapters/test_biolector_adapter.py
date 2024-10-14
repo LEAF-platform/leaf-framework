@@ -80,8 +80,8 @@ class TestBiolector1Interpreter(unittest.TestCase):
         measurement_terms = measurement_manager.get_measurements()
         with open(measurement_file, 'r', encoding='latin-1') as file:
             data = list(csv.reader(file, delimiter=";"))  
-        metadata,result = self._interpreter.measurement(data)
-        for measurement,measurements in result.items():
+        result = self._interpreter.measurement(data)
+        for measurement,measurements in result["fields"].items():
             self.assertIn(measurement,measurement_terms)
             for data in measurements:
                 self.assertIn(data["name"],names)
@@ -246,7 +246,7 @@ class TestBiolector1(unittest.TestCase):
         mthread.join()
         time.sleep(2)
 
-        actual_mes = self._get_measurements_run()[1]
+        actual_mes = self._get_measurements_run()
         expected_measurements = ["Biomass",
                                     "GFP",
                                     "mCherrry/RFPII",
@@ -260,22 +260,22 @@ class TestBiolector1(unittest.TestCase):
             if exp_tp in topic:
                 data = self.mock_client.messages[exp_tp]
                 self.assertTrue(len(data),1)
-                for md,measurement_data in data:
-                    self.assertIn("timestamp",md)
-                    measurement_type = topic.split("/")[-1]
-                    self.assertIn(measurement_type,actual_mes)
-                    for am in actual_mes[measurement_type]:
-                        self.assertIn("value",am)
-                        if am == measurement_data:
-                            break
-                    else:
-                        self.fail()
-                    name = measurement_data["name"]
-
-                    self.assertIn(name,expected_measurements)
-                    if name not in seens:
-                        seens.append(name)
-
+                data = data[0]
+                self.assertIn("timestamp",data)
+                measurement_type = topic.split("/")[-1]
+                self.assertIn(measurement_type,actual_mes["measurement"])
+                for measurement,measurement_data in data["fields"].items():
+                    for md in measurement_data:
+                        for am in actual_mes["fields"][measurement]:
+                            self.assertIn("value",am)
+                            if am == md:
+                                break
+                        else:
+                            self.fail()
+                        name = md["name"]
+                        self.assertIn(name,expected_measurements)
+                        if name not in seens:
+                            seens.append(name)
         self.assertCountEqual(seens,expected_measurements)
         self._flush_topics()
         self.mock_client.reset_messages() 
@@ -302,7 +302,7 @@ class TestBiolector1(unittest.TestCase):
 
         time.sleep(2)
         _modify_file()
-        self.assertTrue(len(self.mock_client.messages.keys()) == 7)
+        self.assertTrue(len(self.mock_client.messages.keys()) == 4)
         time.sleep(2)
 
         self.mock_client.reset_messages()
@@ -317,6 +317,51 @@ class TestBiolector1(unittest.TestCase):
         mthread.join()
         time.sleep(2)
 
+        self._flush_topics()
+        self.mock_client.reset_messages()
+
+    def test_update_split(self):
+        self._adapter._processes[0]._phases[1]._stagger_transmit = True
+        self._flush_topics()
+        self.mock_client.reset_messages()
+        exp_tp = self._adapter._metadata_manager.experiment.measurement()
+        self.mock_client.subscribe(exp_tp)
+        mthread = Thread(target=self._adapter.start)
+        mthread.start()
+        time.sleep(2)
+        _create_file()
+        time.sleep(2)
+        _modify_file()
+        experiment_id = self._adapter._interpreter.id
+        time.sleep(2)
+        _delete_file()
+        time.sleep(2)
+        self._adapter.stop()
+        mthread.join()
+        time.sleep(2)
+
+        actual_mes = self._get_measurements_run()
+        expected_measurements = ["Biomass",
+                                    "GFP",
+                                    "mCherrry/RFPII",
+                                    "pH-hc",
+                                    "pO2-hc"]
+        seens = []
+        for topic in self.mock_client.messages.keys():
+            pot_mes = topic.split("/")[-1]
+            exp_tp = self._adapter._metadata_manager.experiment.measurement(experiment_id=experiment_id,
+                                                                            measurement=pot_mes)
+            if exp_tp in topic:
+                data = self.mock_client.messages[exp_tp]
+                for message in data:
+                    self.assertIn("timestamp",message)
+                    measurement_type = topic.split("/")[-1]
+                    self.assertIn(measurement_type,actual_mes["fields"])
+                    name = message["name"]
+                    self.assertIn(name,expected_measurements)
+                    if name not in seens:
+                        seens.append(name)
+        self.assertCountEqual(seens,expected_measurements)
         self._flush_topics()
         self.mock_client.reset_messages()
 
