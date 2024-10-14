@@ -1,6 +1,6 @@
 from core.modules.measurement_modules.measurement_module import MeasurementModule
 
-class Biomass(MeasurementModule):
+class Fluorescence(MeasurementModule):
     def __init__(self,term):
         super().__init__(term)
 

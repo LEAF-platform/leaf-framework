@@ -1,5 +1,7 @@
 pH: pH
 DO: dissolved_oxygen
 temperature: temperature
-biomass: biomass
+OD: optical_density
+fluorescence: fluorescence
 CO2: carbon_dioxide
+

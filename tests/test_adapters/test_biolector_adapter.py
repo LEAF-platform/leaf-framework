@@ -12,9 +12,10 @@ sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
-from core.adapters.functional_adapters.biolector1.biolector1 import interpreter
+from core.adapters.functional_adapters.biolector1.biolector1_interpreter import Biolector1Interpreter
 from core.modules.output_modules.mqtt import MQTT
 from mock_mqtt_client import MockBioreactorClient
+from core.measurement_terms.manager import measurement_manager
 
 import logging
 
@@ -61,27 +62,35 @@ def _delete_file():
 
 class TestBiolector1Interpreter(unittest.TestCase):
     def setUp(self):
-        pass
+        self._interpreter = Biolector1Interpreter()
 
     def _metadata_run(self):
         with open(initial_file, 'r', encoding='latin-1') as file:
             data = list(csv.reader(file, delimiter=";"))  
-        return interpreter.metadata(data)
+        return self._interpreter.metadata(data)
 
     def test_metadata(self):
         result = self._metadata_run()
-        print(result)
+        self.assertIn("experiment_id",result)
+        self.assertIn("sensors",result)
 
     def test_measurement(self):
         result = self._metadata_run()
+        names = list(result["sensors"].keys())
+        measurement_terms = measurement_manager.get_measurements()
         with open(measurement_file, 'r', encoding='latin-1') as file:
             data = list(csv.reader(file, delimiter=";"))  
-        result = interpreter.measurement(data)
+        metadata,result = self._interpreter.measurement(data)
+        for measurement,measurements in result.items():
+            self.assertIn(measurement,measurement_terms)
+            for data in measurements:
+                self.assertIn(data["name"],names)
 
     def test_simulate(self):
         pass
 
 class TestBiolector1(unittest.TestCase):
+    
     def setUp(self):
         if os.path.isfile(watch_file):
             os.remove(watch_file)
@@ -98,10 +107,7 @@ class TestBiolector1(unittest.TestCase):
         self.stop_topic = self._adapter._metadata_manager.experiment.stop()
         self.running_topic = self._adapter._metadata_manager.running()
 
-        self.mock_client.flush(self.details_topic)
-        self.mock_client.flush(self.start_topic)
-        self.mock_client.flush(self.stop_topic)
-        self.mock_client.flush(self.running_topic)
+        self._flush_topics()
         time.sleep(2)
         wildcard_measure = self._adapter._metadata_manager.experiment.measurement()
         self.mock_client.subscribe(self.start_topic)
@@ -111,7 +117,28 @@ class TestBiolector1(unittest.TestCase):
         self.mock_client.subscribe(wildcard_measure)
         time.sleep(2)
 
+    def tearDown(self):
+        self._adapter.stop()
+        self._flush_topics()
+        self.mock_client.reset_messages()
+
+    def _get_measurements_run(self):
+        with open(initial_file, 'r', encoding='latin-1') as file:
+            data = list(csv.reader(file, delimiter=";"))  
+        self._adapter._interpreter.metadata(data)
+        with open(measurement_file, 'r', encoding='latin-1') as file:
+            data = list(csv.reader(file, delimiter=";"))  
+        return self._adapter._interpreter.measurement(data)
+    
+    def _flush_topics(self):
+        self.mock_client.flush(self.details_topic)
+        self.mock_client.flush(self.start_topic)
+        self.mock_client.flush(self.stop_topic)
+        self.mock_client.flush(self.running_topic)
+
     def test_details(self):
+        self._flush_topics()
+        self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
@@ -123,17 +150,20 @@ class TestBiolector1(unittest.TestCase):
         for k,v in self.instance_data.items():
             self.assertIn(k,details_data)
             self.assertEqual(v,details_data[k])
+        self._flush_topics()
+        self.mock_client.reset_messages()
 
     def test_start(self):
+        self._flush_topics()
+        self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
         _create_file()
         time.sleep(2)
-        _delete_file()
-        time.sleep(2)
         self._adapter.stop()
         mthread.join()
+        time.sleep(1)
 
         self.assertIn(self.start_topic, self.mock_client.messages)
         self.assertTrue(len(self.mock_client.messages[self.start_topic]) == 1)
@@ -144,8 +174,15 @@ class TestBiolector1(unittest.TestCase):
         self.assertIn(self.running_topic, self.mock_client.messages)
         expected_run = "True"
         self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
+
+        os.remove(watch_file)
+        self._flush_topics()
+        self.mock_client.reset_messages()
     
     def test_stop(self):
+        self._flush_topics()
+        self.mock_client.reset_messages()
+
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
@@ -169,7 +206,13 @@ class TestBiolector1(unittest.TestCase):
         self.mock_client.subscribe(self.start_topic)
         self.assertEqual(self.mock_client.messages,{})
 
+        self._flush_topics()
+        self.mock_client.reset_messages()
+
     def test_running(self):
+        self._flush_topics()
+        self.mock_client.reset_messages()
+
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
@@ -185,6 +228,8 @@ class TestBiolector1(unittest.TestCase):
         self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
 
     def test_update(self):
+        self._flush_topics()
+        self.mock_client.reset_messages()
         exp_tp = self._adapter._metadata_manager.experiment.measurement()
         self.mock_client.subscribe(exp_tp)
         mthread = Thread(target=self._adapter.start)
@@ -193,7 +238,7 @@ class TestBiolector1(unittest.TestCase):
         _create_file()
         time.sleep(2)
         _modify_file()
-        exp_tp = self._adapter._metadata_manager.experiment.measurement(experiment_id=self._adapter._interpreter.id)
+        experiment_id = self._adapter._interpreter.id
         time.sleep(2)
         _delete_file()
         time.sleep(2)
@@ -201,20 +246,44 @@ class TestBiolector1(unittest.TestCase):
         mthread.join()
         time.sleep(2)
 
-        self.assertIn(exp_tp, self.mock_client.messages)
-        expected_measurements = ["Biomass","GFP","mCherrry/RFPII","pH-hc","pO2-hc"]
-        data = self.mock_client.messages[exp_tp]
-        for message in data:
-            message = message[self._adapter._interpreter.UPDATE_KEY]
-            for measurement,wells in message.items():
-                self.assertIn(measurement,expected_measurements)
-                expected_measurements.pop(
-                    expected_measurements.index(measurement))
-                for well,wdata in wells.items():
-                    self.assertIn("value",wdata)
-        self.assertEqual(len(expected_measurements),0,expected_measurements)        
+        actual_mes = self._get_measurements_run()[1]
+        expected_measurements = ["Biomass",
+                                    "GFP",
+                                    "mCherrry/RFPII",
+                                    "pH-hc",
+                                    "pO2-hc"]
+        seens = []
+        for topic in self.mock_client.messages.keys():
+            pot_mes = topic.split("/")[-1]
+            exp_tp = self._adapter._metadata_manager.experiment.measurement(experiment_id=experiment_id,
+                                                                            measurement=pot_mes)
+            if exp_tp in topic:
+                data = self.mock_client.messages[exp_tp]
+                self.assertTrue(len(data),1)
+                for md,measurement_data in data:
+                    self.assertIn("timestamp",md)
+                    measurement_type = topic.split("/")[-1]
+                    self.assertIn(measurement_type,actual_mes)
+                    for am in actual_mes[measurement_type]:
+                        self.assertIn("value",am)
+                        if am == measurement_data:
+                            break
+                    else:
+                        self.fail()
+                    name = measurement_data["name"]
+
+                    self.assertIn(name,expected_measurements)
+                    if name not in seens:
+                        seens.append(name)
+
+        self.assertCountEqual(seens,expected_measurements)
+        self._flush_topics()
+        self.mock_client.reset_messages() 
 
     def test_logic(self):
+        self._flush_topics()
+        self.mock_client.reset_messages()
+
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
@@ -222,7 +291,6 @@ class TestBiolector1(unittest.TestCase):
         self.assertIn(self.details_topic,self.mock_client.messages)
         time.sleep(2)
         _create_file()
-        exp_tp = self._adapter._metadata_manager.experiment.measurement(experiment_id=self._adapter._interpreter.id)
         self.assertTrue(len(self.mock_client.messages.keys()) == 3)
         self.assertIn(self.start_topic,self.mock_client.messages)
         self.assertIn(self.running_topic,self.mock_client.messages)
@@ -234,9 +302,7 @@ class TestBiolector1(unittest.TestCase):
 
         time.sleep(2)
         _modify_file()
-        self.assertTrue(len(self.mock_client.messages.keys()) == 4)
-        meas = self.mock_client.messages[exp_tp]
-        self.assertEqual(len(meas),1)
+        self.assertTrue(len(self.mock_client.messages.keys()) == 7)
         time.sleep(2)
 
         self.mock_client.reset_messages()
@@ -250,6 +316,9 @@ class TestBiolector1(unittest.TestCase):
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
+
+        self._flush_topics()
+        self.mock_client.reset_messages()
 
 if __name__ == "__main__":
     unittest.main()

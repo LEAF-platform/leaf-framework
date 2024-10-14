@@ -71,11 +71,13 @@ class MeasurementManager:
 
         return measurement_class(term=key)
 
-    def get_measurements(self, keys):
+    def get_measurements(self, keys=None):
         """
         Takes a list of measurement names and returns a dictionary
         of the corresponding Measurement objects.
         """
+        if keys is None:
+            keys = self.measurements_data
         measurements = {}
         for key in keys:
             try:
