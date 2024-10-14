@@ -1,0 +1,7 @@
+pH: pH
+DO: dissolved_oxygen
+temperature: temperature
+OD: optical_density
+fluorescence: fluorescence
+CO2: carbon_dioxide
+

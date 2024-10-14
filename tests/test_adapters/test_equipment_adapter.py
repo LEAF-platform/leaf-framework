@@ -14,9 +14,6 @@ sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.modules.output_modules.mqtt import MQTT
 from core.modules.input_modules.file_watcher import FileWatcher
-from core.modules.measurement_modules.biomass import Biomass
-from core.modules.measurement_modules.o2 import O2
-from core.modules.measurement_modules.ph import pH
 from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.control import ControlPhase
 from core.modules.process_modules.discrete_module import DiscreteProcess
@@ -27,16 +24,20 @@ from core.adapters.equipment_adapter import AbstractInterpreter
 from mock_mqtt_client import MockBioreactorClient
 from core.metadata_manager.metadata import MetadataManager
 
-# Current location of this script
-curr_dir: str = os.path.dirname(os.path.realpath(__file__))
+curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-with open(curr_dir + '/../test_config.yaml', 'r') as file:
+with open(os.path.join(curr_dir,"..","test_config.yaml"), 'r') as file:
     config = yaml.safe_load(file)
-    
+
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
-un = config["OUTPUTS"][0]["username"]
-pw = config["OUTPUTS"][0]["password"]
+try:
+    un = config["OUTPUTS"][0]["username"]
+    pw = config["OUTPUTS"][0]["password"]
+except:
+    un = None
+    pw = None
+
 
 watch_file = os.path.join("tmp.txt")
 curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -71,7 +72,7 @@ class MockBioreactorInterpreter(AbstractInterpreter):
     def metadata(self,data):
         return data
 
-    def measurement(self,data,measurements):
+    def measurement(self,data):
         return data
     
     def simulate(self):
@@ -83,11 +84,9 @@ class MockBioreactor(Bioreactor):
         #metadata_manager.add_equipment_data(instance_data)
         watcher = FileWatcher(fp,metadata_manager)
         output = MQTT(broker,port,username=un,password=pw,clientid=None)
-        measurements = [Biomass(),O2(),pH()]
         start_p = ControlPhase(output,metadata_manager.experiment.start,metadata_manager)
         stop_p = ControlPhase(output,metadata_manager.experiment.stop,metadata_manager)
-        measure_p = MeasurePhase(output,metadata_manager.experiment.measurement,
-                                 metadata_manager,measurements)
+        measure_p = MeasurePhase(output,metadata_manager)
         details_p = ControlPhase(output,metadata_manager.details,metadata_manager)
 
         watcher.add_start_callback(start_p.update)
@@ -130,6 +129,7 @@ class TestBioreactor(unittest.TestCase):
         time.sleep(2)
     
     def tearDown(self):
+        self._adapter.stop()
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
 
@@ -178,7 +178,8 @@ class TestBioreactor(unittest.TestCase):
         self.assertEqual(self.mock_client.messages,{})
         
     def test_update(self):
-        exp_tp = self._adapter._metadata_manager.experiment.measurement(experiment_id=self._adapter._interpreter.id)
+        exp_tp = self._adapter._metadata_manager.experiment.measurement(experiment_id=self._adapter._interpreter.id,
+                                                                        measurement="unknown")
         self.mock_client.subscribe(exp_tp)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
