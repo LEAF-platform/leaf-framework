@@ -5,10 +5,8 @@ import time
 from datetime import datetime, timedelta
 import uuid
 from threading import Thread
-from typing import Dict, Union, Any
-
 import pandas as pd
-from influxobject import InfluxPoint
+
 
 from core.adapters.equipment_adapter import AbstractInterpreter, EquipmentAdapter
 from core.metadata_manager.metadata import MetadataManager
@@ -20,6 +18,8 @@ from core.modules.phase_modules.start import StartPhase
 from core.modules.phase_modules.stop import StopPhase
 from core.modules.process_modules.discrete_module import DiscreteProcess
 
+from core.measurement_terms.manager import measurement_manager
+
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 
@@ -27,94 +27,76 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "indpensim.json")
 
 
+measurement_map = {"pH(pH:pH)" : measurement_manager.pH} # And so on...
+
 class IndPenSimInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
         super().__init__()
         logger.info("Initializing IndPenSimInterpreter")
+        self._start_time = datetime.now()
+        self._measurement_headings = None
 
     def metadata(self, data: str) -> dict[str, str]:
         self.id = f"{str(uuid.uuid4())}"
+        self._start_time = datetime.now()
+        if data != {}:
+            self._measurement_headings = data[0][0].split(',')
+        else:
+            self._measurement_headings = None
         payload = {
-            self.TIMESTAMP_KEY: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            self.TIMESTAMP_KEY: self._start_time.strftime("%Y-%m-%d %H:%M:%S"),
             self.EXPERIMENT_ID_KEY: self.id,
+            self.MEASUREMENT_HEADING_KEY: self._measurement_headings
         }
         return payload
     
-    def measurement(self, data: list[str]) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
-        logger.info(f"data {str(data)[:50]}...")
-        # Load measurement into a pd
-        # List of lists to DataFrame where the first row is the header
-        for index, x in enumerate(data):
-            data[index] = x[0].split(",")
-        # TODO Load only the last row
-        df = pd.DataFrame(data)
-        logger.debug(f"Dimensions of the data: {df.shape}")
-        # Check if there are enough rows
-        if df.shape[0] < 2:  # Not enough rows
-            return {}
-        # Set the first row as the header
-        df.columns = df.iloc[0]
-        # Get the last row
-        last_row = df.iloc[-1]
-        # Get the last row as a dictionary with the column names as keys
-        last_row_dict = last_row.to_dict()
-        # Remove all numeric keys
-        for key in list(last_row_dict.keys()):
-            # Remove all keys that are numbers
-            if key.isdigit():
-                del last_row_dict[key]
-            # Remove empty entries
-            elif last_row_dict[key] == "":
-                del last_row_dict[key]
-            # Check if it can be converted to a float
-            else:
-                try:
-                    # Convert to float
-                    last_row_dict[key] = float(last_row_dict[key])
-                    # If integer, convert to int
-                    if last_row_dict[key].is_integer():
-                        last_row_dict[key] = int(last_row_dict[key])
-                except ValueError:
-                    pass
-            # Replace the key with a cleaned version
-            if key in last_row_dict:
-                new_key = key.split("(")[0].strip().replace(" ", "_")
-                last_row_dict[new_key] = last_row_dict.pop(key)
-        # Create the influx point object for a final message
-        influx_point = InfluxPoint()
-        influx_point.set_measurement("indpensim")
-        influx_point.set_fields(last_row_dict)
-        time_obj = datetime.strptime(last_row_dict["Time"], "%Y-%m-%d %H:%M:%S")
-        influx_point.set_timestamp(time_obj)
-        influx_point.add_tag("project", "indpensim")
-        # Remove time
-        influx_point.remove_field("Time")
-        # Send message to the MQTT broker
-        return influx_point.to_json()
+    def measurement(self, data):
+        cur_measurement = data[-1][0]
+        if isinstance(cur_measurement, str):
+            cur_measurement = cur_measurement.split(',')
 
+        measurements = {}
+        update = {'tags' : {"project":"indpensim"},
+                  'measurement': 'indpensim',
+                  "fields" : measurements,
+                  "timestamp" : datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                  }
+        for index, measurement in enumerate(cur_measurement):
+            measurement_name = self._measurement_headings[index]
+            if measurement_name.isdigit():
+                continue
+            
+            if measurement_name in measurement_map:
+                measure_obj = measurement_map[measurement_name]
+                measurement = measure_obj.transform(measurement)
+                measurement_name = measure_obj.term
+
+            measurements[measurement_name] = measurement
+        return update
+    
     def simulate(self) -> None:
         logger.error("Simulating IndPenSimInterpreter")
         print("Doing something D?")
 
 
 class IndPenSimAdapter(EquipmentAdapter):
-    def __init__(self, instance_data, output, write_file=None) -> None:
+    def __init__(self, instance_data, output, write_file=None,stagger_transmit=False) -> None:
         logger.info(
             f"Initializing IndPenSimAdapter with instance data {instance_data} and output {output} and write file {write_file}"
         )
         metadata_manager: MetadataManager = MetadataManager()
         # Create a CSV watcher for the write file
-        watcher: CSVWatcher = CSVWatcher(write_file, metadata_manager, delimeter=",")
-        # Create the phases?
+        watcher: CSVWatcher = CSVWatcher(write_file, metadata_manager)
         start_p: StartPhase = StartPhase(output, metadata_manager)
         stop_p: StopPhase = StopPhase(output, metadata_manager)
-        measure_p: MeasurePhase = MeasurePhase(output, metadata_manager)
+        measure_p: MeasurePhase = MeasurePhase(output, metadata_manager,
+                                               stagger_transmit=stagger_transmit)
         details_p: InitialisationPhase = InitialisationPhase(output, metadata_manager)
         logger.info(f"Instance data: {instance_data}")
         watcher.add_start_callback(start_p.update)
         watcher.add_measurement_callback(measure_p.update)
         watcher.add_stop_callback(stop_p.update)
-        watcher.add_initialise_calmeasurementlback(details_p.update)
+        watcher.add_initialise_callback(details_p.update)
         phase = [start_p, measure_p, stop_p]
         process = [DiscreteProcess(phase)]
         super().__init__(
@@ -161,5 +143,4 @@ class IndPenSimAdapter(EquipmentAdapter):
                     logger.info(f"Writing line {index} to {self._write_file}")
                 time.sleep(wait)
 
-    def stop(self) -> None:
-        print("Stopping IndPenSimAdapter")
+

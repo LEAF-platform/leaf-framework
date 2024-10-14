@@ -115,9 +115,13 @@ def _process_instance(instance, output):
     manager = MetadataManager()
     if data["instance_id"] in _get_existing_ids(output, manager):
         logger.warning(f'ID: {data["instance_id"]} is taken.')
-
+    if "stagger_transmit" in instance:
+        stagger_transmit = True
+    else:
+        stagger_transmit = False
     try:
-        equipment_adapter = adapter(data, output, **requirements)
+        equipment_adapter = adapter(data, output,stagger_transmit=stagger_transmit, 
+                                    **requirements)
     except ValueError as ex:
         logging.error(f"Error initialising {data['instance_id']}: {ex}")
         return None
