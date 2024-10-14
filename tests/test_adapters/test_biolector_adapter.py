@@ -66,7 +66,7 @@ class TestBiolector1Interpreter(unittest.TestCase):
 
     def _metadata_run(self):
         with open(initial_file, 'r', encoding='latin-1') as file:
-            data = list(csv.reader(file, delimiter=";"))  
+            data = list(csv.reader(file, delimiter=","))  
         return self._interpreter.metadata(data)
 
     def test_metadata(self):

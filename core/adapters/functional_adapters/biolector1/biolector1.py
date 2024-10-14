@@ -35,8 +35,8 @@ class Biolector1Adapter(Bioreactor):
         watcher.add_stop_callback(stop_p.update)
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p,measure_p,stop_p]
-        mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data,watcher,mock_process,
+        process = [DiscreteProcess(phase)]
+        super().__init__(instance_data,watcher,process,
                          Biolector1Interpreter(),
                          metadata_manager=metadata_manager)
         self._write_file = write_file

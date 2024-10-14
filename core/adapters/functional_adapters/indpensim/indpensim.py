@@ -2,7 +2,8 @@ import gzip
 import logging
 import os
 import time
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
+import uuid
 from threading import Thread
 from typing import Dict, Union, Any
 
@@ -14,24 +15,33 @@ from core.metadata_manager.metadata import MetadataManager
 from core.modules.input_modules.csv_watcher import CSVWatcher
 from core.modules.logger_modules.logger_utils import get_logger
 from core.modules.phase_modules.initialisation import InitialisationPhase
-from core.modules.phase_modules.measurement import MeasurementPhase
+from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.start import StartPhase
 from core.modules.phase_modules.stop import StopPhase
 from core.modules.process_modules.discrete_module import DiscreteProcess
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
-# Note the biolector json file is an example, not a concrete decision on terms...
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, 'indpensim.json')
+metadata_fn = os.path.join(current_dir, "indpensim.json")
+
 
 class IndPenSimInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
         super().__init__()
         logger.info("Initializing IndPenSimInterpreter")
-    def measurement(self, data: list[str], measurements: Any) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
+
+    def metadata(self, data: str) -> dict[str, str]:
+        self.id = f"{str(uuid.uuid4())}"
+        payload = {
+            self.TIMESTAMP_KEY: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            self.EXPERIMENT_ID_KEY: self.id,
+        }
+        return payload
+    
+    def measurement(self, data: list[str]) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
         logger.info(f"data {str(data)[:50]}...")
-        logger.debug(f"Measurements {measurements}")
         # Load measurement into a pd
         # List of lists to DataFrame where the first row is the header
         for index, x in enumerate(data):
@@ -40,7 +50,7 @@ class IndPenSimInterpreter(AbstractInterpreter):
         df = pd.DataFrame(data)
         logger.debug(f"Dimensions of the data: {df.shape}")
         # Check if there are enough rows
-        if df.shape[0] < 2: # Not enough rows
+        if df.shape[0] < 2:  # Not enough rows
             return {}
         # Set the first row as the header
         df.columns = df.iloc[0]
@@ -72,65 +82,55 @@ class IndPenSimInterpreter(AbstractInterpreter):
                 last_row_dict[new_key] = last_row_dict.pop(key)
         # Create the influx point object for a final message
         influx_point = InfluxPoint()
-        influx_point.set_measurement('indpensim')
+        influx_point.set_measurement("indpensim")
         influx_point.set_fields(last_row_dict)
-        time_obj = datetime.strptime(last_row_dict["Time"], '%Y-%m-%d %H:%M:%S')
+        time_obj = datetime.strptime(last_row_dict["Time"], "%Y-%m-%d %H:%M:%S")
         influx_point.set_timestamp(time_obj)
-        influx_point.add_tag('project', 'indpensim')
+        influx_point.add_tag("project", "indpensim")
         # Remove time
         influx_point.remove_field("Time")
         # Send message to the MQTT broker
         return influx_point.to_json()
-    def metadata(self,data: str) -> dict[str, str]:
-        logger.debug(f"Metadata {str(data)[:50]}")
-        return {"metadata": "Some content"}
+
     def simulate(self) -> None:
         logger.error("Simulating IndPenSimInterpreter")
         print("Doing something D?")
 
 
-interpreter = IndPenSimInterpreter()
-
 class IndPenSimAdapter(EquipmentAdapter):
-    def __init__(self, instance_data, output, start_date: date, write_file=None) -> None:
-        logger.info(f"Initializing IndPenSimAdapter with instance data {instance_data} and output {output} and write file {write_file}")
+    def __init__(self, instance_data, output, write_file=None) -> None:
+        logger.info(
+            f"Initializing IndPenSimAdapter with instance data {instance_data} and output {output} and write file {write_file}"
+        )
         metadata_manager: MetadataManager = MetadataManager()
         # Create a CSV watcher for the write file
-        watcher: CSVWatcher = CSVWatcher(write_file, metadata_manager)
-        measurements: list[str] = ["Aeration rate(Fg:L/h)"]
+        watcher: CSVWatcher = CSVWatcher(write_file, metadata_manager, delimeter=",")
         # Create the phases?
         start_p: StartPhase = StartPhase(output, metadata_manager)
         stop_p: StopPhase = StopPhase(output, metadata_manager)
-        measure_p: MeasurementPhase = MeasurementPhase(output, measurements, metadata_manager)
+        measure_p: MeasurePhase = MeasurePhase(output, metadata_manager)
         details_p: InitialisationPhase = InitialisationPhase(output, metadata_manager)
-        self.instance_id: str = instance_data['instance_id']
-        self.institute: str = instance_data['institute']
-        # Obtain absolute path to the input file
-        # if input_file is not None:
-        #     self.input_file = os.path.abspath(input_file)
         logger.info(f"Instance data: {instance_data}")
         watcher.add_start_callback(start_p.update)
         watcher.add_measurement_callback(measure_p.update)
         watcher.add_stop_callback(stop_p.update)
-        watcher.add_initialise_callback(details_p.update)
+        watcher.add_initialise_calmeasurementlback(details_p.update)
         phase = [start_p, measure_p, stop_p]
-        mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, process_adapters=mock_process, interpreter=interpreter, metadata_manager=metadata_manager) # type: ignore
-        #instance_data,watcher,mock_process,
-        #                 interpreter,metadata_manager=metadata_manager)
+        process = [DiscreteProcess(phase)]
+        super().__init__(
+            instance_data=instance_data,
+            watcher=watcher,
+            process_adapters=process,
+            interpreter=IndPenSimInterpreter(),
+            metadata_manager=metadata_manager,
+        )
         self._write_file = write_file
-        self._start_datetime = datetime.combine(start_date, datetime.min.time())
         self._metadata_manager.add_equipment_data(metadata_fn)
 
-    def measurement(self, data: list[str]) -> None:
-        logger.info(f"Measurement {data}")
-        interpreter.measurement(data, ["Aeration rate(Fg:L/h)"])
-
-    def metadata(self, data: str) -> None:
-        logger.info(f"Metadata {data}")
-
-    def simulate(self,filepath:str,wait: int=0,delay: int=0) -> None:
-        logger.info(f"Simulating nothing yet for {self.instance_id} at {self.institute} with input file {filepath} and wait {wait} and delay {delay}")
+    def simulate(self, filepath: str, wait: int = 0, delay: int = 0) -> None:
+        logger.info(
+            f"Simulating nothing yet for {self.instance_id} at {self.institute} with input file {filepath} and wait {wait} and delay {delay}"
+        )
         proxy_thread = Thread(target=self.start)
         proxy_thread.start()
 
@@ -139,7 +139,9 @@ class IndPenSimAdapter(EquipmentAdapter):
             for index, lineb in enumerate(f):
                 if index == 0:
                     if os.path.isfile(self._write_file):
-                        logger.warning(f"Trying to run test when the file exists at {self._write_file}")
+                        logger.warning(
+                            f"Trying to run test when the file exists at {self._write_file}"
+                        )
                         # Remove the file
                         os.remove(self._write_file)
                 line: str = lineb.decode("utf-8")
@@ -152,10 +154,8 @@ class IndPenSimAdapter(EquipmentAdapter):
                     new_time = self._start_datetime + timedelta(hours=time_h)
                     # Replace the time column
                     line_split[0] = new_time.strftime("%Y-%m-%d %H:%M:%S")
-                    # print(f"Original time: {line_split[0]} and new time: {new_time} with start date {self._start_datetime}")
                     line = ",".join(line_split)
 
-                # Write to
                 with open(self._write_file, "a") as write_file:
                     write_file.write(line)
                     logger.info(f"Writing line {index} to {self._write_file}")
