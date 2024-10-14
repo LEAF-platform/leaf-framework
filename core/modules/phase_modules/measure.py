@@ -1,3 +1,5 @@
+import time
+
 from core.modules.phase_modules.phase import PhaseModule
 
 class MeasurePhase(PhaseModule):
@@ -21,8 +23,10 @@ class MeasurePhase(PhaseModule):
                     if isinstance(data,list):
                         for d in data:
                             self._output.transmit(action,[md,d])
+                            time.sleep(0.5)
                     else:
                         self._output.transmit(action,[md,data])
+                        time.sleep(0.5)
             else:
                 # Need to figure out what other adapter may produce...  
                 action = self._term_builder(experiment_id=exp_id,
