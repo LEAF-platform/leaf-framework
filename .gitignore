@@ -114,3 +114,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea
+cloud/pgadmin_data/sessions
+cloud/timescaledb_data

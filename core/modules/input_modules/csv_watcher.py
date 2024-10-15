@@ -24,7 +24,7 @@ class CSVWatcher(FileWatcher):
             for callback in self._start_callbacks:
                 callback(reader)
 
-    def on_modified(self, event):
+    def on_modified(self, event) -> None:
         fp = self._get_filepath(event)
         if fp is None:
             return
