@@ -1,3 +1,5 @@
+from typing import Any
+
 import yaml
 import os
 import importlib
@@ -13,12 +15,12 @@ class MeasurementManager:
 
     _instance = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> "MeasurementManager":
         if cls._instance is None:
             cls._instance = super(MeasurementManager, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, file_path=None):
+    def __init__(self, file_path=None) -> None:
         if not hasattr(self, "_initialized"):
             self._initialized = True
             if file_path is None:
@@ -71,7 +73,7 @@ class MeasurementManager:
 
         return measurement_class(term=key)
 
-    def get_measurements(self, keys=None):
+    def get_measurements(self, keys=None) -> dict[str, Any]:
         """
         Takes a list of measurement names and returns a dictionary
         of the corresponding Measurement objects.
@@ -87,4 +89,4 @@ class MeasurementManager:
         return measurements
 
 
-measurement_manager = MeasurementManager()
+measurement_manager: MeasurementManager = MeasurementManager()

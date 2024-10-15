@@ -4,10 +4,12 @@ import os
 import time
 import csv
 
+from core.metadata_manager.metadata import MetadataManager
 from core.modules.input_modules.file_watcher import FileWatcher
 from core.modules.logger_modules.logger_utils import get_logger
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
+
 
 class CSVWatcher(FileWatcher):
     """
@@ -49,7 +51,7 @@ class CSVWatcher(FileWatcher):
         fp = self._get_filepath(event)
         if fp is not None:
             self._last_created = time.time()
-            with open(fp, 'r', encoding='latin-1') as file:
+            with open(fp, "r", encoding="latin-1") as file:
                 reader = list(csv.reader(file, delimiter=self._delimeter))
             for callback in self._start_callbacks:
                 callback(reader)

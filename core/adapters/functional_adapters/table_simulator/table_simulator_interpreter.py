@@ -36,7 +36,7 @@ class TableSimulatorInterpreter(AbstractInterpreter):
         logger.info("Initializing TableSimulatorInterpreter")
 
     def measurement(
-        self, data: list[str], measurements: Any
+        self, data: list[str], measurements
     ) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
         logger.info(f"TableSimulatoInterpreter data {str(data)[:50]}...")
         # Load measurement into a pd
@@ -102,7 +102,7 @@ class TableSimulatorInterpreter(AbstractInterpreter):
         except Exception as e:
             raise BaseException(f"Error in TableSimulatoInterpreter: {e}")
 
-    def metadata(self, data: str) -> dict[str, str]:
+    def metadata(self, data: list[str]) -> dict[str, str]:
         logger.debug(f"Metadata {str(data)[:50]}")
         return {"metadata": "Some content", "experiment_id": "THIS IS WRONG"}
 
