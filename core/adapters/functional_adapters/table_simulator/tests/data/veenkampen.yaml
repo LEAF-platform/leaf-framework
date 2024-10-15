@@ -1,0 +1,18 @@
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: table_simulator
+      data:
+        instance_id: veenkampen
+        institute: unlock
+      requirements:
+        write_file: tmp_veenkampen.csv
+        # start_date: XXXX-XX-XX XX:XX:XX
+        time_column: 'Timestamp'
+      simulation:
+        filename: /Users/koeho006/git/leaf/leaf/cloud/test_data/veenkampen/Veenkampen_inverted.csv
+        interval: 0.1
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: localhost
+    port: 1883
