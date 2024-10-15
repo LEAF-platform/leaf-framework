@@ -12,9 +12,6 @@ sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.modules.output_modules.mqtt import MQTT
 from core.modules.input_modules.file_watcher import FileWatcher
-from core.modules.measurement_modules.biomass import Biomass
-from core.modules.measurement_modules.o2 import O2
-from core.modules.measurement_modules.ph import pH
 from core.modules.phase_modules.measure import MeasurePhase
 from core.modules.phase_modules.control import ControlPhase
 from core.modules.process_modules.continous_module import ContinousProcess
@@ -44,8 +41,6 @@ initial_file = os.path.join(test_file_dir,"biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir,"biolector1_measurement.csv")
 text_watch_file = os.path.join("tmp.csv")
 output = MQTT(broker,port,username=un,password=pw,clientid=None)
-
-measurements = [Biomass(),O2(),pH()]
 
 mock_client = MockBioreactorClient(broker,port,username=un,password=pw)
 mock_client.subscribe("#")
@@ -81,8 +76,7 @@ class TestContinousProcess(unittest.TestCase):
         self.watcher = FileWatcher(text_watch_file,metadata_manager)
         self._phase = MeasurePhase(output,
                                     metadata_manager.experiment.measurement,
-                                    metadata_manager,
-                                    measurements)
+                                    metadata_manager)
         self._module = ContinousProcess(self._phase)
         self._phase.set_interpreter(None)
         self._mock_experiment="test_experiment_id"
@@ -120,8 +114,7 @@ class TestDiscreteProcess(unittest.TestCase):
                               metadata_manager)
         self._measure_p = MeasurePhase(output,
                                        metadata_manager.experiment.measurement,
-                                       metadata_manager,
-                                       measurements)
+                                       metadata_manager)
         
         phase = [start_p,self._measure_p,stop_p]
         self.watcher.add_measurement_callback(self._mock_update)

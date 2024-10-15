@@ -57,7 +57,7 @@ class MQTT(OutputModule):
 
     
     def transmit(self, topic,data=None,retain=False):
-        if isinstance(data, dict):
+        if isinstance(data, (dict,list)):
             data = json.dumps(data)
         elif data is not None and not isinstance(data, str):
             data = str(data)

@@ -9,28 +9,7 @@ EQUIPMENT_INSTANCES:
       simulation:
         filename: tests/static_files/biolector1_full.csv
         interval: 60
-  - equipment:
-      adapter: BioLector1
-      data:
-        instance_id: biolector_manchester4
-        institute: MAN
-      requirements:
-        write_file: tmp2.csv
-  - equipment:
-      adapter: BioLector1
-      data:
-        instance_id: biolector_london22
-        institute: LDN
-      requirements:
-        write_file: tmp3.csv
-  - equipment:
-      adapter: IndPenSim
-      data:
-        instance_id: IndPenSimulator
-        institute: WU
-      requirements:
-        write_file: tmp4.csv
-        input_file: tests/static_files/IndPenSim_V3_Batch_1.csv.gz
+      stagger_transmit: 1
   - equipment:
       adapter: IndPenSim
       data:
@@ -38,10 +17,7 @@ EQUIPMENT_INSTANCES:
         institute: unlock
       requirements:
         write_file: tmp5.csv
-        start_date: 2021-01-01
-      simulation:
-        filename: tests/static_files/IndPenSim_V3_Batch_1.csv.gz
-        interval: 1
+      stagger_transmit: 1
 
 OUTPUTS:
   - plugin: MQTT

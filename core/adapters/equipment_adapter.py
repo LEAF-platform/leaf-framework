@@ -64,14 +64,10 @@ class EquipmentAdapter:
 class AbstractInterpreter(ABC):
     def __init__(self):
         self.id = 'undefined'
-        # could consider if to capture these more formally.
-        self.TARGET_PARAMS_KEY = "target_parameters"
-        self.INITIAL_PARAMS_KEY = "initial_parameters"
-        self.SENSORS_KEY = "sensors"
         self.TIMESTAMP_KEY = "timestamp"
         self.EXPERIMENT_ID_KEY = "experiment_id"
-        self.UPDATE_KEY = "measurements"
-    
+        self.MEASUREMENT_HEADING_KEY = "measurement_types"
+        
     @abstractmethod
     def metadata(self,data):
         pass
