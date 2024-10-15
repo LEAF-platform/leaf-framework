@@ -74,7 +74,7 @@ class MQTT(OutputModule):
             else:
                 logger.error(f"Failed to send message: {result.rc}")
 
-    def flush(self,topic):
+    def flush(self,topic) -> None:
         self.client.publish(topic=topic, 
                             payload=None, 
                             qos=0, retain=True)
@@ -100,27 +100,27 @@ class MQTT(OutputModule):
             reconnect_count += 1
         logger.error(f"Unable to reconnect")
 
-    def on_connect_failure(self, client, userdata, flags, rc, metadata):
+    def on_connect_failure(self, client, userdata, flags, rc, metadata) -> None:
         logger.error(f"Failed to connect: {rc}")
 
-    def on_log(self, client, userdata, paho_log_level, message):
+    def on_log(self, client, userdata, paho_log_level, message) -> None:
         if paho_log_level == mqtt.LogLevel.MQTT_LOG_ERR:
             print(message, paho_log_level)
 
-    def on_message(self, client, userdata, msg):
+    def on_message(self, client, userdata, msg) -> None:
         payload = msg.payload.decode()
         topic = msg.topic
         if topic not in self.messages:
             self.messages[topic] = []
         self.messages[topic].append(payload)
 
-    def reset_messages(self):
+    def reset_messages(self) -> None:
         self.messages = {}
 
-    def subscribe(self, topic):
+    def subscribe(self, topic) -> str:
         self.client.subscribe(topic)
         return topic
     
-    def unsubscribe(self, topic):
+    def unsubscribe(self, topic) -> str:
         self.client.unsubscribe(topic)
         return topic

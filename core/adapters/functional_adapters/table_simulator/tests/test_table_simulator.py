@@ -5,6 +5,7 @@ import shutil
 import time
 import unittest
 from threading import Thread
+from typing import Any
 
 import yaml
 
@@ -17,10 +18,6 @@ from core.adapters.functional_adapters.table_simulator.table_simulator import (
 from core.measurement_terms.manager import measurement_manager
 from core.modules.output_modules.mqtt import MQTT
 from mock_mqtt_client import MockBioreactorClient
-
-# sys.path.insert(0, os.path.join("../../../../../tests"))
-# sys.path.insert(0, os.path.join("../../../../../tests", ".."))
-# sys.path.insert(0, os.path.join("../../../../../tests", "..", ".."))
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -38,31 +35,20 @@ except:
 time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"][
     "time_column"
 ]
-# {'EQUIPMENT_INSTANCES':
-#   [
-#       {'equipment':
-#           {'adapter': 'table_simulator',
-#               'data': {'instance_id': 'indpensim', 'institute': 'unlock'},
-#               'requirements': {'write_file': 'tmp_veenkampen.csv', 'start_date': datetime.datetime(2024, 10, 1, 12, 33, 45),
-#               'time_column': 'Time (h)'},
-#               'simulation': {'filename': './leaf/core/adapters/functional_adapters/table_simulator/tests/data/IndPenSim_V3_Batch_1_top10.csv', 'interval': 0.1}}}],
-#               'OUTPUTS': [{'plugin': 'MQTT', 'broker': 'localhost', 'port': 1883}]}
+
+watch_file: str = os.path.join("tmp.txt")
+test_file_dir: str = os.path.join(curr_dir, "data")
+measurement_file: str = os.path.join(test_file_dir, "IndPenSim_V3_Batch_1_top10.csv")
 
 
-watch_file = os.path.join("tmp.txt")
-curr_dir = os.path.dirname(os.path.realpath(__file__))
-test_file_dir = os.path.join(curr_dir, "data")
-measurement_file = os.path.join(test_file_dir, "IndPenSim_V3_Batch_1_top10.csv")
-
-
-def _create_file():
+def _create_file() -> None:
     if os.path.isfile(watch_file):
         os.remove(watch_file)
     shutil.copyfile(measurement_file, watch_file)
     time.sleep(2)
 
 
-def _modify_file():
+def _modify_file() -> None:
     with open(measurement_file, "r") as src:
         content = src.read()
     with open(watch_file, "a") as dest:
@@ -70,25 +56,25 @@ def _modify_file():
     time.sleep(2)
 
 
-def _delete_file():
+def _delete_file() -> None:
     if os.path.isfile(watch_file):
         os.remove(watch_file)
 
 
 class TestTableSimulatorInterpreter(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self._interpreter = TableSimulatorInterpreter()
 
-    def _metadata_run(self):
+    def _metadata_run(self) -> dict[str, str]:
         with open(measurement_file, "r", encoding="latin-1") as file:
             data = list(csv.reader(file, delimiter=";"))
         return self._interpreter.metadata(data)
 
-    def test_metadata(self):
+    def test_metadata(self) -> None:
         result = self._metadata_run()
         self.assertIn("experiment_id", result)
 
-    def test_measurement(self):
+    def test_measurement(self) -> None:
         # TODO - Fix this test, it failes as the simulator fixes the time header...
         #  but this function is not called in this test case
         result = self._metadata_run()
@@ -98,7 +84,7 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
         result = self._interpreter.measurement(data, None)
         print(result)
 
-    def test_simulate(self):
+    def test_simulate(self) -> None:
         pass
 
 
@@ -108,14 +94,14 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         if os.path.isfile(watch_file):
             os.remove(watch_file)
 
-        self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
+        self.mock_client: MQTT = MockBioreactorClient(broker, port, username=un, password=pw)
         logging.debug(f"Broker: {broker} Port: {port} Username: {un}")
-        self.output = MQTT(broker, port, username=un, password=pw)
-        self.instance_data = {
+        self.output: MQTT = MQTT(broker, port, username=un, password=pw)
+        self.instance_data: dict = {
             "instance_id": "test_IndPenSimAdapter",
             "institute": "test_ins",
         }
-        self._adapter = TableSimulatorAdapter(
+        self._adapter: TableSimulatorAdapter = TableSimulatorAdapter(
             self.instance_data, self.output, watch_file, time_column
         )
         self.details_topic = self._adapter._metadata_manager.details()
@@ -133,7 +119,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.subscribe(wildcard_measure)
         time.sleep(2)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._adapter.stop()
         self._flush_topics()
         self.mock_client.reset_messages()
@@ -146,13 +132,13 @@ class TestTableSimulatorAdapter(unittest.TestCase):
             data = list(csv.reader(file, delimiter=";"))
         return self._adapter._interpreter.measurement(data)
 
-    def _flush_topics(self):
+    def _flush_topics(self) -> None:
         self.mock_client.flush(self.details_topic)
         self.mock_client.flush(self.start_topic)
         self.mock_client.flush(self.stop_topic)
         self.mock_client.flush(self.running_topic)
 
-    def test_details(self):
+    def test_details(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
@@ -169,7 +155,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self._flush_topics()
         self.mock_client.reset_messages()
 
-    def test_start(self):
+    def test_start(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
@@ -198,7 +184,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self._flush_topics()
         self.mock_client.reset_messages()
 
-    def test_stop(self):
+    def test_stop(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
 
@@ -228,7 +214,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self._flush_topics()
         self.mock_client.reset_messages()
 
-    def test_running(self):
+    def test_running(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
 
@@ -246,7 +232,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         expected_run = "True"
         self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
 
-    def test_update(self):
+    def test_update(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
         exp_tp = self._adapter._metadata_manager.experiment.measurement()
@@ -267,7 +253,6 @@ class TestTableSimulatorAdapter(unittest.TestCase):
 
         actual_mes = self._get_measurements_run()
 
-        seens = []
         for topic in self.mock_client.messages.keys():
             pot_mes = topic.split("/")[-1]
             exp_tp = self._adapter._metadata_manager.experiment.measurement(
@@ -290,7 +275,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self._flush_topics()
         self.mock_client.reset_messages()
 
-    def test_logic(self):
+    def test_logic(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
 

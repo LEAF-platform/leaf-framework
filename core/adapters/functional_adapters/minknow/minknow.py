@@ -30,26 +30,31 @@ logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 # Note the biolector json file is an example, not a concrete decision on terms...
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, 'table_simulator.json')
+metadata_fn = os.path.join(current_dir, "table_simulator.json")
 
 # SEPARATOR: str = ","
+
 
 class MinKNOWInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
         super().__init__()
         logger.info("Initializing MinKNOWInterpreter")
-    def measurement(self, data: list[str], measurements: Any) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
+    def measurement(self, data, measurements) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
         logger.info(f"TableSimulatoInterpreter data {str(data)[:50]}...")
         # Load measurement into a pd
         # List of lists to DataFrame where the first row is the header
         global SEPARATOR
-        matrix = [x[0].split(SEPARATOR) for x in data if isinstance(x, list) and len(x) > 0]
+        matrix = [
+            x[0].split(SEPARATOR) for x in data if isinstance(x, list) and len(x) > 0
+        ]
         logger.debug(f"Matrix: {len(matrix)}")
         # TODO Load only the last row
         df = pd.DataFrame([matrix[0], matrix[-1]])
-        if df.iloc[0].equals(df.iloc[-1]): return {}
+        if df.iloc[0].equals(df.iloc[-1]):
+            return {}
         # Check if there are enough rows
-        if df.shape[0] < 2: return {}
+        if df.shape[0] < 2:
+            return {}
         # logger.debug(f"Dimensions of the data: {df.shape}")
         # Set the first row as the header
         df.columns = df.iloc[0]
@@ -66,7 +71,9 @@ class MinKNOWInterpreter(AbstractInterpreter):
             if key.isdigit():
                 del last_row_dict[key]
             # Remove empty entries
-            elif last_row_dict[key] in ["", 'NaN', None] or (isinstance(last_row_dict[key], float) and math.isnan(last_row_dict[key])):
+            elif last_row_dict[key] in ["", "NaN", None] or (
+                isinstance(last_row_dict[key], float) and math.isnan(last_row_dict[key])
+            ):
                 del last_row_dict[key]
             else:
                 # Check if it can be converted to a float
@@ -84,21 +91,23 @@ class MinKNOWInterpreter(AbstractInterpreter):
                 last_row_dict[new_key] = last_row_dict.pop(key)
         # Create the influx point object for a final message
         influx_point = InfluxPoint()
-        influx_point.set_measurement('table_simulator')
+        influx_point.set_measurement("table_simulator")
         influx_point.set_fields(last_row_dict)
         try:
             # time_obj = datetime.strptime(last_row_dict["timestamp"], '%Y-%m-%d %H:%M:%S')
             time_obj = dateparser.parse(last_row_dict["timestamp"])
             logger.debug(f"Time object: {time_obj}")
             influx_point.set_timestamp(time_obj)
-            influx_point.add_tag('project', 'table_simulator')
+            influx_point.add_tag("project", "table_simulator")
             # Send message to the MQTT broker
             return influx_point.to_json()
         except Exception as e:
             raise BaseException(f"Error in TableSimulatoInterpreter: {e}")
-    def metadata(self,data: str) -> dict[str, str]:
+
+    def metadata(self, data: str) -> dict[str, str]:
         logger.debug(f"Metadata {str(data)[:50]}")
         return {"metadata": "Some content"}
+
     def simulate(self) -> None:
         logger.error("Simulating TableSimulatorInterpreter")
         print("Doing something D?")
@@ -107,7 +116,7 @@ class MinKNOWInterpreter(AbstractInterpreter):
 interpreter = MinKNOWInterpreter()
 
 
-def get_data_from_minknow(position: Any) -> None:
+def get_data_from_minknow(position) -> None:
     print("#" * 50)
     # print(position) # gives MS00000 (running)
     connection = position.connect()
@@ -203,7 +212,6 @@ def get_data_from_minknow(position: Any) -> None:
     # Create a request (you may need to configure this depending on the API)
     # request = GetChannelStatesRequest()
 
-
     # print(f"CONNECTION {connection.__dict__}")
     # print(f"DATA{connection.data.__dict__}")
     # print(f"STAT{connection.minion_device.__dict__}")
@@ -220,7 +228,9 @@ def get_data_from_minknow(position: Any) -> None:
     current_time = time.time()
     if not os.path.exists("data/timer"):
         os.makedirs("data/timer")
-    with open(f"data/timer/acquisition_info_{position.device_type}_{current_time}.json", "w") as f:
+    with open(
+        f"data/timer/acquisition_info_{position.device_type}_{current_time}.json", "w"
+    ) as f:
         content = MessageToJson(acquisition_info)
         f.write(json.dumps(json.loads(content), indent=4, sort_keys=True))
 
@@ -236,7 +246,9 @@ def get_data_from_minknow(position: Any) -> None:
         read_count = acquisition_info.yield_summary.read_count
         selected_raw_samples = acquisition_info.yield_summary.selected_raw_samples
         selected_events = acquisition_info.yield_summary.selected_events
-        estimated_selected_bases = acquisition_info.yield_summary.estimated_selected_bases
+        estimated_selected_bases = (
+            acquisition_info.yield_summary.estimated_selected_bases
+        )
         # logger.info(f"Read Count: {read_count}")
         influx_object.add_field("read_count", read_count)
         # logger.info(f"Selected Raw Samples: {selected_raw_samples}")
@@ -246,9 +258,9 @@ def get_data_from_minknow(position: Any) -> None:
         # logger.info(f"Estimated Selected Bases: {estimated_selected_bases}")
         influx_object.add_field("estimated_selected_bases", estimated_selected_bases)
     print(influx_object.to_line_protocol())
-        # print(f"Acquisition Info: {content}")
-        # purpose = acquisition_info.configuration_summary.purpose
-        # logging.info(f"Purpose: {purpose}")
+    # print(f"Acquisition Info: {content}")
+    # purpose = acquisition_info.configuration_summary.purpose
+    # logging.info(f"Purpose: {purpose}")
     # for line in open("data/acquisition_info.json"):
     # if "reserved_pore" in line:
     # logging.info(line)
@@ -258,7 +270,6 @@ def get_data_from_minknow(position: Any) -> None:
     # Update previous_message with the current one for the next iteration
     # previous_message = acquisition_info
 
-
     # return
     # Accessing the acquired and processed values from the response
     progress = connection.acquisition.get_progress()
@@ -267,8 +278,18 @@ def get_data_from_minknow(position: Any) -> None:
 
 
 class MinKNOWAdapter(EquipmentAdapter):
-    def __init__(self, instance_data: Any, output: Any, write_file: Optional[str], token: Optional[str], host: str = "localhost", port: int = 9501) -> None:
-        logger.info(f"Initializing TableSimulator with instance data {instance_data} and output {output} and write file {write_file}")
+    def __init__(
+        self,
+        instance_data,
+        output,
+        write_file: Optional[str],
+        token: Optional[str],
+        host: str = "localhost",
+        port: int = 9501,
+    ) -> None:
+        logger.info(
+            f"Initializing TableSimulator with instance data {instance_data} and output {output} and write file {write_file}"
+        )
         # Set variables
         self._host = host
         self._port = port
@@ -280,17 +301,19 @@ class MinKNOWAdapter(EquipmentAdapter):
         )
         # Create a metadata manager
         metadata_manager: MetadataManager = MetadataManager()
-        metadata_manager.set_metadata("a", "b")
+        metadata_manager.add_metadata("a", "b")
         # Create a CSV watcher for the write file
         watcher: CSVWatcher = CSVWatcher(write_file, metadata_manager)
         measurements: list[str] = ["Aeration rate(Fg:L/h)"]
         # Create the phases?
         start_p: StartPhase = StartPhase(output, metadata_manager)
         stop_p: StopPhase = StopPhase(output, metadata_manager)
-        measure_p: MeasurementPhase = MeasurementPhase(output, measurements, metadata_manager)
+        measure_p: MeasurementPhase = MeasurementPhase(
+            output, measurements, metadata_manager
+        )
         details_p: InitialisationPhase = InitialisationPhase(output, metadata_manager)
-        self.instance_id: str = instance_data['instance_id']
-        self.institute: str = instance_data['institute']
+        self.instance_id: str = instance_data["instance_id"]
+        self.institute: str = instance_data["institute"]
         # global SEPARATOR
         # SEPARATOR = sep
         # Obtain absolute path to the input file
@@ -303,19 +326,20 @@ class MinKNOWAdapter(EquipmentAdapter):
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p, measure_p, stop_p]
         mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, process_adapters=mock_process, interpreter=interpreter, metadata_manager=metadata_manager) # type: ignore
-        #instance_data,watcher,mock_process,
+        super().__init__(instance_data=instance_data, watcher=watcher, process_adapters=mock_process, interpreter=interpreter, metadata_manager=metadata_manager)  # type: ignore
+        # instance_data,watcher,mock_process,
         #                 interpreter,metadata_manager=metadata_manager)
         self._write_file = write_file
         # if start_date is not None:
         #     self._start_datetime = datetime.combine(start_date, datetime.min.time())
         self._metadata_manager.add_equipment_data(metadata_fn)
 
-
-    def simulate(self,filepath:str, delay: int=0, wait: int=0) -> None:
+    def simulate(self, filepath: str, delay: int = 0, wait: int = 0) -> None:
         logger.info("Starting simulation")
         while True:
-            logger.info(f"Doing something with {self._host} and {self._port} and {self._token}")
+            logger.info(
+                f"Doing something with {self._host} and {self._port} and {self._token}"
+            )
             # Do an API call to a MinKNOW server
             flow_cell_positions = list(self._manager.flow_cell_positions())
             # logger.debug(f"Flow cell positions: {flow_cell_positions}")
@@ -326,7 +350,6 @@ class MinKNOWAdapter(EquipmentAdapter):
         # Finish the simulation
         logger.info("Finished simulation")
         self.stop()
-
 
     def stop(self) -> None:
         print("Stopping TableSimulatorAdapter")

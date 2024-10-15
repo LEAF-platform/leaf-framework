@@ -33,8 +33,8 @@ SEPARATOR: str = ","
 class TableSimulatorAdapter(EquipmentAdapter):
     def __init__(
         self,
-        instance_data: Any,
-        output: Any,
+        instance_data,
+        output,
         write_file: Optional[str],
         time_column: str,
         start_date: Optional[date] = None,
