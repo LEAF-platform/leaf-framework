@@ -1,15 +1,12 @@
+import csv
+import logging
 import os
 import shutil
-import sys
 import time
 import unittest
 from threading import Thread
-import yaml
-import csv
 
-sys.path.insert(0, os.path.join("../../../../../tests"))
-sys.path.insert(0, os.path.join("../../../../../tests", ".."))
-sys.path.insert(0, os.path.join("../../../../../tests", "..", ".."))
+import yaml
 
 from core.adapters.functional_adapters.table_simulator.table_simulator import (
     TableSimulatorAdapter,
@@ -17,11 +14,13 @@ from core.adapters.functional_adapters.table_simulator.table_simulator import (
 from core.adapters.functional_adapters.table_simulator.table_simulator import (
     TableSimulatorInterpreter,
 )
+from core.measurement_terms.manager import measurement_manager
 from core.modules.output_modules.mqtt import MQTT
 from mock_mqtt_client import MockBioreactorClient
-from core.measurement_terms.manager import measurement_manager
 
-import logging
+# sys.path.insert(0, os.path.join("../../../../../tests"))
+# sys.path.insert(0, os.path.join("../../../../../tests", ".."))
+# sys.path.insert(0, os.path.join("../../../../../tests", "..", ".."))
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -36,6 +35,19 @@ try:
 except:
     un = None
     pw = None
+time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"][
+    "time_column"
+]
+# {'EQUIPMENT_INSTANCES':
+#   [
+#       {'equipment':
+#           {'adapter': 'table_simulator',
+#               'data': {'instance_id': 'indpensim', 'institute': 'unlock'},
+#               'requirements': {'write_file': 'tmp_veenkampen.csv', 'start_date': datetime.datetime(2024, 10, 1, 12, 33, 45),
+#               'time_column': 'Time (h)'},
+#               'simulation': {'filename': './leaf/core/adapters/functional_adapters/table_simulator/tests/data/IndPenSim_V3_Batch_1_top10.csv', 'interval': 0.1}}}],
+#               'OUTPUTS': [{'plugin': 'MQTT', 'broker': 'localhost', 'port': 1883}]}
+
 
 watch_file = os.path.join("tmp.txt")
 curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -104,7 +116,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
             "institute": "test_ins",
         }
         self._adapter = TableSimulatorAdapter(
-            self.instance_data, self.output, watch_file
+            self.instance_data, self.output, watch_file, time_column
         )
         self.details_topic = self._adapter._metadata_manager.details()
         self.start_topic = self._adapter._metadata_manager.experiment.start()

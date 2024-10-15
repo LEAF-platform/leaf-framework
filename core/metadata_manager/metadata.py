@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 import os
@@ -12,13 +12,14 @@ from core.modules.logger_modules.logger_utils import get_logger
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
+
 class MetadataManager:
 
     def __init__(self) -> None:
         """Initialize the metadata dictionary for each adapter."""
         logger.info("Initializing MetadataManager")
         self._metadata: dict = {}
-        self.equipment_terms = None
+        self.equipment_terms: Optional[EquipmentTerms] = None
         self.load_equipment_terms()
 
     def load_equipment_terms(self):
@@ -28,7 +29,9 @@ class MetadataManager:
         try:
             with open(filepath, "r") as file:
                 yaml_content = yaml.safe_load(file)
-                self.equipment_terms: EquipmentTerms = EquipmentTerms(yaml_content,self._metadata)
+                self.equipment_terms: EquipmentTerms = EquipmentTerms(
+                    yaml_content, self._metadata
+                )
         except FileNotFoundError:
             print(f"YAML file {filepath} not found.")
 
@@ -48,7 +51,7 @@ class MetadataManager:
         """Retrieve a specific metadata value."""
         return self._metadata.get(key, default)
 
-    def set_metadata(self, key: str, value: str) -> None:
+    def add_metadata(self, key: str, value: str) -> None:
         """Set a specific metadata value."""
         self._metadata[key] = value
 
