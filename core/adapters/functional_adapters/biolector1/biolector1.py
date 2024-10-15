@@ -16,7 +16,7 @@ from core.modules.phase_modules.initialisation import InitialisationPhase
 from core.modules.input_modules.csv_watcher import CSVWatcher
 
 from core.metadata_manager.metadata import MetadataManager
-# Note the biolector json file is an example, not a concrete decision on terms...
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, 'biolector1.json')
 
