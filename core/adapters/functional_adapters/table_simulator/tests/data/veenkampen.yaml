@@ -9,7 +9,7 @@ EQUIPMENT_INSTANCES:
         # start_date: XXXX-XX-XX XX:XX:XX
         time_column: 'Timestamp'
       simulation:
-        filename: /Users/koeho006/git/leaf/leaf/cloud/test_data/veenkampen/Veenkampen_inverted.csv
+        filename: ./leaf/core/adapters/functional_adapters/table_simulator/tests/data/veenkampen.csv
         interval: 0.1
 
 OUTPUTS:
