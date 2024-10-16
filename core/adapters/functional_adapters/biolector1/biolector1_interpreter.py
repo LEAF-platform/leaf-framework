@@ -4,6 +4,9 @@ import uuid
 import csv
 from datetime import datetime
 import time
+from termios import INLCR
+
+from influxobject import InfluxPoint
 
 from core.adapters.equipment_adapter import AbstractInterpreter
 from core.measurement_terms.manager import measurement_manager
@@ -26,7 +29,10 @@ class Biolector1Interpreter(AbstractInterpreter):
     Interpreter for Biolector1 EquipmentAdapter. Handles metadata extraction,
     measurement processing, and simulation based on Biolector1 CSV data.
     """
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initialise the Biolector1Interpreter with member variables
+        """
         super().__init__()
         self._TARGET_PARAMS_KEY = "target_parameters"
         self._SENSORS_KEY = "sensors"
@@ -193,12 +199,19 @@ class Biolector1Interpreter(AbstractInterpreter):
         data = data[::-1]
 
         measurements = {}
-        update = {
-            "measurement": "Biolector1",
-            "tags": {"project": "indpensim"},
-            "fields": measurements,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
+        # update = {
+        #     "measurement": "Biolector1",
+        #     "tags": {"project": "biolecProject"},
+        #     "fields": measurements,
+        #     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # }
+
+        # Create using the influx point method
+        influx_object = InfluxPoint()
+        influx_object.set_measurement("Biolector1")
+        influx_object.add_tag("project", "biolecProject")
+        influx_object.set_timestamp(datetime.now())
+        influx_object.set_fields(measurements)
 
         if data[0][0] == "R":
             data = data[1:]
@@ -208,7 +221,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             if len(row) == 0 or row[0] == "R":
                 continue
             if row[0] != reading:
-                return update
+                return influx_object
 
             fs_code = int(row[4])
             name = self._get_filtername(fs_code)
@@ -230,7 +243,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             }
             measurements[measurement.term].append(measurement_data)
 
-        return update
+        return influx_object
 
     def simulate(self, read_file, write_file, wait):
         """

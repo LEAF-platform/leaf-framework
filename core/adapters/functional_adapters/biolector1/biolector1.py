@@ -79,7 +79,7 @@ class Biolector1Adapter(Bioreactor):
             wait = 10
 
         if os.path.isfile(self._write_file):
-            raise ValueError("Trying to run test when the file exists.")
+            raise ValueError(f"Trying to run test when {self._write_file} exists.")
         
         proxy_thread = Thread(target=self.start)
         proxy_thread.start()

@@ -28,8 +28,6 @@ OUTPUTS:
   - plugin: MQTT
     broker: localhost
     port: 1883
-#    username: mcrowther
-#    password: Radeon12300
     fallback: KEYDB
 
   - plugin: KEYDB

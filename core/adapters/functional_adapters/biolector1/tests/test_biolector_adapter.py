@@ -1,29 +1,22 @@
+import csv
+import logging
 import os
 import shutil
-import sys
 import time
 import unittest
 from threading import Thread
-import yaml
-import csv
 
-sys.path.insert(0, os.path.join(".."))
-sys.path.insert(0, os.path.join("..",".."))
-sys.path.insert(0, os.path.join("..","..",".."))
+import yaml
 
 from core.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
 from core.adapters.functional_adapters.biolector1.biolector1_interpreter import Biolector1Interpreter
-from core.modules.output_modules.mqtt import MQTT
-from mock_mqtt_client import MockBioreactorClient
 from core.measurement_terms.manager import measurement_manager
-
-import logging
-
-# logging.basicConfig(level=logging.DEBUG)
+from core.modules.output_modules.mqtt import MQTT, logger
+from mock_mqtt_client import MockBioreactorClient
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-with open(os.path.join(curr_dir,"..","test_config.yaml"), 'r') as file:
+with open(os.path.join(curr_dir,"data","test_config.yaml"), 'r') as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
@@ -37,7 +30,7 @@ except:
 
 watch_file = os.path.join("tmp.txt")
 curr_dir = os.path.dirname(os.path.realpath(__file__))
-test_file_dir = os.path.join(curr_dir,"..","static_files")
+test_file_dir = os.path.join(curr_dir,"data")
 initial_file = os.path.join(test_file_dir,"biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir,"biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir,"biolector1_full.csv")
@@ -61,10 +54,10 @@ def _delete_file():
         os.remove(watch_file)
 
 class TestBiolector1Interpreter(unittest.TestCase):
-    def setUp(self):
-        self._interpreter = Biolector1Interpreter()
+    def setUp(self) -> None:
+        self._interpreter: Biolector1Interpreter = Biolector1Interpreter()
 
-    def _metadata_run(self):
+    def _metadata_run(self) -> dict:
         with open(initial_file, 'r', encoding='latin-1') as file:
             data = list(csv.reader(file, delimiter=";"))  
         return self._interpreter.metadata(data)
@@ -87,6 +80,7 @@ class TestBiolector1Interpreter(unittest.TestCase):
                 self.assertIn(data["name"],names)
 
     def test_simulate(self):
+        logger.info("No test for simulate")
         pass
 
 class TestBiolector1(unittest.TestCase):
@@ -97,8 +91,8 @@ class TestBiolector1(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port,username=un,password=pw)
         logging.debug(f"Broker: {broker} Port: {port} Username: {un}")
-        self.output = MQTT(broker,port,username=un,password=pw)
-        self.instance_data = {"instance_id" : "test_biolector123","institute" : "test_ins"}
+        self.output: MQTT = MQTT(broker,port,username=un,password=pw)
+        self.instance_data: dict[str, str] = {"instance_id" : "test_biolector123","institute" : "test_ins"}
         self._adapter = Biolector1Adapter(self.instance_data,
                                           self.output,
                                           watch_file)
