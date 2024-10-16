@@ -137,6 +137,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         # Ensure modification is not a duplicate event (debouncing)
         if self._is_last_modified():
             fp = os.path.join(self._path, self._file_name)
+            logger.debug(f"File location {os.path.abspath(fp)}")
             with open(fp, 'r') as file:
                 data = file.read()
             for callback in self._measurement_callbacks:
