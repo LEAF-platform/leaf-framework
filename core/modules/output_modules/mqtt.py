@@ -118,7 +118,7 @@ class MQTT(OutputModule):
         """
         self.client.publish(topic=topic, payload=None, qos=0, retain=True)
         
-    def on_connect(self, client, userdata, flags, rc, metadata):
+    def on_connect(self, client, userdata, flags, rc):
         """
         Callback for when the client connects to the broker.
 
