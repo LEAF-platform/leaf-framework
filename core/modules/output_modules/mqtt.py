@@ -6,6 +6,7 @@ import time
 import logging
 import json
 
+from influxobject import InfluxPoint
 from paho.mqtt.enums import CallbackAPIVersion
 
 from core.modules.output_modules.output_module import OutputModule
@@ -64,6 +65,7 @@ class MQTT(OutputModule):
                                   protocol=self.protocol, 
                                   transport=transport)
         self.client.on_connect = self.on_connect
+        self.client.on_publish = self.on_publish
         self.client.on_disconnect = self.on_disconnect
         self.client.on_connect_failure = self.on_connect_failure
         self.client.on_log = self.on_log
@@ -94,9 +96,13 @@ class MQTT(OutputModule):
             data: The message payload to be transmitted.
             retain: Whether to retain the message on the broker.
         """
-        if isinstance(data, (dict, list)):
+        if isinstance(data, (dict, list, set)):
             data = json.dumps(data)
+        elif isinstance(data, InfluxPoint):
+            logger.debug(f"Converting InfluxPoint to JSON")
+            data = data.to_json()
         elif data is not None and not isinstance(data, str):
+            logger.error(f"Data must be a string, dict, list, or set not {type(data).__name__}")
             data = str(data)
         elif data is None:
             logger.error(f"No data was provided")
@@ -112,7 +118,7 @@ class MQTT(OutputModule):
             else:
                 logger.error(f"Failed to send message: {result.rc}")
 
-    def flush(self, topic):
+    def flush(self, topic) -> None:
         """
         Clear any retained messages on the broker 
         by publishing an empty payload.
@@ -122,7 +128,7 @@ class MQTT(OutputModule):
         """
         self.client.publish(topic=topic, payload=None, qos=0, retain=True)
         
-    def on_connect(self, client, userdata, flags, rc, metadata):
+    def on_connect(self, client, userdata, flags, rc, metadata) -> None:
         """
         Callback for when the client connects to the broker.
 
@@ -137,7 +143,7 @@ class MQTT(OutputModule):
         if rc != 0:
             logger.error(f"Failed to connect: {rc}")
 
-    def on_disconnect(self, client, userdata, flags, rc, metadata):
+    def on_disconnect(self, client, userdata, flags, rc, metadata) -> None:
         """
         Callback for when the client disconnects from the broker.
 
@@ -166,6 +172,18 @@ class MQTT(OutputModule):
             reconnect_count += 1
         
         logger.error(f"Unable to reconnect after {MAX_RECONNECT_COUNT} attempts")
+
+    def on_publish(self, client, x, mid, reason_code, properties) -> None:
+        """
+        Callback for when a message is published to the broker.
+
+        Args:
+            client: The MQTT client instance.
+            userdata: The private user data as set in
+                      Client() or userdata_set().
+            mid: The message ID of the published message.
+        """
+        logger.debug(f"Published message with MID: {mid} X: {x} Reason: {reason_code} Properties: {properties} Client: {client}")
 
     def on_connect_failure(self, client, userdata, flags, rc, metadata):
         """
@@ -212,11 +230,11 @@ class MQTT(OutputModule):
             self.messages[topic] = []
         self.messages[topic].append(payload)
 
-    def reset_messages(self):
+    def reset_messages(self) -> None:
         """Clear all stored messages."""
         self.messages = {}
 
-    def subscribe(self, topic):
+    def subscribe(self, topic) -> str:
         """
         Subscribe to a topic on the MQTT broker.
 

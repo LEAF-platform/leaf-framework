@@ -10,6 +10,7 @@ from influxobject import InfluxPoint
 
 from core.adapters.equipment_adapter import AbstractInterpreter
 from core.measurement_terms.manager import measurement_manager
+from core.modules.output_modules.mqtt import logger
 
 # Define wavelength ranges for different measurement types
 OD_EX_RANGE = (600, 630)
@@ -206,21 +207,25 @@ class Biolector1Interpreter(AbstractInterpreter):
         #     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # }
 
-        # Create using the influx point method
-        influx_object = InfluxPoint()
-        influx_object.set_measurement("Biolector1")
-        influx_object.add_tag("project", "biolecProject")
-        influx_object.set_timestamp(datetime.now())
-        influx_object.set_fields(measurements)
-
         if data[0][0] == "R":
             data = data[1:]
         reading = data[0][0]
 
+        influx_objects: set[InfluxPoint] = set()
+        # One row contains all the measurements of all the wells
         for row in data:
+            # Create using the influx point method
+            influx_object = InfluxPoint()
+            influx_object.set_measurement("Biolector1")
+            influx_object.add_tag("project", "biolecProject")
+            influx_object.set_timestamp(datetime.now())
+            # influx_object.set_fields(measurements)
+
             if len(row) == 0 or row[0] == "R":
                 continue
             if row[0] != reading:
+                logger.debug(f"Returning what?")
+                influx_object.set_fields("empty", "field")
                 return influx_object
 
             fs_code = int(row[4])
@@ -241,11 +246,16 @@ class Biolector1Interpreter(AbstractInterpreter):
                 "name": name,
                 "well_num": well_num
             }
+            influx_object.add_tag("well_num", well_num)
+            influx_object.add_field(name, value)
+
             measurements[measurement.term].append(measurement_data)
+            influx_objects.add(influx_object)
+        # TODO return the set of influx objects and submit them to MQTT
+        return influx_objects
 
-        return influx_object
-
-    def simulate(self, read_file, write_file, wait):
+    # TODO move this to the test case that generates the data for the interpreter to process
+    def simulate(self, read_file, write_file, wait) -> None:
         """
         Simulate the Biolector1 process by reading 
         chunks of data from an input file and writing it to 
@@ -256,7 +266,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             write_file: The output file where simulated data is written.
             wait: Time (in seconds) to wait between writing chunks of data.
         """
-        def write(chunk):
+        def write(chunk) -> None:
             with open(write_file, mode='a', newline='', encoding='latin-1') as file:
                 writer = csv.writer(file, delimiter=';')
                 writer.writerows(chunk)
