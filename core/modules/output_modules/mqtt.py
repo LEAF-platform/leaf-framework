@@ -47,13 +47,25 @@ class MQTT(OutputModule):
             self.client.tls_insecure_set(True)
 
         logging.debug(f"Connecting to MQTT broker at {broker}:{port}")
-        self.client.connect(broker, port, 60)
+
+        try:
+            self.client.connect(broker, port, 60)
+        except OSError:
+            pass
 
         self.client.loop_start()
         self.messages = {}
 
     
     def transmit(self, topic,data=None,retain=False):
+        def _fallback():
+            if self._fallback is not None:
+                self._fallback.transmit(topic,data=data)
+            else:
+                logging.error(f"Failed to send message: {result.rc}")
+                return None
+        if self.client is None:
+            return _fallback()
         if isinstance(data, dict):
             data = json.dumps(data)
         elif data is not None and not isinstance(data, str):
@@ -62,10 +74,8 @@ class MQTT(OutputModule):
                                      payload=data, 
                                      qos=0, retain=retain)
         if result.rc != mqtt.MQTT_ERR_SUCCESS:
-            if self._fallback is not None:
-                self._fallback.transmit(topic,data=data)
-            else:
-                logging.error(f"Failed to send message: {result.rc}")
+            return _fallback()
+        return result
 
     def flush(self,topic):
         self.client.publish(topic=topic, 

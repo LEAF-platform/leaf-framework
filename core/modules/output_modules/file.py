@@ -8,22 +8,48 @@ class FILE(OutputModule):
         self.filename = filename
 
     def transmit(self, topic, data=None):
-        if os.path.exists(self.filename):
-            with open(self.filename, 'r') as f:
-                try:
-                    file_data = json.load(f)
-                except json.JSONDecodeError:
-                    file_data = {}
-        else:
-            file_data = {}
+        """Transmit data to the file associated with a specific topic."""
+        try:
+            if os.path.exists(self.filename):
+                with open(self.filename, 'r') as f:
+                    try:
+                        file_data = json.load(f)
+                    except json.JSONDecodeError:
+                        file_data = {}
+            else:
+                file_data = {}
+            if topic in file_data:
+                if not isinstance(file_data[topic], list):
+                    file_data[topic] = [file_data[topic]]
+            else:
+                file_data[topic] = []
 
-        if topic in file_data:
-            if not isinstance(file_data[topic], list):
-                file_data[topic] = [file_data[topic]]
-        else:
-            file_data[topic] = []
-        if data is not None:
-            file_data[topic].append(data)
+            if data is not None:
+                file_data[topic].append(data)
+            with open(self.filename, 'w') as f:
+                json.dump(file_data, f, indent=4)
+                
 
-        with open(self.filename, 'w') as f:
-            json.dump(file_data, f, indent=4)
+        except (OSError, IOError, json.JSONDecodeError) as e:
+            if self._fallback is not None:
+                self._fallback.transmit(topic, data=data)
+
+    def retrieve(self, topic):
+        """Retrieve data associated with a specific topic."""
+        try:
+            if os.path.exists(self.filename):
+                with open(self.filename, 'r') as f:
+                    try:
+                        file_data = json.load(f)
+                    except json.JSONDecodeError:
+                        return None
+            else:
+                return None
+
+            if topic in file_data:
+                return file_data[topic]
+            else:
+                return None
+
+        except (OSError, IOError) as e:
+            return None
