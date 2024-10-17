@@ -6,25 +6,11 @@ EQUIPMENT_INSTANCES:
         institute: NCL
       requirements:
         write_file: tmp1.csv
-      simulation:
-        filename: tests/static_files/biolector1_full.csv
-        interval: 60
-      stagger_transmit: 1
-  - equipment:
-      adapter: IndPenSim
-      data:
-        instance_id: IndPenSimulator2
-        institute: unlock
-      requirements:
-        write_file: tmp5.csv
-      stagger_transmit: 1
 
 OUTPUTS:
   - plugin: MQTT
     broker: test.mosquitto.org
     port: 1883
-#    username: mcrowther
-#    password: Radeon12300
     fallback: KEYDB
 
   - plugin: KEYDB

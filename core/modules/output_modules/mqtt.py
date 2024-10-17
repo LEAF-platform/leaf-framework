@@ -118,7 +118,7 @@ class MQTT(OutputModule):
         """
         self.client.publish(topic=topic, payload=None, qos=0, retain=True)
         
-    def on_connect(self, client, userdata, flags, rc, metadata):
+    def on_connect(self, client, userdata, flags, rc, metadata=None):
         """
         Callback for when the client connects to the broker.
 
@@ -133,7 +133,7 @@ class MQTT(OutputModule):
         if rc != 0:
             logger.error(f"Failed to connect: {rc}")
 
-    def on_disconnect(self, client, userdata, flags, rc, metadata):
+    def on_disconnect(self,client, userdata, rc):
         """
         Callback for when the client disconnects from the broker.
 

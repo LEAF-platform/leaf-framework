@@ -44,9 +44,12 @@ class MeasurePhase(PhaseModule):
             if isinstance(result, dict):
                 if self._stagger_transmit:
                     for measurement_type, measurements in result["fields"].items():
+                        if not isinstance(measurements,list):
+                            measurements = [measurements]
                         for measurement in measurements:
                             action = self._term_builder(experiment_id=exp_id, measurement=measurement_type)
-                            measurement["timestamp"] = result["timestamp"]
+                            if isinstance(measurement,dict):
+                                measurement["timestamp"] = result["timestamp"]
                             self._output.transmit(action, measurement)
                 else:
                     action = self._term_builder(experiment_id=exp_id, measurement=result["measurement"])
