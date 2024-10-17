@@ -5,6 +5,9 @@ import paho.mqtt.client as mqtt
 import time
 import logging
 import json
+
+from paho.mqtt.enums import CallbackAPIVersion
+
 from core.modules.output_modules.output_module import OutputModule
 
 FIRST_RECONNECT_DELAY = 1
@@ -56,7 +59,8 @@ class MQTT(OutputModule):
         logger.debug(f"MQTT client ID: {clientid}")
         logger.debug(f"MQTT TLS: {tls}")
 
-        self.client = mqtt.Client(client_id=clientid, 
+        self.client = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2,
+                                  client_id=clientid,
                                   protocol=self.protocol, 
                                   transport=transport)
         self.client.on_connect = self.on_connect
