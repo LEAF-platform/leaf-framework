@@ -61,10 +61,8 @@ class MetadataManager:
 
     def add_equipment_data(self, filename: str) -> None:
         if isinstance(filename, dict):
-            # TODO this does not return anything?
             return self._metadata[equipment_key].update(filename)
         else:
-            # TODO this does not return anything?
             return self.load_from_file(filename, equipment_key)
 
     def is_called(self, action: str, term: str) -> bool:
