@@ -43,13 +43,14 @@ text_watch_file = os.path.join("tmp.csv")
 output = MQTT(broker,port,username=un,password=pw,clientid=None)
 
 mock_client = MockBioreactorClient(broker,port,username=un,password=pw)
-mock_client.subscribe("#")
 
 metadata_manager = MetadataManager()
 metadata_manager._metadata["equipment"] = {}
 metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
 metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
 metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+
+mock_client.subscribe(f'test_transmit/test_transmit/test_transmit/#')
 
 def _create_file():
     shutil.copyfile(initial_file, text_watch_file)
@@ -74,12 +75,11 @@ def _run_change(func):
 class TestContinousProcess(unittest.TestCase):
     def setUp(self):
         self.watcher = FileWatcher(text_watch_file,metadata_manager)
-        self._phase = MeasurePhase(output,
-                                    metadata_manager.experiment.measurement,
-                                    metadata_manager)
+        self._phase = MeasurePhase(output,metadata_manager)
         self._module = ContinousProcess(self._phase)
         self._phase.set_interpreter(None)
         self._mock_experiment="test_experiment_id"
+        self._mock_measurement = "test_measurement_id"
         self.watcher.add_measurement_callback(self._mock_update)
 
     def tearDown(self):
@@ -90,7 +90,7 @@ class TestContinousProcess(unittest.TestCase):
 
     def _mock_update(self,data):
         self._phase.update(experiment_id=self._mock_experiment,
-                             data=data)
+                             data=data,measurement=self._mock_measurement)
         
     def test_continous_process(self):
         _run_change(_create_file)
@@ -99,7 +99,9 @@ class TestContinousProcess(unittest.TestCase):
         _run_change(_modify_file)
         time.sleep(2)
         for k,v in mock_client.messages.items():
-            if metadata_manager.experiment.measurement(experiment_id=self._mock_experiment)== k:
+            print(k,v)
+            if metadata_manager.experiment.measurement(experiment_id=self._mock_experiment,
+                                                       measurement=self._mock_measurement)== k:
                 break
         else:
             self.fail()
@@ -112,9 +114,7 @@ class TestDiscreteProcess(unittest.TestCase):
                                metadata_manager)
         stop_p = ControlPhase(output,metadata_manager.experiment.stop,
                               metadata_manager)
-        self._measure_p = MeasurePhase(output,
-                                       metadata_manager.experiment.measurement,
-                                       metadata_manager)
+        self._measure_p = MeasurePhase(output,metadata_manager)
         
         phase = [start_p,self._measure_p,stop_p]
         self.watcher.add_measurement_callback(self._mock_update)
@@ -122,6 +122,7 @@ class TestDiscreteProcess(unittest.TestCase):
         self.watcher.add_stop_callback(stop_p.update)
         self._module = DiscreteProcess(phase)
         self._mock_experiment="test_experiment_id"
+        self._mock_measurement = "test_measurement_id"
         self._module.set_interpreter(None)
 
     def tearDown(self):
@@ -132,6 +133,7 @@ class TestDiscreteProcess(unittest.TestCase):
 
     def _mock_update(self,data):
         self._measure_p.update(experiment_id=self._mock_experiment,
+                               measurement=self._mock_measurement,
                              data=data)
         
     def test_discrete_process(self):
@@ -151,7 +153,8 @@ class TestDiscreteProcess(unittest.TestCase):
             self.fail()
 
         for k,v in mock_client.messages.items():
-            if metadata_manager.experiment.measurement(experiment_id=self._mock_experiment) == k:
+            if metadata_manager.experiment.measurement(experiment_id=self._mock_experiment,
+                                                       measurement=self._mock_measurement) == k:
                 break
         else:
             self.fail()
