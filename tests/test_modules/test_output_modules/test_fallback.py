@@ -51,7 +51,8 @@ class TestMQTT(unittest.TestCase):
         time.sleep(2)
 
     def tearDown(self):
-        pass
+        if os.path.isfile(file_store_fn):
+            os.remove(file_store_fn)
 
     def test_fallback_keydb(self):
         mock_data = {"test_fallback" : "test_fallback"}

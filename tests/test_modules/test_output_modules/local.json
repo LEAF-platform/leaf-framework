@@ -1,6 +1,0 @@
-{
-    "test_fallback/": [
-        "{\"test_fallback\": \"test_fallback\"}",
-        "{\"test_fallback\": \"test_fallback\"}"
-    ]
-}

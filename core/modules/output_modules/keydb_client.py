@@ -23,6 +23,9 @@ class KEYDB(OutputModule):
         if self.client is None:
             return self._fallback.transmit(topic,data=data)
         try:
+            # Should this be rpush? It could be the case 
+            # multiple messages with the same topic?
+            # This case as far as I can tell will overwrite data.
             self.client.set(topic, data)
             logging.info(f"Transmit data to key '{topic}'")
             return True
