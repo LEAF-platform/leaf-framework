@@ -1,16 +1,25 @@
 import json
+import logging
+from typing import Any, Optional
+
 import yaml
 import os
 import re
 
 equipment_key = "equipment"
 
+from core.modules.logger_modules.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
+
+
 class MetadataManager:
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the metadata dictionary for each adapter."""
-        self._metadata = {}
-        self.equipment_terms = None
+        logger.info("Initializing MetadataManager")
+        self._metadata: dict = {}
+        self.equipment_terms: Optional[EquipmentTerms] = None
         self.load_equipment_terms()
 
     def load_equipment_terms(self):
@@ -20,13 +29,15 @@ class MetadataManager:
         try:
             with open(filepath, "r") as file:
                 yaml_content = yaml.safe_load(file)
-                self.equipment_terms = EquipmentTerms(yaml_content, 
-                                                      self._metadata)
+                self.equipment_terms: EquipmentTerms = EquipmentTerms(
+                    yaml_content, self._metadata
+                )
         except FileNotFoundError:
             print(f"YAML file {filepath} not found.")
 
-    def load_from_file(self, file_path, adapter_type=None):
+    def load_from_file(self, file_path, adapter_type=None) -> None:
         """Load metadata from a JSON file and update the metadata dictionary."""
+        logger.debug(f"Loading metadata from file {file_path}")
         try:
             with open(file_path, "r") as file:
                 if adapter_type is not None:
@@ -40,24 +51,26 @@ class MetadataManager:
         """Retrieve a specific metadata value."""
         return self._metadata.get(key, default)
 
-    def set_metadata(self, key, value):
+    def add_metadata(self, key: str, value: str) -> None:
         """Set a specific metadata value."""
         self._metadata[key] = value
 
-    def get_equipment_data(self):
+    def get_equipment_data(self) -> dict[str, str]:
         if equipment_key in self._metadata:
             return self._metadata[equipment_key]
 
-    def add_equipment_data(self, filename):
+    def add_equipment_data(self, filename: str) -> None:
         if isinstance(filename, dict):
+            # TODO this does not return anything?
             return self._metadata[equipment_key].update(filename)
         else:
+            # TODO this does not return anything?
             return self.load_from_file(filename, equipment_key)
 
-    def is_called(self, action, term):
+    def is_called(self, action: str, term: str) -> bool:
         return action.split("/")[-1] == term.split("/")[-1]
 
-    def get_instance_id(self, topic):
+    def get_instance_id(self, topic: str) -> str:
         return topic.split("/")[2]
 
     def __getattr__(self, item):
@@ -68,7 +81,7 @@ class MetadataManager:
 
 
 class EquipmentTerms:
-    def __init__(self, dictionary, metadata):
+    def __init__(self, dictionary: dict[str, Any], metadata: dict[str, Any]) -> None:
         """
         Initialize EquipmentTerms with YAML dictionary and metadata.
         The metadata dictionary is used to dynamically replace

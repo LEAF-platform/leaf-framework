@@ -4,7 +4,7 @@ import redis
 
 from core.modules.output_modules.output_module import OutputModule
 
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class KEYDB(OutputModule):
     def __init__(self, host, port=6379, db=0, fallback=None):

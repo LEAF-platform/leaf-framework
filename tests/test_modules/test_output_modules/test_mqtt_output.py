@@ -19,8 +19,13 @@ with open(curr_dir + '/../../test_config.yaml', 'r') as file:
     
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
-un = config["OUTPUTS"][0]["username"]
-pw = config["OUTPUTS"][0]["password"]
+
+try:
+    un = config["OUTPUTS"][0]["username"]
+    pw = config["OUTPUTS"][0]["password"]
+except:
+    un = None
+    pw = None
 test_file_dir = "test_dir"
 test_file = os.path.join(test_file_dir,"ecoli-GFP-mCherry_inter.csv")
 
@@ -43,7 +48,6 @@ class TestMQTT(unittest.TestCase):
         metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
         metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
         metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
-        self._mock_client.subscribe("+")
         self._mock_client.subscribe(metadata_manager.experiment.start())
         time.sleep(2)
         self._adapter.transmit(metadata_manager.experiment.start(),

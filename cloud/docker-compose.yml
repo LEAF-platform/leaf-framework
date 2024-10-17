@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  vernemq:
+    image: vernemq/vernemq
+    container_name: vernemq
+    environment:
+      - DOCKER_VERNEMQ_ACCEPT_EULA=yes
+      - DOCKER_VERNEMQ_ALLOW_ANONYMOUS=on
+    ports:
+      - "1883:1883"  # MQTT default port
+      - "8888:8888"  # MQTT over WebSockets
+    restart: always
+
+  nodered:
+    image: nodered/node-red
+    container_name: nodered
+    ports:
+      - "1880:1880"  # Node-RED web interface
+    environment:
+      - NODE_OPTIONS=--max_old_space_size=256
+    volumes:
+      - ./nodered_data:/data
+    depends_on:
+      - vernemq
+    restart: always
+
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    environment:
+      - HOST_PROC=/proc
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - timescaledb
+    restart: always
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timescaledb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: unlock
+    volumes:
+      - ./timescaledb_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # PostgreSQL default port
+    restart: always
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"  # pgAdmin web interface
+    volumes:
+      - ./pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - timescaledb
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"  # Grafana web interface
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - timescaledb
+    volumes:
+      - ./grafana_data:/var/lib/grafana
