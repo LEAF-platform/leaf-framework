@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join("..","..",".."))
 from core.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
 from core.adapters.functional_adapters.biolector1.biolector1_interpreter import Biolector1Interpreter
 from core.modules.output_modules.mqtt import MQTT
-from mock_mqtt_client import MockBioreactorClient
+from .. import mock_mqtt_client
 from core.measurement_terms.manager import measurement_manager
 
 import logging
@@ -95,7 +95,7 @@ class TestBiolector1(unittest.TestCase):
         if os.path.isfile(watch_file):
             os.remove(watch_file)
 
-        self.mock_client = MockBioreactorClient(broker, port,username=un,password=pw)
+        self.mock_client = mock_mqtt_client.MockBioreactorClient(broker, port,username=un,password=pw)
         logging.debug(f"Broker: {broker} Port: {port} Username: {un}")
         self.output = MQTT(broker,port,username=un,password=pw)
         self.instance_data = {"instance_id" : "test_biolector123","institute" : "test_ins"}
@@ -130,7 +130,7 @@ class TestBiolector1(unittest.TestCase):
             data = list(csv.reader(file, delimiter=";"))  
         return self._adapter._interpreter.measurement(data)
     
-    def _flush_topics(self):
+    def _flush_topics(self) -> None:
         self.mock_client.flush(self.details_topic)
         self.mock_client.flush(self.start_topic)
         self.mock_client.flush(self.stop_topic)

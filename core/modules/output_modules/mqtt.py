@@ -90,7 +90,7 @@ class MQTT(OutputModule):
         self.messages = {}
 
     
-    def transmit(self, topic,data=None,retain=False):
+    def transmit(self, topic:str ,data: str|None =None,retain: bool=False):
         """
         Publish a message to the MQTT broker on a given topic.
 
@@ -99,7 +99,7 @@ class MQTT(OutputModule):
             data: The message payload to be transmitted.
             retain: Whether to retain the message on the broker.
         """
-        def _fallback():
+        def _fallback() -> None
             if self._fallback is not None:
                 self._fallback.transmit(topic,data=data)
             else:

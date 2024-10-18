@@ -21,7 +21,7 @@ from core.modules.process_modules.discrete_module import DiscreteProcess
 from core.adapters.core_adapters.bioreactor import Bioreactor
 from core.adapters.equipment_adapter import AbstractInterpreter
 
-from mock_mqtt_client import MockBioreactorClient
+from .. import mock_mqtt_client
 from core.metadata_manager.metadata import MetadataManager
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -107,7 +107,7 @@ class TestBioreactor(unittest.TestCase):
         
         self.instance_data = {"instance_id" : "test_biolector123",
                               "institute" : "test_ins"}
-        self.mock_client = MockBioreactorClient(broker, port, username=un,password=pw)
+        self.mock_client = mock_mqtt_client.MockBioreactorClient(broker, port, username=un,password=pw)
         
         self._adapter = MockBioreactor(self.instance_data,
                                               text_watch_file)

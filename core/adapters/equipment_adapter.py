@@ -69,7 +69,7 @@ class EquipmentAdapter(ABC):
             self._watcher.stop()
             self.stop()
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stop the equipment adapter process.
 
