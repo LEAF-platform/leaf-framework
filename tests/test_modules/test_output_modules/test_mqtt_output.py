@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.modules.output_modules.mqtt import MQTT, logger
-from .. import mock_mqtt_client
+from ... import mock_mqtt_client
 from core.metadata_manager.metadata import MetadataManager
 
 # Current location of this script
