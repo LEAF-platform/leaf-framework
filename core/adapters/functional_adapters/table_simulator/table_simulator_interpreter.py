@@ -93,7 +93,7 @@ class TableSimulatorInterpreter(AbstractInterpreter):
 
     def metadata(self, data: list[str]) -> dict[str, str]:
         logger.debug(f"Metadata {str(data)[:50]}")
-        return {"metadata": "Some content", "experiment_id": "THIS IS WRONG"}
+        return {"metadata": "Some content", "experiment_id": "undefined"}
 
     def simulate(self) -> None:
         logger.error("Simulating TableSimulatorInterpreter")
