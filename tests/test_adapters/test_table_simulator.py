@@ -5,11 +5,12 @@ import os
 import shutil
 import time
 import unittest
-from datetime import timedelta
+from datetime import timedelta, datetime
 from gzip import GzipFile
 from threading import Thread
 from typing import List, Union, IO, Any
 
+import dateparser
 import yaml
 
 from core.adapters.functional_adapters.table_simulator.table_simulator import (
@@ -155,14 +156,19 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
                         except ValueError:
                             logger.debug(f"Time value: {time_value} was not a digit")
                             # Check if the time value is a datetime object
-                            time_obj = dateparser.parse(time_value)
-                            # Replace the time column
-                            line_split[time_index] = time_obj.strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            )
-                            logger.debug(
-                                f"Time value: {time_value} and time object: {time_obj} and new time: {line_split[time_index]}"
-                            )
+                            time_obj: datetime | None = dateparser.parse(time_value)
+                            if time_obj:
+                                # Replace the time column
+                                line_split[time_index] = time_obj.strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                )
+                                logger.debug(
+                                    f"Time value: {time_value} and time object: {time_obj} and new time: {line_split[time_index]}"
+                                )
+                            else:
+                                logger.error(
+                                    f"Time value: {time_value} could not be converted to a datetime object"
+                                )
                     # Join the line
                     lineb = f"{SEPARATOR}".join(line_split).encode("utf-8") + b"\n"
                     # Write to

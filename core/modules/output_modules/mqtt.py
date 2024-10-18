@@ -123,7 +123,7 @@ class MQTT(OutputModule):
             return _fallback()
         return result
 
-    def flush(self, topic):
+    def flush(self, topic) -> None:
         """
         Clear any retained messages on the broker 
         by publishing an empty payload.
@@ -223,11 +223,11 @@ class MQTT(OutputModule):
             self.messages[topic] = []
         self.messages[topic].append(payload)
 
-    def reset_messages(self):
+    def reset_messages(self) -> None:
         """Clear all stored messages."""
         self.messages = {}
 
-    def subscribe(self, topic):
+    def subscribe(self, topic: str) -> str:
         """
         Subscribe to a topic on the MQTT broker.
 
@@ -240,7 +240,7 @@ class MQTT(OutputModule):
         self.client.subscribe(topic)
         return topic
     
-    def unsubscribe(self, topic):
+    def unsubscribe(self, topic: str) -> str:
         """
         Unsubscribe from a topic on the MQTT broker.
 
