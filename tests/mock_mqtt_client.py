@@ -6,7 +6,7 @@ class MockBioreactorClient(MQTT):
     def __init__(self, broker_address, port=None, 
                  username=None,password=None):
         super().__init__(broker_address, port, 
-                         username=username,password=password)
+                         username=username,password=password,clientid=None)
         self.messages = {}
         self.num_msg = 0
         self.client.on_message = self.on_message
@@ -14,16 +14,24 @@ class MockBioreactorClient(MQTT):
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         try:
-            payload = msg.payload.decode()
+            payload = msg.payload.decode('utf-8')
+            
             if payload == "":
                 return
+
             msg = json.loads(payload)
+        except UnicodeDecodeError:
+            print(f"Non-UTF-8 message payload received. {topic}")
+            msg = msg.payload
         except json.JSONDecodeError:
-            msg = msg.payload.decode()
+            msg = payload
+
         if topic not in self.messages:
             self.messages[topic] = []
+            
         self.messages[topic].append(msg)
         self.num_msg += 1
+
 
     def subscribe(self, topic):
         topic = topic.strip().replace(" ", "")

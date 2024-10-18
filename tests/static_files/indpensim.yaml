@@ -9,7 +9,7 @@ EQUIPMENT_INSTANCES:
         start_date: 2024-10-01 12:33:45
         time_column: 'Time (h)'
       simulation:
-        filename: ./leaf/core/adapters/functional_adapters/table_simulator/tests/data/IndPenSim_V3_Batch_1_top10.csv
+        filename: tests/static_files/IndPenSim_V3_Batch_1_top10.csv
         interval: 0.1
 
 OUTPUTS:

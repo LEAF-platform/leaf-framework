@@ -79,13 +79,18 @@ class MQTT(OutputModule):
             self.client.tls_set()
             self.client.tls_insecure_set(True)
 
-        logger.debug(f"Connecting to MQTT broker at {broker}:{port}")
-        self.client.connect(broker, port, 60)
+        logging.debug(f"Connecting to MQTT broker at {broker}:{port}")
+
+        try:
+            self.client.connect(broker, port, 60)
+        except OSError:
+            pass
+
         self.client.loop_start()
         self.messages = {}
 
     
-    def transmit(self, topic, data=None, retain=False):
+    def transmit(self, topic,data=None,retain=False):
         """
         Publish a message to the MQTT broker on a given topic.
 
@@ -94,7 +99,15 @@ class MQTT(OutputModule):
             data: The message payload to be transmitted.
             retain: Whether to retain the message on the broker.
         """
-        if isinstance(data, (dict, list)):
+        def _fallback():
+            if self._fallback is not None:
+                self._fallback.transmit(topic,data=data)
+            else:
+                logging.error(f"Failed to send message: {result.rc}")
+                return None
+        if self.client is None:
+            return _fallback()
+        if isinstance(data, dict):
             data = json.dumps(data)
         elif data is not None and not isinstance(data, str):
             data = str(data)
@@ -107,10 +120,8 @@ class MQTT(OutputModule):
                                      retain=retain)
 
         if result.rc != mqtt.MQTT_ERR_SUCCESS:
-            if self._fallback is not None:
-                self._fallback.transmit(topic, data=data)
-            else:
-                logger.error(f"Failed to send message: {result.rc}")
+            return _fallback()
+        return result
 
     def flush(self, topic):
         """
@@ -122,7 +133,7 @@ class MQTT(OutputModule):
         """
         self.client.publish(topic=topic, payload=None, qos=0, retain=True)
         
-    def on_connect(self, client, userdata, flags, rc, metadata):
+    def on_connect(self, client, userdata, flags, rc, metadata=None):
         """
         Callback for when the client connects to the broker.
 
@@ -137,7 +148,7 @@ class MQTT(OutputModule):
         if rc != 0:
             logger.error(f"Failed to connect: {rc}")
 
-    def on_disconnect(self, client, userdata, flags, rc, metadata):
+    def on_disconnect(self,client, userdata, rc):
         """
         Callback for when the client disconnects from the broker.
 

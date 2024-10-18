@@ -15,7 +15,6 @@ from core.metadata_manager.metadata import MetadataManager
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
 
-
 class TestMQTT(unittest.TestCase):
     def setUp(self):
         with open(curr_dir + '/../../test_config.yaml', 'r') as file:
@@ -48,7 +47,6 @@ class TestMQTT(unittest.TestCase):
         metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
         metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
         metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
-        self._mock_client.subscribe("+")
         self._mock_client.subscribe(metadata_manager.experiment.start())
         time.sleep(2)
         self._adapter.transmit(metadata_manager.experiment.start(),

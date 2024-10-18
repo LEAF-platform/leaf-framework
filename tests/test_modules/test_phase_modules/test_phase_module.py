@@ -25,8 +25,13 @@ with open(curr_dir + '/../../test_config.yaml', 'r') as file:
     
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
-un = config["OUTPUTS"][0]["username"]
-pw = config["OUTPUTS"][0]["password"]
+
+try:
+    un = config["OUTPUTS"][0]["username"]
+    pw = config["OUTPUTS"][0]["password"]
+except:
+    un = None
+    pw = None
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 test_file_dir = os.path.join(curr_dir,"..","..","static_files")
@@ -36,7 +41,7 @@ measurement_file = os.path.join(test_file_dir,"biolector1_measurement.csv")
 text_watch_file = os.path.join("tmp.csv")
 
 mock_client = MockBioreactorClient(broker,port,username=un,password=pw)
-mock_client.subscribe("#")
+mock_client.subscribe(f'test_transmit/test_transmit/test_transmit/#')
 
 def _create_file():
     shutil.copyfile(initial_file, text_watch_file)
@@ -64,10 +69,9 @@ class TestMeasurePhase(unittest.TestCase):
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
         self.watcher = FileWatcher(text_watch_file,self._metadata_manager)
         output = MQTT(broker,port,username=un,password=pw,clientid=None)
-        self._module = MeasurePhase(output,
-                                    self._metadata_manager.experiment.measurement,
-                                    self._metadata_manager)
+        self._module = MeasurePhase(output,self._metadata_manager)
         self._mock_experiment="test_experiment_id"
+        self._mock_measurement = "test_measurement_id"
         self.watcher.add_measurement_callback(self._mock_update)
 
     def tearDown(self):
@@ -77,6 +81,7 @@ class TestMeasurePhase(unittest.TestCase):
 
     def _mock_update(self,data):
         self._module.update(experiment_id=self._mock_experiment,
+                            measurement=self._mock_measurement,
                              data=data)
 
     def test_measure_phase(self):
@@ -88,7 +93,8 @@ class TestMeasurePhase(unittest.TestCase):
         time.sleep(2)
         proxy_thread.join()
         for k,v in mock_client.messages.items():
-            if self._metadata_manager.experiment.measurement(experiment_id=self._mock_experiment) == k:
+            if self._metadata_manager.experiment.measurement(experiment_id=self._mock_experiment,
+                                                             measurement=self._mock_measurement) == k:
                 break
         else:
             self.fail()

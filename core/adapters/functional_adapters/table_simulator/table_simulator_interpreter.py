@@ -36,12 +36,12 @@ class TableSimulatorInterpreter(AbstractInterpreter):
         logger.info("Initializing TableSimulatorInterpreter")
 
     def measurement(
-        self, data: list[str], measurements
+        self, data: list[str]
     ) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
         logger.info(f"TableSimulatoInterpreter data {str(data)[:50]}...")
         # Load measurement into a pd
         # List of lists to DataFrame where the first row is the header
-        global SEPARATOR
+        global SEPARATOR #:(
         matrix = [
             x[0].split(SEPARATOR) for x in data if isinstance(x, list) and len(x) > 0
         ]

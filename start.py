@@ -413,7 +413,6 @@ def main(time_to_sleep = 1):
 
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
-        e.with_traceback()
 
     finally:
         stop_all_adapters()
