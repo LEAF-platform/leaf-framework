@@ -8,8 +8,10 @@ setup_environment:
   stage: setup
   image: python:3.12  # Use Python 3.12 official Docker image
   before_script:
-    - pip install --upgrade pip  # Upgrade pip to the latest version
-    - pip install -r requirements.txt  # Install dependencies from requirements.txt
+    - python -m pip install --upgrade pip  # Upgrade pip to the latest version
+    - python -m pip install -r requirements.txt  # Install dependencies from requirements.txt
+    - python -m pip install pytest
+    - python -m pip install pytest-xdist
   script:
     - python -m pip check  # Optional: Check if the installed packages have compatibility issues
   cache:
@@ -24,23 +26,65 @@ test:
   stage: test
   image: python:3.12  # Use Python 3.12 official Docker image
   before_script:
-    - pip install --upgrade pip  # Upgrade pip to the latest version
-    - pip install -r requirements.txt  # Install dependencies from requirements.txt
+    - python -m pip install --upgrade pip  # Upgrade pip to the latest version
+    - python -m pip install -r requirements.txt  # Install dependencies from requirements.txt
+    - python -m pip install pytest
+    - python -m pip install pytest-xdist
+
   script:
-    - python -m unittest discover -s tests  # Run your tests using unittest
-  timeout: 1 minutes  # Set job timeout which probably needs to be increased in the future
+    - pip install -r requirements.txt
+    - pytest tests/ --junitxml=test-reports/report.xml -n auto
+#    - mkdir -p reports  # Ensure the reports directory exists
+#    - coverage run --parallel-mode -m unittest discover -s tests -v > reports/test_output.txt || true
+#    - coverage combine  # Combine the coverage data from parallel tests
+#    - coverage xml -o reports/coverage.xml  # Generate a coverage XML report
+#    - python -m junitparser.convert reports/test_output.txt reports/report.xml || true  # Convert to JUnit XML format (custom script)
   artifacts:
+    when: always
     reports:
-      junit: report.xml  # Save test results in JUnit format (optional)
-  coverage: '/TOTAL.+?(\d+\%)$/'  # Example regex for code coverage percentage if pytest coverage is used
+      junit: test-reports/*.xml
+    paths:
+      - test-reports/
+  timeout: 10m  # Set job timeout (increase if needed for larger test suites)
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .venv/  # Cache the virtual environment (if using virtualenv)
+      - requirements.txt  # Cache requirements file
+      - __pycache__/  # Cache Python bytecode
 
-# Optional: Code coverage if using pytest-cov
-after_script:
-  - coverage xml  # Generate a coverage report if you use coverage.py (Optional, remove if not using coverage)
-
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - .venv/  # Cache the virtual environment (if using virtualenv)
-    - requirements.txt  # Cache requirements file
-    - __pycache__/  # Cache Python bytecode
+## Optional: Code coverage if using pytest-cov
+#coverage_report:
+#  stage: test
+#  image: python:3.12
+#  needs:
+#    - test  # Ensure the test job is completed before running this job
+#  before_script:
+#    - python -m pip install --upgrade pip
+#    - python -m pip install -r requirements.txt
+#    - python -m pip install coverage  # Ensure coverage is installed
+#  script:
+#    - coverage run -m unittest discover -s tests  # Run tests with coverage
+#    - coverage xml -o reports/coverage.xml  # Generate a coverage report in XML format
+#  artifacts:
+#    when: always
+#    reports:
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: reports/coverage.xml
+#    paths:
+#      - reports/coverage.xml
+#  cache:
+#    key: ${CI_COMMIT_REF_SLUG}
+#    paths:
+#      - .venv/
+#      - requirements.txt
+#      - __pycache__/
+#  timeout: 10m  # Set a longer timeout for coverage collection if needed
+#
+#cache:
+#  key: ${CI_COMMIT_REF_SLUG}
+#  paths:
+#    - .venv/  # Cache the virtual environment (if using virtualenv)
+#    - requirements.txt  # Cache requirements file
+#    - __pycache__/  # Cache Python bytecode
