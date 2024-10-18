@@ -14,18 +14,18 @@ from core.metadata_manager.metadata import MetadataManager
 
 
 class MockEventWatcherModule(EventWatcher):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(MetadataManager())
 
-    def start(self):
+    def start(self) -> bool:
         return True
 
 class TestEventWatcherModule(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self._adapter = MockEventWatcherModule()
     
-    def test_functions(self):
-        def test_func():
+    def test_functions(self) -> None:
+        def test_func() -> bool:
             return False
         self.assertTrue(self._adapter.start())
         self._adapter.measurement_callback = test_func
@@ -33,17 +33,17 @@ class TestEventWatcherModule(unittest.TestCase):
         
            
 class MockOutputModule(OutputModule):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def transmit(self,topic,data=None):
+    def transmit(self,topic: str,data: str|None=None) -> str:
         return topic
     
 class TestOutputModule(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self._adapter = MockOutputModule()
 
-    def test_functions(self):
+    def test_functions(self) -> None:
         self.assertEqual(self._adapter.transmit(True),
                          True)
 
@@ -52,14 +52,14 @@ class MockMeasurementModule(MeasurementModule):
     def __init__(self) -> None:
         super().__init__("a term")
 
-    def transform(self,data):
+    def transform(self,data: str) -> str:
         return data
 
 class TestMeasurementModule(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self._adapter = MockMeasurementModule()
     
-    def test_functions(self):
+    def test_functions(self) -> None:
         self.assertEqual(self._adapter.transform(True),
                          True)
 

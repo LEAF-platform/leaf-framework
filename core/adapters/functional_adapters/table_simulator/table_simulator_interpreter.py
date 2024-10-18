@@ -1,25 +1,14 @@
-import gzip
 import logging
 import math
 import os
-import time
-from datetime import datetime, timedelta, date
-from pprint import pprint
-from threading import Thread
-from typing import Dict, Union, Any, Optional, List
+from typing import Dict, Union
+
 import dateparser
 import pandas as pd
 from influxobject import InfluxPoint
 
-from core.adapters.equipment_adapter import AbstractInterpreter, EquipmentAdapter
-from core.metadata_manager.metadata import MetadataManager
-from core.modules.input_modules.csv_watcher import CSVWatcher
+from core.adapters.equipment_adapter import AbstractInterpreter
 from core.modules.logger_modules.logger_utils import get_logger
-from core.modules.phase_modules.initialisation import InitialisationPhase
-from core.modules.phase_modules.measure import MeasurePhase
-from core.modules.phase_modules.start import StartPhase
-from core.modules.phase_modules.stop import StopPhase
-from core.modules.process_modules.discrete_module import DiscreteProcess
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 

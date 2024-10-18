@@ -352,4 +352,4 @@ class MinKNOWAdapter(EquipmentAdapter):
         self.stop()
 
     def stop(self) -> None:
-        print("Stopping TableSimulatorAdapter")
+        logger.debug("Stopping the minKNOW adapter")

@@ -53,7 +53,7 @@ class EquipmentAdapter(ABC):
         self._metadata_manager.add_equipment_data(instance_data)
         logger.debug(f"Metadata manager {self._metadata_manager}")
 
-    def start(self):
+    def start(self) -> None:
         """
         Start the equipment adapter process.
 
@@ -64,7 +64,7 @@ class EquipmentAdapter(ABC):
             while not self._stop_event.is_set():
                 time.sleep(0.1)
         except KeyboardInterrupt:
-            pass
+            logger.warning("Keyboard interrupt detected.")
         finally:
             self._watcher.stop()
             self.stop()

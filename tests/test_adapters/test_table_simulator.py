@@ -9,6 +9,7 @@ from datetime import timedelta, datetime
 from gzip import GzipFile
 from threading import Thread
 from typing import List, Union, IO, Any
+from uuid import uuid4
 
 import dateparser
 import yaml
@@ -44,12 +45,13 @@ time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"][
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
-watch_file: str = os.path.join("tmp.txt")
+watch_file: str = os.path.join(curr_dir, "table_simulator_watch_file_" + uuid4().hex + ".csv")
 test_file_dir: str = os.path.join(curr_dir, "..", "static_files")
 measurement_file: str = os.path.join(test_file_dir, "IndPenSim_V3_Batch_1_top10.csv")
 
 
 def _create_file() -> None:
+    logger.debug(f"Creating file {watch_file}")
     if os.path.isfile(watch_file):
         os.remove(watch_file)
     shutil.copyfile(measurement_file, watch_file)
@@ -282,7 +284,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         expected_run = "True"
         self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
 
-        os.remove(watch_file)
+        _delete_file()
         self._flush_topics()
         self.mock_client.reset_messages()
 

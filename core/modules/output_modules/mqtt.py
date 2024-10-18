@@ -120,6 +120,7 @@ class MQTT(OutputModule):
                                      retain=retain)
 
         if result.rc != mqtt.MQTT_ERR_SUCCESS:
+            logger.error(f"Failed to send message: {result.rc}")
             return _fallback()
         return result
 
@@ -237,6 +238,7 @@ class MQTT(OutputModule):
         Returns:
             The subscribed topic.
         """
+        logger.debug(f"Subscribing to {topic}")
         self.client.subscribe(topic)
         return topic
     
