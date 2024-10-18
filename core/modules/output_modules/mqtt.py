@@ -32,10 +32,10 @@ class MQTT(OutputModule):
     for secure communication.
     """
     
-    def __init__(self, broker, port=1883, username=None, password=None, 
-                 fallback=None, clientid: Optional[str] = None, protocol="v3", 
+    def __init__(self, broker: str, port: int=1883, username: str|None=None, password: str|None=None,
+                 fallback=None, clientid: str|None = None, protocol: str="v3",
                  transport: Literal['tcp', 'websockets', 'unix'] = 'tcp', 
-                 tls: bool = False):
+                 tls: bool = False) -> None:
         """
         Initialise the MQTT adapter with broker details, 
         authentication, and optional fallback.
@@ -178,7 +178,7 @@ class MQTT(OutputModule):
         
         logger.error(f"Unable to reconnect after {MAX_RECONNECT_COUNT} attempts")
 
-    def on_connect_failure(self, client, userdata, flags, rc, metadata):
+    def on_connect_failure(self, client: mqtt.Client, userdata: str, flags: str, rc: str, metadata: str) -> None:
         """
         Callback for when the connection attempt to the broker fails.
 
@@ -203,10 +203,10 @@ class MQTT(OutputModule):
             paho_log_level: The log level set for the client.
             message: The log message.
         """
-        if paho_log_level == mqtt.LogLevel.MQTT_LOG_ERR:
+        if paho_log_level == mqtt.MQTT_LOG_ERR:
             print(message, paho_log_level)
 
-    def on_message(self, client, userdata, msg):
+    def on_message(self, client : mqtt.Client, userdata: str, msg: str) -> None:
         """
         Callback for when a message is received on a 
         subscribed topic.
