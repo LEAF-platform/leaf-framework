@@ -21,7 +21,7 @@ from core.adapters.functional_adapters.table_simulator.table_simulator import (
 )
 from core.modules.logger_modules.logger_utils import get_logger
 from core.modules.output_modules.mqtt import MQTT
-from mock_mqtt_client import MockBioreactorClient
+from .. import mock_mqtt_client
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
