@@ -179,4 +179,18 @@ class TableSimulatorAdapter(EquipmentAdapter):
         self.stop()
 
     def stop(self) -> None:
-        print("Stopping TableSimulatorAdapter")
+        """
+        Stop the equipment adapter process.
+
+        Stops the watcher and flushes all output channels.
+        """
+        # Needs reworking really.
+        for process in self._processes:
+            for phase in process._phases:
+                # Flush all retained mqtt topics.
+                phase._output.flush(self._metadata_manager.details())
+                phase._output.flush(self._metadata_manager.running())
+                phase._output.flush(self._metadata_manager.experiment.start())
+                phase._output.flush(self._metadata_manager.experiment.start())
+        self._stop_event.set()
+        self._watcher.stop()
