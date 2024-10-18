@@ -8,7 +8,7 @@ import unittest
 from datetime import timedelta
 from gzip import GzipFile
 from threading import Thread
-from typing import List, TextIO, Optional, Union, IO, Any
+from typing import List, Union, IO, Any
 
 import yaml
 
@@ -24,7 +24,7 @@ from mock_mqtt_client import MockBioreactorClient
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-with open(os.path.join(curr_dir, "data", "indpensim.yaml"), "r") as file:
+with open(os.path.join(curr_dir, "..","static_files", "indpensim.yaml"), "r") as file:
     config = yaml.safe_load(file)
 
 SEPARATOR: str = ","
@@ -44,7 +44,7 @@ time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"][
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 watch_file: str = os.path.join("tmp.txt")
-test_file_dir: str = os.path.join(curr_dir, "data")
+test_file_dir: str = os.path.join(curr_dir, "..", "static_files")
 measurement_file: str = os.path.join(test_file_dir, "IndPenSim_V3_Batch_1_top10.csv")
 
 
@@ -177,6 +177,7 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
 
 class TestTableSimulatorAdapter(unittest.TestCase):
     def setUp(self) -> None:
+        logger.debug("Setting up")
         if os.path.isfile(watch_file):
             os.remove(watch_file)
 
@@ -210,11 +211,13 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         time.sleep(2)
 
     def tearDown(self) -> None:
+        logger.debug("Tearing down")
         self._adapter.stop()
         self._flush_topics()
         self.mock_client.reset_messages()
 
     def _get_measurements_run(self) -> dict[str, str]:
+        logger.debug("Getting measurements")
         with open(measurement_file, "r", encoding="latin-1") as file:
             data = list(csv.reader(file, delimiter=";"))
         self._adapter._interpreter.metadata(data)
@@ -230,6 +233,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.flush(self.running_topic)
 
     def test_details(self) -> None:
+        logger.debug("Testing details")
         self._flush_topics()
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
@@ -247,6 +251,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
 
     def test_start(self) -> None:
+        logger.debug("Testing start")
         self._flush_topics()
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
@@ -276,6 +281,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
 
     def test_stop(self) -> None:
+        logger.debug("Testing stop")
         self._flush_topics()
         self.mock_client.reset_messages()
 
@@ -306,6 +312,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
 
     def test_running(self) -> None:
+        logger.debug("Testing running")
         self._flush_topics()
         self.mock_client.reset_messages()
 
@@ -324,6 +331,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
 
     def test_update(self) -> None:
+        logger.debug("Testing update")
         self._flush_topics()
         self.mock_client.reset_messages()
         exp_tp = self._adapter._metadata_manager.experiment.measurement()
@@ -367,6 +375,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
 
     def test_logic(self) -> None:
+        logger.debug("Testing logic")
         self._flush_topics()
         self.mock_client.reset_messages()
 
