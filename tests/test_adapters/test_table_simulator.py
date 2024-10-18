@@ -187,7 +187,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         if os.path.isfile(watch_file):
             os.remove(watch_file)
 
-        self.mock_client: MQTT = MockBioreactorClient(broker, port, username=un, password=pw)
+        self.mock_client: MQTT = mock_mqtt_client.MockBioreactorClient(broker, port, username=un, password=pw)
         logging.debug(f"Broker: {broker} Port: {port} Username: {un}")
         self.output: MQTT = MQTT(broker, port, username=un, password=pw)
         self.instance_data: dict[str, str] = {
