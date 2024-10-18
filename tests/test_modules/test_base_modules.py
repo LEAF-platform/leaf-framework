@@ -11,6 +11,8 @@ from core.modules.measurement_modules.measurement_module import MeasurementModul
 from core.modules.output_modules.output_module import OutputModule
 from core.modules.process_modules.process_module import ProcessModule
 from core.metadata_manager.metadata import MetadataManager
+
+
 class MockEventWatcherModule(EventWatcher):
     def __init__(self):
         super().__init__(MetadataManager())
@@ -47,8 +49,8 @@ class TestOutputModule(unittest.TestCase):
 
 
 class MockMeasurementModule(MeasurementModule):
-    def __init__(self):
-        super().__init__()
+    def __init__(self) -> None:
+        super().__init__("a term")
 
     def transform(self,data):
         return data

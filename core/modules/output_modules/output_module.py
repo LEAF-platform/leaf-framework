@@ -11,7 +11,7 @@ class OutputModule(ABC):
     fallback module can be used to handle the output.
     """
     
-    def __init__(self, fallback=None):
+    def __init__(self, fallback: str|None=None) -> None:
         """
         Initialise the OutputModule with an 
         optional fallback OutputModule.
@@ -29,7 +29,7 @@ class OutputModule(ABC):
         self._fallback = fallback
 
     @abstractmethod
-    def transmit(self, topic, data):
+    def transmit(self, topic: str, data: str) -> None:
         """
         Abstract method to transmit data to an external system.
 
@@ -40,7 +40,7 @@ class OutputModule(ABC):
         """
         pass
     
-    def fallback(self, topic, data=None):
+    def fallback(self, topic:str , data:str|None =None) -> None:
         """
         Transmit the data using the fallback 
         OutputModule if the primary module fails.

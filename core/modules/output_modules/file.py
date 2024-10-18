@@ -1,13 +1,15 @@
 import json
 import os
+from typing import Any
+
 from core.modules.output_modules.output_module import OutputModule
 
 class FILE(OutputModule):
-    def __init__(self, filename, fallback=None):
+    def __init__(self, filename: str, fallback: str|None=None) -> None:
         super().__init__(fallback=fallback)
         self.filename = filename
 
-    def transmit(self, topic, data=None):
+    def transmit(self, topic:str, data:str|None=None) -> None:
         """Transmit data to the file associated with a specific topic."""
         try:
             if os.path.exists(self.filename):
@@ -34,7 +36,7 @@ class FILE(OutputModule):
             if self._fallback is not None:
                 self._fallback.transmit(topic, data=data)
 
-    def retrieve(self, topic):
+    def retrieve(self, topic: str) -> Any|None:
         """Retrieve data associated with a specific topic."""
         try:
             if os.path.exists(self.filename):

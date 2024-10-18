@@ -37,7 +37,7 @@ db_host = "localhost"
 file_store_fn = "local.json"
 
 class TestMQTT(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_topic = "test_fallback/"
         self._file = FILE(file_store_fn)
         self._keydb = KEYDB(db_host,fallback=self._file)
@@ -50,7 +50,7 @@ class TestMQTT(unittest.TestCase):
         self._mock_client.subscribe(self.mock_topic)
         time.sleep(2)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if os.path.isfile(file_store_fn):
             os.remove(file_store_fn)
 
