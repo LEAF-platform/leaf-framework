@@ -99,7 +99,7 @@ class MQTT(OutputModule):
             data: The message payload to be transmitted.
             retain: Whether to retain the message on the broker.
         """
-        def _fallback() -> None
+        def _fallback() -> None:
             if self._fallback is not None:
                 self._fallback.transmit(topic,data=data)
             else:
