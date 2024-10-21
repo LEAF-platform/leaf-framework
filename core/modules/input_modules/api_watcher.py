@@ -186,3 +186,32 @@ class APIWatcher(EventWatcher):
         if self._thread is not None:
             self._thread.join()  
             logger.info(f"APIWatcher stopped.")
+
+
+    @property
+    def start_callbacks(self):
+        """Returns the list of start callbacks."""
+        return self._start_callbacks
+
+    def add_start_callback(self, callback) -> None:
+        """Add a new start callback to be 
+           triggered on file creation."""
+        self._start_callbacks.append(callback)
+
+    def remove_start_callback(self, callback):
+        """Remove a start callback."""
+        self._start_callbacks.remove(callback)
+
+    @property
+    def stop_callbacks(self):
+        """Returns the list of stop callbacks."""
+        return self._stop_callbacks
+
+    def add_stop_callback(self, callback) -> None:
+        """Add a new stop callback to be 
+           triggered on file deletion."""
+        self._stop_callbacks.append(callback)
+
+    def remove_stop_callback(self, callback):
+        """Remove a stop callback."""
+        self._stop_callbacks.remove(callback)
