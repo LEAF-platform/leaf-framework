@@ -189,29 +189,29 @@ class APIWatcher(EventWatcher):
 
 
     @property
-    def start_callbacks(self):
+    def start_callbacks(self) -> List[Callable]:
         """Returns the list of start callbacks."""
         return self._start_callbacks
 
-    def add_start_callback(self, callback) -> None:
+    def add_start_callback(self, callback: Callable) -> None:
         """Add a new start callback to be 
            triggered on file creation."""
         self._start_callbacks.append(callback)
 
-    def remove_start_callback(self, callback):
+    def remove_start_callback(self, callback: Callable) -> None:
         """Remove a start callback."""
         self._start_callbacks.remove(callback)
 
     @property
-    def stop_callbacks(self):
+    def stop_callbacks(self) -> List[Callable]:
         """Returns the list of stop callbacks."""
         return self._stop_callbacks
 
-    def add_stop_callback(self, callback) -> None:
+    def add_stop_callback(self, callback: Callable) -> None:
         """Add a new stop callback to be 
            triggered on file deletion."""
         self._stop_callbacks.append(callback)
 
-    def remove_stop_callback(self, callback):
+    def remove_stop_callback(self, callback: Callable) -> None:
         """Remove a stop callback."""
         self._stop_callbacks.remove(callback)
