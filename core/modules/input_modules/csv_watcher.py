@@ -1,10 +1,8 @@
-# CSVWatcher class extends FileWatcher to handle CSV file events
 import logging
 import os
 import time
 import csv
 
-from core.metadata_manager.metadata import MetadataManager
 from core.modules.input_modules.file_watcher import FileWatcher
 from core.modules.logger_modules.logger_utils import get_logger
 
@@ -53,8 +51,7 @@ class CSVWatcher(FileWatcher):
             self._last_created = time.time()
             with open(fp, "r", encoding="latin-1") as file:
                 reader = list(csv.reader(file, delimiter=self._delimeter))
-            for callback in self._start_callbacks:
-                callback(reader)
+            self._initiate_callbacks(self._start_callbacks,reader)
 
     def on_modified(self, event) -> None:
         """
@@ -72,8 +69,7 @@ class CSVWatcher(FileWatcher):
             fp = os.path.join(self._path, self._file_name)
             with open(fp, 'r', encoding='latin-1') as file:
                 reader = list(csv.reader(file, delimiter=self._delimeter))
-            for callback in self._measurement_callbacks:
-                callback(reader)
+            self._initiate_callbacks(self._measurement_callbacks,reader)
 
     def on_deleted(self, event):
         """
@@ -84,5 +80,4 @@ class CSVWatcher(FileWatcher):
         """
         if event.src_path.endswith(self._file_name):
             if len(self._stop_callbacks) > 0:
-                for callback in self._stop_callbacks:
-                    callback({})
+                self._initiate_callbacks(self._stop_callbacks)

@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 from core.metadata_manager.metadata import MetadataManager
 from core.modules.logger_modules.logger_utils import get_logger
 from abc import ABC
@@ -32,20 +32,8 @@ class EventWatcher(ABC):
                                     a measurement event occurs.
         """
         
-        if initialise_callbacks is None:
-            self._initialise_callbacks = []
-        elif not isinstance(initialise_callbacks, (list, set, tuple)):
-            self._initialise_callbacks = [initialise_callbacks]
-        else:
-            self._initialise_callbacks = initialise_callbacks
-
-        if measurement_callbacks is None:
-            self._measurement_callbacks = []
-        elif not isinstance(measurement_callbacks, (list, set, tuple)):
-            self._measurement_callbacks = [measurement_callbacks]
-        else:
-            self._measurement_callbacks = measurement_callbacks
-        
+        self._initialise_callbacks = self._cast_callbacks(initialise_callbacks)
+        self._measurement_callbacks = self._cast_callbacks(measurement_callbacks)        
         self._metadata_manager = metadata_manager
     
     @abstractmethod
@@ -112,3 +100,18 @@ class EventWatcher(ABC):
             callback: The callback function to be removed.
         """
         self._measurement_callbacks.remove(callback)
+
+
+    def _cast_callbacks(self, callbacks: Optional[Callable]) -> List[Callable]:
+        """Ensure the callbacks are cast into a list."""
+        if callbacks is None:
+            return []
+        elif not isinstance(callbacks, (list, set, tuple)):
+            return [callbacks]
+        return list(callbacks)
+
+    def _initiate_callbacks(self, callbacks: List[Callable], 
+                            data: dict = None) -> None:
+        """Trigger all the registered callbacks."""
+        for callback in callbacks:
+            callback(data)

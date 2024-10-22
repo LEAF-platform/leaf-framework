@@ -42,23 +42,12 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
 
         # Create an observer to watch for file system changes
         self._observer = Observer()
-          # Only watch for changes in the specified directory
+        # Only watch for changes in the specified directory
         self._observer.schedule(self, self._path, recursive=False)
 
-        if start_callbacks is None:
-            self._start_callbacks = []
-        elif not isinstance(start_callbacks, (list, set, tuple)):
-            self._start_callbacks = [start_callbacks]
-        else:
-            self._start_callbacks = start_callbacks
+        self._start_callbacks = self._cast_callbacks(start_callbacks)
+        self._stop_callbacks = self._cast_callbacks(stop_callbacks)
         
-        if stop_callbacks is None:
-            self._stop_callbacks = []
-        elif not isinstance(stop_callbacks, (list, set, tuple)):
-            self._stop_callbacks = [stop_callbacks]
-        else:
-            self._stop_callbacks = stop_callbacks
-
         # Prevent multiple events from being 
         # fired on the same change (debouncing)
         self._last_modified = None
@@ -120,8 +109,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             self._last_created = time.time()
             with open(fp) as file:
                 data = file.read()
-            for callback in self._start_callbacks:
-                callback(data)
+            self._initiate_callbacks(self._start_callbacks,data)
 
     def on_modified(self, event):
         """
@@ -140,8 +128,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             logger.debug(f"File location {os.path.abspath(fp)}")
             with open(fp, 'r') as file:
                 data = file.read()
-            for callback in self._measurement_callbacks:
-                callback(data)
+            self._initiate_callbacks(self._measurement_callbacks,data)
 
     def on_deleted(self, event):
         """
@@ -152,9 +139,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             event: File system event.
         """
         if event.src_path.endswith(self._file_name):
-            if len(self._stop_callbacks) > 0:
-                for callback in self._stop_callbacks:
-                    callback({})
+            self._stop_callbacks(self._measurement_callbacks)
 
     def _get_filepath(self, event):
         """
