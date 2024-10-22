@@ -32,7 +32,7 @@ test:
     - python -m pip install pytest-xdist
   script:
     - pip install -r requirements.txt
-    - pytest tests/ --junitxml=test-reports/report.xml -n auto
+    - pytest tests/ --junitxml=test-reports/report.xml
 #    - mkdir -p reports  # Ensure the reports directory exists
 #    - coverage run --parallel-mode -m unittest discover -s tests -v > reports/test_output.txt || true
 #    - coverage combine  # Combine the coverage data from parallel tests
