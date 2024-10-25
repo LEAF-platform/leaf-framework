@@ -8,7 +8,6 @@ from core.modules.logger_modules.logger_utils import get_logger
 from core.modules.input_modules.event_watcher import EventWatcher
 from core.metadata_manager.metadata import MetadataManager
 
-
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 class URLState:
@@ -63,7 +62,7 @@ class APIWatcher(EventWatcher):
     Attempts to use ETag and Last-Modified which are sent in the header 
     to reduce comparison of large datasets. Fallbacks to comparing 
     last request to current request if the API being called 
-    doesnt support it. Has one required callback and url (measurement) 
+    doesn't support it. Has one required callback and url (measurement) 
     with optional start and stop.
     """ 
     def __init__(self, metadata_manager: MetadataManager,
@@ -73,7 +72,8 @@ class APIWatcher(EventWatcher):
                  interval: int = 60,
                  start_callbacks: Optional[Callable] = None,
                  measurement_callbacks: Optional[Callable] = None,
-                 stop_callbacks: Optional[Callable] = None) -> None:
+                 stop_callbacks: Optional[Callable] = None,
+                 headers: Optional[dict] = None) -> None:
         """
         Initialise the APIWatcher.
 
@@ -86,6 +86,7 @@ class APIWatcher(EventWatcher):
             start_callbacks: Callback functions triggered when a start condition is detected.
             measurement_callbacks: Callback functions triggered when measurement data changes.
             stop_callbacks: Callback functions triggered when a stop condition is detected.
+            headers: Optional custom headers to include in API requests.
         """
         super().__init__(metadata_manager, measurement_callbacks=measurement_callbacks)
         self.url_states = {"measurement": URLState("measurement")}
@@ -108,6 +109,10 @@ class APIWatcher(EventWatcher):
         self.interval = interval  
         self.running = False  
         self._thread = None  
+        if headers is not None:
+            self._headers = headers  
+        else:
+            self._headers = {}
 
     def _poll_url(self, url_key: str, callbacks: List[Callable]) -> None:
         """
@@ -122,9 +127,9 @@ class APIWatcher(EventWatcher):
         """
         state = self.url_states[url_key]
         url = self.urls[url_key]
-        headers = {}
-
+        headers = self._headers.copy()
         
+        # Add conditional headers for ETag and Last-Modified
         if state.etag:
             headers["If-None-Match"] = state.etag
         if state.last_modified:
