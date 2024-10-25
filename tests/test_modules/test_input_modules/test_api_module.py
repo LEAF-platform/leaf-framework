@@ -6,6 +6,7 @@ import requests
 from unittest.mock import patch, MagicMock
 from requests.models import Response
 import time
+
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -24,6 +25,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     def test_with_running_callback(self):
         """Test that the measurement callback is triggered when data changes."""
+
         class MockResponse:
             def __init__(self, status_code, json_data, headers):
                 self.status_code = status_code
@@ -40,36 +42,38 @@ class TestAPIWatcher(unittest.TestCase):
                 """
                 if not (200 <= self.status_code < 300):
                     raise requests.HTTPError(f"{self.status_code} Error")
-        callback_called = {'count': 0}
+
+        callback_called = {"count": 0}
+
         def measurement_callback(data):
-            callback_called['count'] += 1
+            callback_called["count"] += 1
+
         watcher = APIWatcher(
             self.metadata_manager,
             measurement_url=self.measurement_url,
             measurement_callbacks=measurement_callback,
-            interval=1  
+            interval=1,
         )
-        with patch('requests.get') as mock_get:
+        with patch("requests.get") as mock_get:
             mock_response_1 = MockResponse(
                 status_code=200,
                 json_data={"data": "initial_value"},
-                headers={"ETag": "12345"}
+                headers={"ETag": "12345"},
             )
             mock_response_2 = MockResponse(
                 status_code=200,
                 json_data={"data": "new_value"},
-                headers={"ETag": "67890"}
-            )            
-            mock_get.side_effect = itertools.cycle([mock_response_1, 
-                                                    mock_response_2])            
+                headers={"ETag": "67890"},
+            )
+            mock_get.side_effect = itertools.cycle([mock_response_1, mock_response_2])
             watcher.start()
             time.sleep(2)
             watcher.stop()
-        self.assertEqual(callback_called['count'], 2)
+        self.assertEqual(callback_called["count"], 2)
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_measurement_polling_etag_unchanged(self, mock_get):
-        """Test that the measurement URL does 
+        """Test that the measurement URL does
         not trigger callback if ETag is unchanged."""
         mock_response = MagicMock(spec=Response)
         mock_response.status_code = 200
@@ -103,7 +107,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_measurement_polling_etag_changed(self, mock_get):
-        """Test that the measurement URL 
+        """Test that the measurement URL
         triggers callback if ETag is changed."""
 
         mock_response = MagicMock(spec=Response)
@@ -144,7 +148,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_measurement_polling_last_modified_changed(self, mock_get):
-        """Test that the measurement URL 
+        """Test that the measurement URL
         triggers callback if Last-Modified changes."""
 
         mock_response = MagicMock(spec=Response)
@@ -191,7 +195,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_measurement_polling_no_etag_or_last_modified(self, mock_get):
-        """Test that the measurement URL 
+        """Test that the measurement URL
         triggers callback if no ETag or Last-Modified is present."""
 
         mock_response = MagicMock(spec=Response)
@@ -226,7 +230,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_304_no_change(self, mock_get):
-        """Test that the measurement URL does 
+        """Test that the measurement URL does
         not trigger callbacks if no change (304 Not Modified)."""
 
         mock_response = MagicMock(spec=Response)
@@ -248,7 +252,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_measurement_polling_multiple_no_change(self, mock_get):
-        """Test that the measurement URL does not 
+        """Test that the measurement URL does not
         trigger callbacks over multiple polls if no change occurs."""
 
         mock_response = MagicMock(spec=Response)
@@ -276,7 +280,7 @@ class TestAPIWatcher(unittest.TestCase):
         self.assertEqual(measurement_callback.call_count, 1)
 
     def test_thread_start_stop(self):
-        """Test that the start and stop 
+        """Test that the start and stop
         methods manage the thread correctly."""
 
         with patch.object(APIWatcher, "_poll_url"), patch(
@@ -304,7 +308,7 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("core.modules.input_modules.api_watcher.requests.get")
     def test_start_stop_polling(self, mock_get):
-        """Test that start and stop URLs are polled 
+        """Test that start and stop URLs are polled
         correctly and trigger callbacks on change."""
 
         mock_start_response = MagicMock(spec=Response)
@@ -340,6 +344,75 @@ class TestAPIWatcher(unittest.TestCase):
 
         self.assertEqual(watcher.url_states["start"].etag, "start_etag")
         self.assertEqual(watcher.url_states["stop"].etag, "stop_etag")
+
+    @patch("core.modules.input_modules.api_watcher.requests.get")
+    def test_custom_headers_in_request(self, mock_get):
+        """Test that custom headers are included in the request."""
+        custom_headers = {
+            "Authorization": "Bearer test_token",
+            "X-Custom-Header": "custom_value",
+        }
+
+        mock_response = MagicMock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {"ETag": "12345"}
+        mock_response.json.return_value = {"data": "value"}
+        mock_get.return_value = mock_response
+
+        measurement_callback = MagicMock()
+
+        watcher = APIWatcher(
+            self.metadata_manager,
+            measurement_url=self.measurement_url,
+            measurement_callbacks=measurement_callback,
+            interval=self.interval,
+            headers=custom_headers,
+        )
+
+        watcher._poll_url("measurement", 
+                          watcher._measurement_callbacks)
+
+        mock_get.assert_called_once()
+        args, kwargs = mock_get.call_args
+        headers_sent = kwargs["headers"]
+
+        self.assertEqual(headers_sent.get("Authorization"), "Bearer test_token")
+        self.assertEqual(headers_sent.get("X-Custom-Header"), "custom_value")
+
+    @patch("core.modules.input_modules.api_watcher.requests.get")
+    def test_custom_headers_with_conditional_headers(self, mock_get):
+        """Test that custom headers are correctly merged with ETag/Last-Modified headers."""
+        custom_headers = {"Authorization": "Bearer test_token"}
+
+        mock_response = MagicMock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {"ETag": "12345"}
+        mock_response.json.return_value = {"data": "initial_value"}
+        mock_get.return_value = mock_response
+
+        measurement_callback = MagicMock()
+
+        watcher = APIWatcher(
+            self.metadata_manager,
+            measurement_url=self.measurement_url,
+            measurement_callbacks=measurement_callback,
+            interval=self.interval,
+            headers=custom_headers,
+        )
+
+        watcher._poll_url("measurement", watcher._measurement_callbacks)
+        self.assertEqual(watcher.url_states["measurement"].etag, "12345")
+
+        mock_response.headers = {"ETag": "12345"}
+        mock_response.json.return_value = {"data": "initial_value"}
+        watcher._poll_url("measurement", watcher._measurement_callbacks)
+
+        mock_get.assert_called()
+        _, kwargs = mock_get.call_args
+        headers_sent = kwargs["headers"]
+
+        self.assertEqual(headers_sent.get("Authorization"), "Bearer test_token")
+        self.assertEqual(headers_sent.get("If-None-Match"), "12345")
 
 
 if __name__ == "__main__":
