@@ -133,8 +133,6 @@ def signal_handler(signal_received, frame) -> None:
 
     stop_all_adapters()
 
-    sys.exit(0)
-
 
 def stop_all_adapters() -> None:
     """ FUNC: Stop all adapters

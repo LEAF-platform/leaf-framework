@@ -1,7 +1,6 @@
 import logging
 import os
 import time
-import csv
 
 from core.modules.input_modules.file_watcher import FileWatcher
 from core.modules.logger_modules.logger_utils import get_logger
@@ -37,7 +36,7 @@ class CSVWatcher(FileWatcher):
                          measurement_callbacks, stop_callbacks)
         self._delimeter = delimeter
 
-    def on_created(self, event):
+    def on_created(self, event) -> None:
         """
         Triggered when the CSV file is created.
         Reads the CSV content and passes it to 
@@ -62,6 +61,7 @@ class CSVWatcher(FileWatcher):
         Args:
             event: File system event.
         """
+        logger.debug(f"CSVWatcher: File modified: {event.src_path}")
         fp = self._get_filepath(event)
         if fp is None:
             return

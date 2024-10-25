@@ -8,7 +8,7 @@ class ContinousProcess(ProcessModule):
     phase that remains active throughout the process.
     """
     
-    def __init__(self, phase):
+    def __init__(self, phase) -> None:
         """
         Initialise the ContinousProcess with a single phase.
 

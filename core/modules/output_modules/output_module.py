@@ -1,6 +1,9 @@
 from abc import abstractmethod
 from abc import ABC
 
+from core.modules.input_modules.file_watcher import logger
+
+
 class OutputModule(ABC):
     """
     Abstract class that defines the structure for output adapters and are 
@@ -38,9 +41,10 @@ class OutputModule(ABC):
                    data should be transmitted.
             data: The data to be transmitted.
         """
+        logger.error("Method 'transmit' must be implemented in a subclass.")
         pass
     
-    def fallback(self, topic:str , data:str|None =None) -> None:
+    def fallback(self, topic:str , data:str) -> None:
         """
         Transmit the data using the fallback 
         OutputModule if the primary module fails.

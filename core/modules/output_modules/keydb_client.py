@@ -7,19 +7,19 @@ from core.modules.output_modules.output_module import OutputModule
 # logging.basicConfig(level=logging.INFO)
 
 class KEYDB(OutputModule):
-    def __init__(self, host, port=6379, db=0, fallback=None):
+    def __init__(self, host, port=6379, db=0, fallback=None) -> None:
         super().__init__(fallback=fallback)
-        self.host = host
-        self.port = port
-        self.db = db
+        self.host: str = host
+        self.port: int = port
+        self.db: int = db
         self.client = None
 
-    def connect(self):
+    def connect(self) -> None:
         self.client = redis.StrictRedis(host=self.host, 
                                         port=self.port, 
                                         db=self.db)
 
-    def transmit(self, topic, data=None):
+    def transmit(self, topic: str, data: str) -> bool:
         if self.client is None:
             return self._fallback.transmit(topic,data=data)
         try:
@@ -35,14 +35,14 @@ class KEYDB(OutputModule):
             logging.error(f"Transmit data to key '{topic}': {str(e)}")
             return False
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         if self.client is not None:
             self.client = None
             logging.info("Disconnected from the Redis/KeyDB instance.")
         else:
             logging.info("Already disconnected.")
 
-    def retrieve(self, key):
+    def retrieve(self, key: str) -> str|None:
         try:
             if self.client is None:
                 return None

@@ -24,8 +24,11 @@ stages:
 # Job to run tests
 test:
   stage: test
-  image: python:3.12  # Use Python 3.12 official Docker image
+  image: registry.gitlab.com/labequipmentadapterframework/leaf:runner
   before_script:
+    - python3 --version
+    - keydb-server --version
+    - keydb-server & # Start the KeyDB server in the background
     - python -m pip install --upgrade pip  # Upgrade pip to the latest version
     - python -m pip install -r requirements.txt  # Install dependencies from requirements.txt
     - python -m pip install pytest

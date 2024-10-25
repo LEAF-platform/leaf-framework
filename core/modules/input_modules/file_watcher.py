@@ -1,6 +1,8 @@
+import logging
 import os
 import time
-import logging
+from typing import Any
+
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -19,7 +21,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
     and EventWatcher (to trigger callbacks based on those events).
     """
     def __init__(self, file_path, metadata_manager, start_callbacks=None,
-                 measurement_callbacks=None, stop_callbacks=None):
+                 measurement_callbacks=None, stop_callbacks=None) -> None:
         """
         Initialise FileWatcher.
 
@@ -69,7 +71,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         self._start_callbacks.remove(callback)
 
     @property
-    def stop_callbacks(self):
+    def stop_callbacks(self) -> list[Any]:
         """Returns the list of stop callbacks."""
         return self._stop_callbacks
 
@@ -78,11 +80,11 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
            triggered on file deletion."""
         self._stop_callbacks.append(callback)
 
-    def remove_stop_callback(self, callback):
+    def remove_stop_callback(self, callback) -> None:
         """Remove a stop callback."""
         self._stop_callbacks.remove(callback)
 
-    def start(self):
+    def start(self) -> None:
         """
         Start the observer to begin monitoring the file.
         Also triggers any initialisation that EventWatcher requires.
@@ -91,12 +93,12 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             self._observer.start()
         super().start()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the observer and clean up."""
         self._observer.stop()
         self._observer.join()
 
-    def on_created(self, event):
+    def on_created(self, event) -> None:
         """
         Triggered when the file is created.
         Reads the file and callsback with this data.
@@ -111,7 +113,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 data = file.read()
             self._initiate_callbacks(self._start_callbacks,data)
 
-    def on_modified(self, event):
+    def on_modified(self, event) -> None:
         """
         Triggered when the file is modified.
         Reads the file and callsback with this data.
@@ -130,7 +132,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 data = file.read()
             self._initiate_callbacks(self._measurement_callbacks,data)
 
-    def on_deleted(self, event):
+    def on_deleted(self, event) -> None:
         """
         Triggered when the file is deleted.
         Callsback with no data.
@@ -141,7 +143,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         if event.src_path.endswith(self._file_name):
             self._stop_callbacks(self._measurement_callbacks)
 
-    def _get_filepath(self, event):
+    def _get_filepath(self, event) -> str:
         """
         Get the full file path from the 
         event if it matches the watched file.
@@ -156,7 +158,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         if event.src_path.endswith(self._file_name):
             return os.path.join(self._path, self._file_name)
 
-    def _is_last_modified(self):
+    def _is_last_modified(self) -> bool:
         """
         Check if the last modification occurred 
         within the debounce delay period.

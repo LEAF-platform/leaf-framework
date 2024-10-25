@@ -1,7 +1,6 @@
 import logging
 import math
 import os
-from typing import Dict, Union
 
 import dateparser
 import pandas as pd
@@ -12,32 +11,30 @@ from core.modules.logger_modules.logger_utils import get_logger
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
-# Note the biolector json file is an example, not a concrete decision on terms...
+# Note the json file is an example, not a concrete decision on terms...
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "table_simulator.json")
-
-SEPARATOR: str = ","
-
+metadata_fn = os.path.join(current_dir, "device.json")
 
 class TableSimulatorInterpreter(AbstractInterpreter):
-    def __init__(self) -> None:
+    def __init__(self, time_column: str, start_date: str, sep: str) -> None:
         super().__init__()
         logger.info("Initializing TableSimulatorInterpreter")
+        self._time_column = time_column
+        self._start_date = start_date
+        self._sep = sep
+
 
     def measurement(
-        self, data: list[str]
-    ) -> Dict[str, Union[str, Dict[str, str], Dict[str, Union[int, float, str]], str]]:
-        logger.info(f"TableSimulatoInterpreter data {str(data)[:50]}...")
-        # Load measurement into a pd
-        # List of lists to DataFrame where the first row is the header
-        global SEPARATOR #:(
+        self, data: list[str]) -> InfluxPoint:
+        logger.info(f"Measurement - TableSimulatoInterpreter data")
         matrix = [
-            x[0].split(SEPARATOR) for x in data if isinstance(x, list) and len(x) > 0
+            x[0].split(self._sep) for x in data if isinstance(x, list) and len(x) > 0
         ]
         logger.debug(f"Matrix: {len(matrix)}")
         # TODO Load only the last row
         df = pd.DataFrame([matrix[0], matrix[-1]])
         if df.iloc[0].equals(df.iloc[-1]):
+            logger.debug("First and last row are the same indicating no new data")
             return {}
         # Check if there are enough rows
         if df.shape[0] < 2:
@@ -82,14 +79,17 @@ class TableSimulatorInterpreter(AbstractInterpreter):
         influx_point.set_fields(last_row_dict)
         try:
             # time_obj = datetime.strptime(last_row_dict["timestamp"], '%Y-%m-%d %H:%M:%S')
-            time_obj = dateparser.parse(last_row_dict["timestamp"])
+            timestamp = str(last_row_dict["timestamp"])
+            logger.debug(f"Timestamp: {timestamp}")
+            time_obj = dateparser.parse(timestamp)
             logger.debug(f"Time object: {time_obj}")
             influx_point.set_timestamp(time_obj)
             influx_point.add_tag("project", "table_simulator")
             # Send message to the MQTT broker
-            return influx_point.to_json()
+            logger.debug(f"Sending message to the MQTT broker {influx_point}")
+            return influx_point
         except Exception as e:
-            raise BaseException(f"Error in TableSimulatoInterpreter: {e}")
+            raise BaseException(f"Failed to create InfluxPoint: {e}")
 
     def metadata(self, data: list[str]) -> dict[str, str]:
         logger.debug(f"Metadata {str(data)[:50]}")
@@ -100,4 +100,4 @@ class TableSimulatorInterpreter(AbstractInterpreter):
         print("Doing something D?")
 
 
-interpreter = TableSimulatorInterpreter()
+# interpreter = TableSimulatorInterpreter()

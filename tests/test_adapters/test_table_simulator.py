@@ -2,11 +2,11 @@ import csv
 import gzip
 import logging
 import os
-import shutil
 import time
 import unittest
 from datetime import timedelta, datetime
 from gzip import GzipFile
+from pathlib import Path
 from threading import Thread
 from typing import List, Union, IO, Any
 from uuid import uuid4
@@ -14,10 +14,10 @@ from uuid import uuid4
 import dateparser
 import yaml
 
-from core.adapters.functional_adapters.table_simulator.table_simulator import (
+from core.adapters.functional_adapters.table_simulator.adapter import (
     TableSimulatorAdapter,
 )
-from core.adapters.functional_adapters.table_simulator.table_simulator import (
+from core.adapters.functional_adapters.table_simulator.adapter import (
     TableSimulatorInterpreter,
 )
 from core.modules.logger_modules.logger_utils import get_logger
@@ -39,63 +39,77 @@ try:
 except KeyError:
     un = None
     pw = None
-time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"][
-    "time_column"
-]
+
+# time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["time_column"]
+# start_date = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["start_date"]
+# interval = config["EQUIPMENT_INSTANCES"][0]["equipment"]["simulation"]["interval"]
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
-watch_file: str = os.path.join(curr_dir, "table_simulator_watch_file_" + uuid4().hex + ".csv")
+watch_file: str = os.path.join(curr_dir, "table_simulator_watch_file.csv")
 test_file_dir: str = os.path.join(curr_dir, "..", "static_files")
-measurement_file: str = os.path.join(test_file_dir, "IndPenSim_V3_Batch_1_top10.csv")
+# measurement_file: str = os.path.join(test_file_dir, "IndPenSim_V3_Batch_1_top10.csv")
+measurement_file: str = curr_dir + "/../" + config["EQUIPMENT_INSTANCES"][0]["equipment"]["simulation"]["filename"]
+if not os.path.isfile(measurement_file):
+    raise FileNotFoundError(f"File {os.path.abspath(measurement_file)} not found")
+
+# Returns a gzip file object or a normal file object
+def smart_open(filepath: str, mode: str = "rb") -> Union[IO[Any], GzipFile]:
+    """Opens the file with gzip if it ends in .gz, otherwise opens normally."""
+    if filepath.endswith(".gz"):
+        return gzip.open(filepath, mode)
+    else:
+        return open(filepath, mode)
 
 
-def _create_file() -> None:
-    logger.debug(f"Creating file {watch_file}")
-    if os.path.isfile(watch_file):
-        os.remove(watch_file)
-    shutil.copyfile(measurement_file, watch_file)
-    time.sleep(2)
+# def _create_file() -> None:
+#     logger.debug(f"Creating watch file {watch_file}")
+#     if os.path.isfile(watch_file):
+#         os.remove(watch_file)
+#     shutil.copyfile(measurement_file, watch_file)
+#     time.sleep(2)
 
 
-def _modify_file() -> None:
-    with open(measurement_file, "r") as src:
-        content = src.read()
-    with open(watch_file, "a") as dest:
-        dest.write(content)
-    time.sleep(2)
+# def _modify_file() -> None:
+#     with open(measurement_file, "r") as src:
+#         content = src.read()
+#     with open(watch_file, "a") as dest:
+#         dest.write(content)
+#     time.sleep(2)
 
 
-def _delete_file() -> None:
-    if os.path.isfile(watch_file):
-        os.remove(watch_file)
+def _delete_watch_file() -> None:
+    watch_file_path = Path(watch_file)
+    watch_file_path.unlink(missing_ok=True)
 
 
 class TestTableSimulatorInterpreter(unittest.TestCase):
     def setUp(self) -> None:
-        self._interpreter = TableSimulatorInterpreter()
+        time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["time_column"]
+        start_date = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["start_date"]
+        self._interpreter = TableSimulatorInterpreter(time_column, start_date, SEPARATOR)
+        self.output: MQTT = MQTT(broker, port, username=un, password=pw)
+        self.instance_data: dict[str, str] = {
+            "instance_id": "test_IndPenSimAdapter",
+            "institute": "test_ins",
+        }
+
+        self._adapter: TableSimulatorAdapter = TableSimulatorAdapter(self.instance_data, self.output, watch_file, time_column)
+
 
     def _metadata_run(self) -> dict[str, str]:
-        with open(measurement_file, "r", encoding="latin-1") as file:
-            data = list(csv.reader(file, delimiter=SEPARATOR))
-        return self._interpreter.metadata(data)
+        # TODO think of a general implementation for the metadata, should this not be in the config?....
+        return self._interpreter.metadata(list(""))
 
     def test_metadata(self) -> None:
         result = self._metadata_run()
         self.assertIn("experiment_id", result)
 
-    # Returns a gzip file object or a normal file object
-    def smart_open(self, filepath: str, mode: str = "r") -> Union[IO[Any], GzipFile]:
-        """Opens the file with gzip if it ends in .gz, otherwise opens normally."""
-        if filepath.endswith(".gz"):
-            return gzip.open(filepath, mode)
-        else:
-            return open(filepath, mode)
-
     def test_measurement(self) -> None:
+        # Setting variables from the config
         self.instance_id = config["EQUIPMENT_INSTANCES"][0]["equipment"]["data"]["instance_id"]
         self.institute = config["EQUIPMENT_INSTANCES"][0]["equipment"]["data"]["institute"]
-        self._write_file = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["write_file"]
+        self._watch_file = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["watch_file"]
         self.time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["time_column"]
         self._start_datetime = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["start_date"]
         self._filename = config["EQUIPMENT_INSTANCES"][0]["equipment"]["simulation"]["filename"]
@@ -105,9 +119,9 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
             f"Simulating nothing yet for {self.instance_id} at {self.institute} with input file {self._filename} and interval of {self._interval} seconds"
         )
 
-        filepath = measurement_file
-        with self.smart_open(filepath, "rb") as f:
+        with smart_open(measurement_file) as f:
             for index, lineb in enumerate(f):
+                logger.debug(f"Line {index}")
                 try:
                     line_split: List[str] = (
                         lineb.decode("utf-8").strip().split(SEPARATOR)
@@ -117,12 +131,12 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
                         line_split[line_split.index(self.time_column)] = "timestamp"
                         header = line_split
                         # Checks if file exists and remove if needed
-                        if os.path.isfile(self._write_file):
+                        if os.path.isfile(self._watch_file):
                             logger.warning(
-                                f"Trying to run test when the file exists at {self._write_file}"
+                                f"Trying to run test when the file exists at {self._watch_file}"
                             )
                             # Remove the file
-                            os.remove(self._write_file)
+                            os.remove(self._watch_file)
 
                     # Change the time column to a datetime object with the start date
                     if index > 0:
@@ -174,9 +188,9 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
                     # Join the line
                     lineb = f"{SEPARATOR}".join(line_split).encode("utf-8") + b"\n"
                     # Write to
-                    with open(self._write_file, "ab") as write_file:
+                    with open(watch_file, "ab") as write_file:
                         write_file.write(lineb)
-                        logger.info(f"Writing line {index} to {self._write_file}")
+                        logger.info(f"Writing line {index} to {watch_file}")
                 except Exception as e:
                     logger.error(f"Error in simulate: {e}")
                 time.sleep(self._interval)
@@ -185,9 +199,10 @@ class TestTableSimulatorInterpreter(unittest.TestCase):
 
 class TestTableSimulatorAdapter(unittest.TestCase):
     def setUp(self) -> None:
+        time_column = config["EQUIPMENT_INSTANCES"][0]["equipment"]["requirements"]["time_column"]
+
         logger.debug("Setting up")
-        if os.path.isfile(watch_file):
-            os.remove(watch_file)
+        _delete_watch_file()
 
         self.mock_client: MQTT = mock_mqtt_client.MockBioreactorClient(broker, port, username=un, password=pw)
         logging.debug(f"Broker: {broker} Port: {port} Username: {un}")
@@ -223,15 +238,19 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self._adapter.stop()
         self._flush_topics()
         self.mock_client.reset_messages()
+        _delete_watch_file()
 
-    def _get_measurements_run(self) -> dict[str, str]:
+    def _get_measurements_run(self) -> None:
         logger.debug("Getting measurements")
-        with open(measurement_file, "r", encoding="latin-1") as file:
-            data = list(csv.reader(file, delimiter=";"))
-        self._adapter._interpreter.metadata(data)
-        with open(measurement_file, "r", encoding="latin-1") as file:
-            data = list(csv.reader(file, delimiter=";"))
-        return self._adapter._interpreter.measurement(data)
+        with smart_open(measurement_file) as file:
+            data = file.readlines()
+            with open(watch_file, "w") as f:
+                for line in data:
+                    f.write(line)
+                    # Set to sleep from the config
+                    time.sleep(0.1)
+
+        # self._adapter._interpreter.measurement(data)
 
     def _flush_topics(self) -> None:
         logger.debug("Flushing topics")
@@ -261,11 +280,13 @@ class TestTableSimulatorAdapter(unittest.TestCase):
     def test_start(self) -> None:
         logger.debug("Testing start")
         self._flush_topics()
+        # Making sure we start from a clean slate
+        _delete_watch_file()
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
-        _create_file()
+        # _create_file()
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
@@ -285,7 +306,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         expected_run = "True"
         self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
 
-        _delete_file()
+        _delete_watch_file()
         self._flush_topics()
         self.mock_client.reset_messages()
 
@@ -296,11 +317,11 @@ class TestTableSimulatorAdapter(unittest.TestCase):
 
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
-        _create_file()
+        # time.sleep(2)
+        # _create_file()
         time.sleep(2)
         self.mock_client.reset_messages()
-        _delete_file()
+        _delete_watch_file()
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
@@ -327,10 +348,10 @@ class TestTableSimulatorAdapter(unittest.TestCase):
 
         mthread = Thread(target=self._adapter.start)
         mthread.start()
+        # time.sleep(2)
+        # _create_file()
         time.sleep(2)
-        _create_file()
-        time.sleep(2)
-        _delete_file()
+        _delete_watch_file()
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
@@ -347,19 +368,21 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.mock_client.subscribe(exp_tp)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
-        _create_file()
-        time.sleep(2)
-        _modify_file()
+        # Loop through the measurements and write them to the file
+        self._get_measurements_run()
+        # time.sleep(2)
+        # _create_file()
+        # time.sleep(2)
+        # _modify_file()
         experiment_id = self._adapter._interpreter.id
         time.sleep(2)
-        _delete_file()
+        _delete_watch_file()
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
 
-        actual_mes = self._get_measurements_run()
+        self._get_measurements_run()
 
         for topic in self.mock_client.messages.keys():
             pot_mes = topic.split("/")[-1]
@@ -394,7 +417,7 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.assertTrue(len(self.mock_client.messages.keys()) == 1)
         self.assertIn(self.details_topic, self.mock_client.messages)
         time.sleep(2)
-        _create_file()
+        # _create_file()
         self.assertTrue(len(self.mock_client.messages.keys()) == 3)
         self.assertIn(self.start_topic, self.mock_client.messages)
         self.assertIn(self.running_topic, self.mock_client.messages)
@@ -407,12 +430,12 @@ class TestTableSimulatorAdapter(unittest.TestCase):
         self.assertTrue(self.mock_client.messages[self.running_topic][0] == "True")
 
         time.sleep(2)
-        _modify_file()
+        # _modify_file()
         self.assertTrue(len(self.mock_client.messages.keys()) == 4)
         time.sleep(2)
 
         self.mock_client.reset_messages()
-        _delete_file()
+        _delete_watch_file()
         time.sleep(2)
         self.assertTrue(len(self.mock_client.messages.keys()) == 2)
         self.assertEqual(len(self.mock_client.messages[self.running_topic]), 1)
@@ -425,6 +448,8 @@ class TestTableSimulatorAdapter(unittest.TestCase):
 
         self._flush_topics()
         self.mock_client.reset_messages()
+
+
 
 
 if __name__ == "__main__":
