@@ -11,6 +11,7 @@ class MockBioreactorClient(MQTT):
         self.messages = {}
         self.num_msg = 0
         self.client.on_message = self.on_message
+        self._subs = []
 
     def on_message(self, client: mqtt.Client, userdata: str, msg: str) -> None:
         topic = msg.topic
@@ -38,7 +39,16 @@ class MockBioreactorClient(MQTT):
         topic = topic.strip().replace(" ", "")
         topic = re.sub(r"\s+", "", topic)
         self.client.subscribe(topic)
+        self._subs.append(topic)
         return topic
+    
+    def is_subscribed(self,topic):
+        if topic in self._subs:
+            return True
+        return False
+    
+    def disconnect(self):
+        return self.client.disconnect()
     
     def unsubscribe(self,topic: str) -> str:
         self.client.unsubscribe(topic)

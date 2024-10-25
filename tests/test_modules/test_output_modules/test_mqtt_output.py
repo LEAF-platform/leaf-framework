@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
 from core.modules.output_modules.mqtt import MQTT, logger
-from ... import mock_mqtt_client
+from ...mock_mqtt_client import MockBioreactorClient
 from core.metadata_manager.metadata import MetadataManager
 
 # Current location of this script
@@ -34,7 +34,7 @@ class TestMQTT(unittest.TestCase):
         # Cant get a connetion with the default clientid.
         self._adapter = MQTT(broker,port,username=un,password=pw,
                              clientid=None)
-        self._mock_client = mock_mqtt_client.MockBioreactorClient(broker,port,
+        self._mock_client = MockBioreactorClient(broker,port,
                                                  username=un,
                                                  password=pw)
 

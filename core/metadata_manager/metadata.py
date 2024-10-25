@@ -29,13 +29,13 @@ class MetadataManager:
         try:
             with open(filepath, "r") as file:
                 yaml_content = yaml.safe_load(file)
-                self.equipment_terms: EquipmentTerms = EquipmentTerms(
+                self.equipment_terms = EquipmentTerms(
                     yaml_content, self._metadata
                 )
         except FileNotFoundError:
             print(f"YAML file {filepath} not found.")
 
-    def load_from_file(self, file_path, adapter_type=None) -> None:
+    def load_from_file(self, file_path: str, adapter_type: Any=None) -> None:
         """Load metadata from a JSON file and update the metadata dictionary."""
         logger.debug(f"Loading metadata from file {file_path}")
         try:
@@ -47,7 +47,7 @@ class MetadataManager:
         except FileNotFoundError:
             print(f"Metadata file {file_path} not found.")
 
-    def get_metadata(self, key, default=None):
+    def get_metadata(self, key: str, default: Any=None) -> Any:
         """Retrieve a specific metadata value."""
         return self._metadata.get(key, default)
 
@@ -71,7 +71,7 @@ class MetadataManager:
     def get_instance_id(self, topic: str) -> str:
         return topic.split("/")[2]
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         """Dynamically handle attribute access based on equipment terms."""
         if hasattr(self.equipment_terms, item):
             return getattr(self.equipment_terms, item)
@@ -92,14 +92,14 @@ class EquipmentTerms:
             else:
                 setattr(self, key, self._create_function(value))
 
-    def _create_function(self, path_template):
+    def _create_function(self, path_template: str) -> Any:
         """
         Create a function that replaces placeholders with metadata values.
         The placeholders like <institute> are dynamically replaced with the values
         from the metadata dictionary, but can be overridden by arguments.
         """
 
-        def replace_placeholders(**kwargs):
+        def replace_placeholders(**kwargs) -> str:
             return re.sub(
                 r"<([^>]+)>",
                 lambda match: kwargs.get(
@@ -110,7 +110,7 @@ class EquipmentTerms:
 
         return replace_placeholders
 
-    def _get_metadata_value(self, key):
+    def _get_metadata_value(self, key: str) -> str:
         """
         Get the metadata value for a given key.
         The key should correspond directly to the
@@ -122,5 +122,5 @@ class EquipmentTerms:
         except KeyError:
             return f"+"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__dict__}"

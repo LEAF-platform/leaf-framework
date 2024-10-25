@@ -92,7 +92,7 @@ class AbstractInterpreter(ABC):
 
     One interpreter is needed for each EquipmentAdapter class.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the abstract interpreter with predefined keys for 
         measurement and metadate outputs.
@@ -103,7 +103,7 @@ class AbstractInterpreter(ABC):
         self.MEASUREMENT_HEADING_KEY = "measurement_types"
         
     @abstractmethod
-    def metadata(self, data):
+    def metadata(self, data: str) -> None:
         """
         Abstract method to process metadata.
         
@@ -113,7 +113,7 @@ class AbstractInterpreter(ABC):
         pass
 
     @abstractmethod
-    def measurement(self, data):
+    def measurement(self, data: str) -> None:
         """
         Abstract method to process measurement data.
         
@@ -123,7 +123,7 @@ class AbstractInterpreter(ABC):
         pass
 
     @abstractmethod    
-    def simulate(self):
+    def simulate(self) -> None:
         """
         Abstract method to simulate a finite 
         run of equipment using existing data.

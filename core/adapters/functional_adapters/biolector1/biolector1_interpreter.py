@@ -4,6 +4,7 @@ import uuid
 import csv
 from datetime import datetime
 import time
+from typing import Any
 
 from core.adapters.equipment_adapter import AbstractInterpreter
 from core.measurement_terms.manager import measurement_manager
@@ -26,7 +27,7 @@ class Biolector1Interpreter(AbstractInterpreter):
     Interpreter for Biolector1 EquipmentAdapter. Handles metadata extraction,
     measurement processing, and simulation based on Biolector1 CSV data.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._TARGET_PARAMS_KEY = "target_parameters"
         self._SENSORS_KEY = "sensors"
@@ -34,7 +35,7 @@ class Biolector1Interpreter(AbstractInterpreter):
         self._parameters = None
         self._sensors = None
 
-    def _get_measurement_type(self, ex, em):
+    def _get_measurement_type(self, ex, em) -> str:
         """
         Identify the measurement type (OD, pH, DO, fluorescence) 
         based on excitation (ex) and emission (em) wavelengths.
@@ -54,7 +55,7 @@ class Biolector1Interpreter(AbstractInterpreter):
         else:
             return 'Unknown Measurement'
 
-    def _get_filtername(self, identifier):
+    def _get_filtername(self, identifier: str) -> str:
         """
         Return the filter name associated with 
         a given number in the metadata.
@@ -89,7 +90,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             raise ValueError(f'{name} not a valid sensor name.')
         return self._sensors[name]
 
-    def metadata(self, data):
+    def metadata(self, data) -> dict[str, any]:
         """
         Parse metadata from the Biolector1 initial CSV data, building a 
         metadata payload from details such as protocol, device, 
@@ -176,7 +177,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             payload[self._SENSORS_KEY] = self._sensors
         return payload
     
-    def measurement(self, data):
+    def measurement(self, data: list[str]) -> dict[str, Any]|None:
         """
         Process measurement data from the Biolector1 CSV. 
         Generates a dictionary containing transformed measurement values 
@@ -192,7 +193,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             return None
         data = data[::-1]
 
-        measurements = {}
+        measurements: dict[str, list[dict[str, Any]]] = {}
         update = {
             "measurement": "Biolector1",
             "tags": {"project": "indpensim"},

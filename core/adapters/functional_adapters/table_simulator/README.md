@@ -1,3 +1,3 @@
-# Adapter for the Industrial-Scale Penicillin Simulation (V2)
+# Adapter for the standard tables
 
-This adapter is a part of the [Industrial-Scale Penicillin Simulation](http://www.industrialpenicillinsimulation.com) project. It will use the datasets provided by the project to simulate a reactor as part of the adapter system.
+This adapter is developed to process generic tables as a basis for many different datasets.

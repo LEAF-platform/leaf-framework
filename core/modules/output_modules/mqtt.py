@@ -90,7 +90,7 @@ class MQTT(OutputModule):
         self.messages = {}
 
     
-    def transmit(self, topic:str ,data: str|None =None,retain: bool=False):
+    def transmit(self, topic:str ,data: str, retain: bool = False) -> Optional[mqtt.MQTTMessageInfo]:
         """
         Publish a message to the MQTT broker on a given topic.
 
@@ -149,7 +149,7 @@ class MQTT(OutputModule):
         if rc != 0:
             logger.error(f"Failed to connect: {rc}")
 
-    def on_disconnect(self,client, userdata, rc):
+    def on_disconnect(client, userdata, rc):
         """
         Callback for when the client disconnects from the broker.
 

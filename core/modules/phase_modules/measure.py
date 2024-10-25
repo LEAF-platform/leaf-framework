@@ -1,4 +1,11 @@
+import logging
+
+import influxobject
+
+from core.modules.logger_modules.logger_utils import get_logger
 from core.modules.phase_modules.phase import PhaseModule
+
+logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 class MeasurePhase(PhaseModule):
     """
@@ -6,7 +13,7 @@ class MeasurePhase(PhaseModule):
     It transmits measurement data and can stagger transmission if needed.
     """
     
-    def __init__(self, output_adapter, metadata_manager, stagger_transmit=False):
+    def __init__(self, output_adapter, metadata_manager, stagger_transmit: bool=False) -> None:
         """
         Initialise the MeasurePhase with the output adapter, 
         metadata manager,and optional stagger transmission setting.
@@ -20,7 +27,7 @@ class MeasurePhase(PhaseModule):
         super().__init__(output_adapter, term_builder, metadata_manager)
         self._stagger_transmit = stagger_transmit
 
-    def update(self, data=None, **kwargs):
+    def update(self, data=None, **kwargs) -> None:
         """
         Is called by the InputModule, uses interpreter to get the new 
         measurements and transmits the data using the OutputModule.
@@ -42,6 +49,11 @@ class MeasurePhase(PhaseModule):
                 super().update(data, **kwargs)
 
             if isinstance(result, dict):
+                # action = self._term_builder(experiment_id=exp_id, measurement="unknown")
+                # if 'measurement' in result:
+                #     logger.debug(f"Transmitting measurement: {result['measurement']}")
+                #     action = self._term_builder(experiment_id=exp_id, measurement=result['measurement'])
+                # self._output.transmit(action, result)
                 if self._stagger_transmit:
                     for measurement_type, measurements in result["fields"].items():
                         if not isinstance(measurements,list):
@@ -54,7 +66,15 @@ class MeasurePhase(PhaseModule):
                 else:
                     action = self._term_builder(experiment_id=exp_id, measurement=result["measurement"])
                     self._output.transmit(action, result)
+            elif isinstance(result, str):
+                action = self._term_builder(experiment_id=exp_id, measurement="unknown")
+                self._output.transmit(action, result)
+            elif isinstance(result, influxobject.influxpoint.InfluxPoint):
+                result = result.to_json()
+                action = self._term_builder(experiment_id=exp_id, measurement=result["measurement"])
+                self._output.transmit(action, result)
             else:
+                logger.error(f"Unknown measurement data type: {type(result)}")
                 action = self._term_builder(experiment_id=exp_id, measurement="unknown")
                 self._output.transmit(action, result)
         else:

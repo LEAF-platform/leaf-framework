@@ -8,4 +8,4 @@ poetry~=1.8.3
 watchdog~=2.1.6
 # mypy~=0.910.0
 pandas~=2.2.3
-dateparser~=1.0.0
+dateparser~=1.2.0
