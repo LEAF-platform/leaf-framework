@@ -1,109 +1,59 @@
 import logging
 from typing import Optional, Callable, List
 from core.metadata_manager.metadata import MetadataManager
-from core.modules.logger_modules.logger_utils import get_logger
-from abc import ABC
-from abc import abstractmethod
-logger = get_logger(__name__, log_file="app.log", 
-                    log_level=logging.DEBUG)
+from abc import ABC, abstractmethod
+
+logger = logging.getLogger(__name__)
 
 class EventWatcher(ABC):
     """
-    Aims to monitor and extract specific information from the equipment. 
-    It is designed to detect and handle events, such as when equipment 
-    provides measurements by writing to a file or any other 
-    observable event. 
+    Base class for monitoring and handling equipment events. Allows 
+    registration of callbacks for initialisation, measurement, start, 
+    and stop events, triggering each on event detection.
     """
     def __init__(self, metadata_manager: MetadataManager, 
-                 initialise_callbacks: Optional[list[Callable]] = None,
-                 measurement_callbacks: Optional[list[Callable]] = None) -> None:
+                 initialise_callbacks: Optional[List[Callable]] = None,
+                 measurement_callbacks: Optional[List[Callable]] = None,
+                 start_callbacks: Optional[List[Callable]] = None,
+                 stop_callbacks: Optional[List[Callable]] = None) -> None:
         """
-        Initialise the EventWatcher instance.
-
-        Args:
-            metadata_manager: An instance of MetadataManager 
-                              to manage equipment data.
-            initialise_callbacks: An optional list of callback 
-                                  functions to be executed 
-                                  during the initialisation 
-                                  of the adapter.
-            measurement_callbacks: An optional list of callback 
-                                    functions to be executed when 
-                                    a measurement event occurs.
-        """
+        Initialise the EventWatcher instance with callback lists 
+        for various events and a metadata manager.
         
-        self._initialise_callbacks = self._cast_callbacks(initialise_callbacks)
-        self._measurement_callbacks = self._cast_callbacks(measurement_callbacks)        
+        Args:
+            metadata_manager: Manages equipment data for event handling.
+            initialise_callbacks: List of callbacks for initialisation.
+            measurement_callbacks: List of callbacks for measurements.
+            start_callbacks: List of callbacks for start events.
+            stop_callbacks: List of callbacks for stop events.
+        """
         self._metadata_manager = metadata_manager
+        self._initialise_callbacks = self._cast_callbacks(initialise_callbacks)
+        self._measurement_callbacks = self._cast_callbacks(measurement_callbacks)
+        self._start_callbacks = self._cast_callbacks(start_callbacks)
+        self._stop_callbacks = self._cast_callbacks(stop_callbacks)
     
     @abstractmethod
     def start(self) -> None:
         """
-        Start the EventWatcher and trigger the initialise callbacks.
+        Start the EventWatcher, triggering initialisation callbacks.
+        Subclasses implement this to start monitoring events.
         """
         equipment_data = self._metadata_manager.get_equipment_data()
         for callback in self.initialise_callbacks:
             callback(equipment_data)
 
-    @property
-    def initialise_callbacks(self) -> list[Callable]:
+    def _cast_callbacks(self, callbacks: Optional[List[Callable]]) -> List[Callable]:
         """
-        Return the initialisation callbacks.
+        Ensure callbacks are in a list. If none, return an empty list.
+
+        Args:
+            callbacks: A callable or list/tuple/set of callables 
+                       for a specific event.
         
         Returns:
-            A list of callable functions for initialisation.
+            A list of callback functions.
         """
-        return self._initialise_callbacks
-
-    def add_initialise_callback(self, callback: Callable) -> None:
-        """
-        Add a callback function to the initialise callbacks.
-
-        Args:
-            callback: The callback function to be added.
-        """
-        self._initialise_callbacks.append(callback)
-
-    def remove_initialise_callback(self, callback: Callable) -> None:
-        """
-        Remove a initialise callback function.
-
-        Args:
-            callback: The callback function to be removed.
-        """
-        self._initialise_callbacks.remove(callback)
-
-    @property
-    def measurement_callbacks(self) -> list[Callable]:
-        """
-        Return the measurement callbacks.
-        
-        Returns:
-            A list of callable functions for measurements.
-        """
-        return self._measurement_callbacks
-
-    def add_measurement_callback(self, callback: Callable) -> None:
-        """
-        Add a callback function to the measurement callbacks.
-
-        Args:
-            callback: The callback function to be added.
-        """
-        self._measurement_callbacks.append(callback)
-
-    def remove_measurement_callback(self, callback: Callable) -> None:
-        """
-        Remove a measurement callback.
-
-        Args:
-            callback: The callback function to be removed.
-        """
-        self._measurement_callbacks.remove(callback)
-
-
-    def _cast_callbacks(self, callbacks: Optional[Callable]) -> List[Callable]:
-        """Ensure the callbacks are cast into a list."""
         if callbacks is None:
             return []
         elif not isinstance(callbacks, (list, set, tuple)):
@@ -111,7 +61,125 @@ class EventWatcher(ABC):
         return list(callbacks)
 
     def _initiate_callbacks(self, callbacks: List[Callable], 
-                            data: dict = None) -> None:
-        """Trigger all the registered callbacks."""
+                            data: Optional[dict] = None) -> None:
+        """
+        Trigger each callback in the list, passing in optional event data.
+
+        Args:
+            callbacks: List of callback functions to execute.
+            data: Optional event data dictionary for context.
+        """
         for callback in callbacks:
             callback(data)
+
+    @property
+    def initialise_callbacks(self) -> List[Callable]:
+        """
+        Return the list of callbacks for initialisation.
+        
+        Returns:
+            List of initialisation callables.
+        """
+        return self._initialise_callbacks
+
+    def add_initialise_callback(self, callback: Callable) -> None:
+        """
+        Add a callback function to initialisation callbacks.
+
+        Args:
+            callback: Function to add to initialisation callbacks.
+        """
+        self._initialise_callbacks.append(callback)
+
+    def remove_initialise_callback(self, callback: Callable) -> None:
+        """
+        Remove a callback function from initialisation callbacks.
+
+        Args:
+            callback: Function to remove from initialisation callbacks.
+        """
+        self._initialise_callbacks.remove(callback)
+
+    @property
+    def measurement_callbacks(self) -> List[Callable]:
+        """
+        Return list of callbacks for measurement events.
+        
+        Returns:
+            List of measurement callables.
+        """
+        return self._measurement_callbacks
+
+    def add_measurement_callback(self, callback: Callable) -> None:
+        """
+        Add a callback to measurement event callbacks.
+
+        Args:
+            callback: Function to add to measurement callbacks.
+        """
+        self._measurement_callbacks.append(callback)
+
+    def remove_measurement_callback(self, callback: Callable) -> None:
+        """
+        Remove a callback from measurement event callbacks.
+
+        Args:
+            callback: Function to remove from measurement callbacks.
+        """
+        self._measurement_callbacks.remove(callback)
+
+    @property
+    def start_callbacks(self) -> List[Callable]:
+        """
+        Return list of callbacks for start events.
+        
+        Returns:
+            List of start event callables.
+        """
+        return self._start_callbacks
+
+    def add_start_callback(self, callback: Callable) -> None:
+        """
+        Add a callback to start event callbacks.
+
+        Args:
+            callback: Function to add to start callbacks.
+        """
+        self._start_callbacks.append(callback)
+
+    def remove_start_callback(self, callback: Callable) -> None:
+        """
+        Remove a callback from start event callbacks.
+
+        Args:
+            callback: Function to remove from start callbacks.
+        """
+        self._start_callbacks.remove(callback)
+
+    @property
+    def stop_callbacks(self) -> List[Callable]:
+        """
+        Return list of callbacks for stop events.
+        
+        Returns:
+            List of stop event callables.
+        """
+        return self._stop_callbacks
+
+    def add_stop_callback(self, callback: Callable) -> None:
+        """
+        Add a callback to stop event callbacks.
+
+        Args:
+            callback: Function to add to stop callbacks.
+        """
+        self._stop_callbacks.append(callback)
+
+    def remove_stop_callback(self, callback: Callable) -> None:
+        """
+        Remove a callback from stop event callbacks.
+
+        Args:
+            callback: Function to remove from stop callbacks.
+        """
+        self._stop_callbacks.remove(callback)
