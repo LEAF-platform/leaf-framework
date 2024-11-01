@@ -25,6 +25,6 @@ def get_logger(name: str, log_file: Optional[str] = None, log_level: int = loggi
 
     # Set log level for the logger (default is DEBUG)
     logger.setLevel(log_level)
-    logger.propagate = False  # Prevent duplicate logging
+    # logger.propagate = False  # Prevent duplicate logging
 
     return logger

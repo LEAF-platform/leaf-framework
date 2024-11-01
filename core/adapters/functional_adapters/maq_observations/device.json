@@ -1,0 +1,1557 @@
+{
+  "class" : "MAQAdapter",
+  "equipment_id": "MAQ_observations",
+  "version": "1.0",
+  "manufacturer": "MAQ Observations",
+  "device_type": "Weather Station",
+  "application": "Weather Monitoring",
+  "experiment":
+    {
+      "measurement": "some_measurement"
+    },
+  "sensors": [
+    {
+      "stream_unit": "TA_2_1_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Dry bulb temperature ventilated (2 m)",
+      "notes": "SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TW_2_1_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Dry bulb temperature ventilated (2 m)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TA_1_1_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Dry bulb temperature unventilated (2 m)",
+      "notes": "BASIC/SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TW_1_1_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Dry bulb temperature unventilated (2 m)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TA_1_2_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Dry bulb temperature shielded (10 cm)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TA_1_1_2",
+      "unit": "C",
+      "instrument": "HMT337",
+      "long_name": "Temperature Vaisala (2 m)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "RH_1_1_1",
+      "unit": "%",
+      "instrument": "HMT337",
+      "long_name": "Relative humidity (2 m)",
+      "notes": "BASIC/SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "SW_IN_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen CM11 upgraded",
+      "long_name": "Incoming shortwave radiation",
+      "notes": "BASIC/SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "SW_OUT_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen CM11 upgraded",
+      "long_name": "Outgoing shortwave radiation",
+      "notes": "SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "LW_IN_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen SGR3 smart",
+      "long_name": "Incoming longwave radiation",
+      "notes": "SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "LW_OUT_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen SGR3 smart",
+      "long_name": "Outgoing longwave radiation",
+      "notes": "SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "RN_1_1_1",
+      "unit": "W m-2",
+      "instrument": "-",
+      "long_name": "Net radiation (calculated)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "SW_DIF_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen CM21 upgraded",
+      "long_name": "Diffuse radiation (sun tracker)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "SW_DIR_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen SHP1 smart",
+      "long_name": "Direct normal irradiance, perpendicular to the solar beam (sun tracker)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "LW_IN_2_1_1",
+      "unit": "W m-2",
+      "instrument": "Kipp&Zonen CG1 upgraded",
+      "long_name": "Incoming longwave radiation (sun tracker)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "SW_DUR_1_1_1",
+      "unit": "s",
+      "instrument": "Kipp&Zonen CSD1",
+      "long_name": "Sunshine duration (sun tracker)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VIS_1_1_1",
+      "unit": "m",
+      "instrument": "Sten Löfving Optical sensors: Laser backscatter",
+      "long_name": "Visibility (max. 8000m)",
+      "notes": "SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_7",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "Precipitation weighing gauge",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "D_SNOW",
+      "unit": "cm",
+      "instrument": "NC",
+      "long_name": "Raw grass/Snow height",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "PA_1_1_1",
+      "unit": "kPa",
+      "instrument": "Vaisala ",
+      "long_name": "Air pressure",
+      "notes": "BASIC/SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WS_2_1_1",
+      "unit": "m s-1",
+      "instrument": "WUR-MAQ, KNMI type",
+      "long_name": "Wind speed cup 10m mean",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WX_2_1_1",
+      "unit": "m s-1",
+      "instrument": "WUR-MAQ, KNMI type",
+      "long_name": "Wind speed cup 10m max (wind gusts)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WS_1_1_1",
+      "unit": "m s-1",
+      "instrument": "WindSonic 75",
+      "long_name": "Wind speed sonic 10m mean",
+      "notes": "BASIC/SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WX_1_1_1",
+      "unit": "m s-1",
+      "instrument": "WindSonic 75",
+      "long_name": "Wind speed sonic 10m max (wind gusts)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WD_1_1_1",
+      "unit": "degrees",
+      "instrument": "WindSonic 75",
+      "long_name": "Wind direction sonic 10m",
+      "notes": "BASIC/SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WS_1_2_1",
+      "unit": "m s-1",
+      "instrument": "WindSonic 75",
+      "long_name": "Wind speed sonic 2m mean",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WX_1_2_1",
+      "unit": "m s-1",
+      "instrument": "WindSonic 75",
+      "long_name": "Wind speed sonic 2m max (wind gusts)",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WD_1_2_1",
+      "unit": "degrees",
+      "instrument": "WindSonic 75",
+      "long_name": "Wind direction sonic 2m",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "WTD_1_1_1",
+      "unit": "m",
+      "instrument": "Campbell CS420",
+      "long_name": "Groundwater level below surface",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_1_1_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under grass (5 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_1_2_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under grass (10 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_1_3_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under grass (20 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_1_4_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under grass (50 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_1_5_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under grass (100 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_1_6_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under grass (150 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_2_1_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under bare soil (5 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_2_2_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under bare soil (10 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_2_3_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under bare soil (20 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "TS_2_4_1",
+      "unit": "C",
+      "instrument": "PT100",
+      "long_name": "Soil temperature under bare soil (50 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "G_1_1_1",
+      "unit": "W m-2",
+      "instrument": "Hukseflux HFP01",
+      "long_name": "Soil heat flux grass A (6 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "G_2_1_1",
+      "unit": "W m-2",
+      "instrument": "Hukseflux HFP01",
+      "long_name": "Soil heat flux grass B (6 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "G_3_1_1",
+      "unit": "W m-2",
+      "instrument": "Hukseflux HFP01",
+      "long_name": "Soil heat flux grass C (6 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "G_4_1_1",
+      "unit": "W m-2",
+      "instrument": "Hukseflux HFP01",
+      "long_name": "Soil heat flux bare soil (6 cm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_1_1_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass A (65 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_1_2_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass A (125 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_1_3_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass A (250 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_1_4_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass A (500 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_2_1_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass B (65 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_2_2_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass B (125 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_2_3_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass B (250 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_2_4_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content grass B (500 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "VWC_3_1_1",
+      "unit": "m3 m-3",
+      "instrument": "Campbell CS616",
+      "long_name": "Volumetric water content bare soil (65 mm)",
+      "notes": "SINGLE/ADVANCED-SOIL",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_1",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "Realtime if > 0.1 mm/min. For rain warning only, not for daily totals. For actual precipitation use P_1_1_7.",
+      "notes": "BASIC/SINGLE/ADVANCED-METEOROLOGY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_2",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "Realtime if > 0.03mm/h, otherwise 1h output delay. For actual precipitation use P_1_1_7.",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_3",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "5 min output delay, not accurate. For actual precipitation use P_1_1_7.",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_4",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "No loss of data if disrupted data communication. Stores totals. For actual precipitation use P_1_1_7.",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_5",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "Bucket content, non filtered. Not usefull for rain. For actual precipitation use P_1_1_7.",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "P_1_1_6",
+      "unit": "mm",
+      "instrument": "Ott Pluvio S, no heating",
+      "long_name": "For bucket content and evaporation, not for rain! For actual precipitation use P_1_1_7.",
+      "notes": "SINGLE",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "DOY",
+      "unit": "ddd.ddd",
+      "instrument": "-",
+      "long_name": "Day of year identifier",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "daytime",
+      "unit": "1=daytime",
+      "instrument": "-",
+      "long_name": "Daytime flag (1=daytime, 0=nighttime)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "file_records",
+      "unit": "-",
+      "instrument": "-",
+      "long_name": "Raw eddy-pro file used",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "used_records",
+      "unit": "-",
+      "instrument": "-",
+      "long_name": "Raw eddy-pro records used",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "Tau",
+      "unit": "kg m-1 s-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Corrected momentum flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "qc_Tau",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Quality flag for momentum flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "H",
+      "unit": "W m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Corrected sensible heat flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "qc_H",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Quality flag for sensible heat flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "LE",
+      "unit": "W m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Corrected latent heat flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "qc_LE",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Quality flag latent heat flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_flux",
+      "unit": "µmol m-2 s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Corrected gas flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "qc_co2_flux",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Quality flag for gas flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_flux",
+      "unit": "mmol m-2 s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Corrected gas flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "qc_h2o_flux",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Quality flag for gas flux",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "H_strg",
+      "unit": "W m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Estimate of storage sensible heat flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "LE_strg",
+      "unit": "W m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Estimate of storage latent heat flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_strg",
+      "unit": "µmol m-2 s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Estimate of storage gas flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_strg",
+      "unit": "mmol m-2 s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Estimate of storage gas flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_v-adv",
+      "unit": "µmol m-2 s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Estimate of vertical advection flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_v-adv",
+      "unit": "mmol m-2 s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Estimate of vertical advection flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_molar_density",
+      "unit": "mmol m-3",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Measured or estimated molar density of gas",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_mole_fraction",
+      "unit": "µmol mola-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Measured or estimated mole fraction of gas",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_mixing_ratio",
+      "unit": "µmol mold-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Measured or estimated mixing ratio of gas",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_time_lag",
+      "unit": "s",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Time lag used to synchronize gas time series",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_def_timelag",
+      "unit": "1=default, 2=calculated",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Flag: whether the reported time lag is the default (T) or calculated (F)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_molar_density",
+      "unit": "mmol m-3",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Measured or estimated molar density of gas",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_mole_fraction",
+      "unit": "mmol mola-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Measured or estimated mole fraction of gas",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_mixing_ratio",
+      "unit": "mmol mold-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Measured or estimated mixing ratio of gas",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_time_lag",
+      "unit": "s",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Time lag used to synchronize gas time series",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_def_timelag",
+      "unit": "1=default, 2=calculated",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Flag: whether the reported time lag is the default (T) or calculated (F)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "sonic_temperature",
+      "unit": "K",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Mean temperature of ambient air as measured by the anemometer",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "air_temperature",
+      "unit": "K",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Mean temperature of ambient air, either calculated from high frequency air temperature readings, or estimated from sonic temperature",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "air_pressure",
+      "unit": "Pa",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Mean pressure of ambient air, either calculated from high frequency air pressure readings, or estimated based on site altitude (barometric pressure)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "air_density",
+      "unit": "kg m-3",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Density of ambient air",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "air_heat_capacity",
+      "unit": "J kg-1 K-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Specific heat at constant pressure of ambient air",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "air_molar_volume",
+      "unit": "m3 mol-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Molar volume of ambient air",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "ET",
+      "unit": "mm hour-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Evapotranspiration flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "water_vapor_density",
+      "unit": "kg m-3",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient mass density of water vapor",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "e",
+      "unit": "Pa",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient water vapor partial pressure",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "es",
+      "unit": "Pa",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient water vapor partial pressure at saturation",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "specific_humidity",
+      "unit": "kg kg-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient specific humidity on a mass basis",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "RH",
+      "unit": "%",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient relative humidity",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "VPD",
+      "unit": "Pa",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient water vapor pressure deficit",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "Tdew",
+      "unit": "K",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Ambient dew point temperature",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "u_unrot",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Wind component along the u anemometer axis",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "v_unrot",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Wind component along the v anemometer axis",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w_unrot",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Wind component along the w anemometer axis",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "u_rot",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Rotated u wind component (mean wind speed)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "v_rot",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Rotated v wind component (should be zero)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w_rot",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Rotated w wind component (should be zero)",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "wind_speed",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Mean wind speed",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "max_wind_speed",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Maximum instantaneous wind speed",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "wind_dir",
+      "unit": "degrees",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Direction from which the wind blows, with respect to Geographic or Magnetic north",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "yaw",
+      "unit": "degrees",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "First rotation angle",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "pitch",
+      "unit": "degrees",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Second rotation angle",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "roll",
+      "unit": "degrees",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Third rotation angle",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "u*",
+      "unit": "m s-1",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Friction velocity",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "TKE",
+      "unit": "m2 s-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Turbulent kinetic energy",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "L",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Monin-Obukhov length",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "(z-d)/L",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Monin-Obukhov stability parameter",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "bowen_ratio",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Sensible heat flux to latent heat flux ratio",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "T*",
+      "unit": "K",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Scaling temperature",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "model",
+      "unit": "0=KJ/1=KM/2=HS",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Model for footprint estimation",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_peak",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing the highest (peak) contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_offset",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing <1% contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_10%",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing 10% (cumulative) contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_30%",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing 30% (cumulative) contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_50%",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing 50% (cumulative) contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_70%",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing 70% (cumulative) contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "x_90%",
+      "unit": "m",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Along-wind distance providing 90% (cumulative) contribution to turbulent fluxes",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "un_Tau",
+      "unit": "kg m-1 s-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Uncorrected momentum flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "Tau_scf",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Spectral correction factor for momentum flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "un_H",
+      "unit": "W m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Uncorrected sensible heat flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "H_scf",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Spectral correction factor for sensible heat flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "un_LE",
+      "unit": "W m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Uncorrected latent heat flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "LE_scf",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Spectral correction factor for latent heat flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "un_co2_flux",
+      "unit": "µmol s-1 m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Uncorrected gas flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_scf",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Spectral correction factor for gas flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "un_h2o_flux",
+      "unit": "mmol s-1 m-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Uncorrected gas flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_scf",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Spectral correction factor for gas flux",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "spikes_hf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for individual variables for spike test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "amplitude_resolution_hf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for individual variables for amplitude resolution",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "drop_out_hf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for individual variables for drop-out test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "absolute_limits_hf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for individual variables for absolute limits",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "skewness_kurtosis_hf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for individual variables for skewness and kurtosis",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "skewness_kurtosis_sf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Soft flags for individual variables for skewness and kurtosis test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "discontinuities_hf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for individual variables for discontinuities test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "discontinuities_sf",
+      "unit": "8u/v/w/ts/co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Soft flags for individual variables for discontinuities test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "timelag_hf",
+      "unit": "8co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flags for gas concentration for time lag test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "timelag_sf",
+      "unit": "8co2/h2o/ch4/none",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Soft flags for gas concentration for time lag test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "attack_angle_hf",
+      "unit": "8aa",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flag for attack angle test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "non_steady_wind_hf",
+      "unit": "8U",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Hard flag for non-steady horizontal test",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "u_spikes",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Number of spikes detected and eliminated for variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "v_spikes",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Number of spikes detected and eliminated for variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w_spikes",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Number of spikes detected and eliminated for variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "ts_spikes",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Number of spikes detected and eliminated for variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_spikes",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Number of spikes detected and eliminated for variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_spikes",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Number of spikes detected and eliminated for variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "chopper_LI-7500",
+      "unit": "#_flagged_recs",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "detector_LI-7500",
+      "unit": "#_flagged_recs",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "pll_LI-7500",
+      "unit": "#_flagged_recs",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "sync_LI-7500",
+      "unit": "#_flagged_recs",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "mean_value_AGC_LI-7500",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "u_var",
+      "unit": "m2 s-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Variance of variable var",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "v_var",
+      "unit": "m2 s-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Variance of variable var",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w_var",
+      "unit": "m2 s-2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Variance of variable var",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "ts_var",
+      "unit": "K2",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Variance of variable var",
+      "notes": "SINGLE/ADVANCED-FLUX",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "co2_var",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Variance of variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "h2o_var",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Variance of variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w/ts_cov",
+      "unit": "m s-1 K",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Covariance between w and variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w/co2_cov",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Covariance between w and variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "w/h2o_cov",
+      "unit": "-",
+      "instrument": "Licor Li-7500 / Campbell CSAT3",
+      "long_name": "Covariance between w and variable var",
+      "notes": "SINGLE",
+      "interval": "30 minutes"
+    },
+    {
+      "stream_unit": "BC",
+      "unit": "ng m-3",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "Black carbon concentration",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "BC_UV",
+      "unit": "ng m-3",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV data result (BC+UV PM)",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "F",
+      "unit": "L min-1",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "Air flow",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "SZ_BC",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "BC sensing zero signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "SB_BC",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "BC sensing beam signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "RZ_BC",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "BC reference zero signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "RB_BC",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "BC reference beam signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "F_BY_BC",
+      "unit": "-",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "BC bypass fraction",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "ANT_BC",
+      "unit": "-",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "BC optical attenuation",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "SZ_UV",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV sensing zero signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "SB_UV",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV sensing beam signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "RZ_UV",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV reference zero signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "RB_UV",
+      "unit": "V",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV reference beam signal",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "F_BY_UV",
+      "unit": "-",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV bypass fraction",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "ANT_UV",
+      "unit": "-",
+      "instrument": "Magee Scientific AE42",
+      "long_name": "UV optical atteniuation",
+      "notes": "SINGLE",
+      "interval": "5 seconds"
+    },
+    {
+      "stream_unit": "PM2.5",
+      "unit": "µg m-3",
+      "instrument": "SDS011",
+      "long_name": "Particulate matter concentration < 2.5 µm",
+      "notes": "ncalibrated sensor, only for qualitative use",
+      "interval": "SINGLE/ADVANCED-AIR QUALITY 5 seconds"
+    },
+    {
+      "stream_unit": "PM10",
+      "unit": "µg m-3",
+      "instrument": "SDS011",
+      "long_name": "Particulate matter concentration < 10 µm",
+      "notes": "ncalibrated sensor, only for qualitative use",
+      "interval": "SINGLE/ADVANCED-AIR QUALITY 5 seconds"
+    },
+    {
+      "stream_unit": "NOx",
+      "unit": "ppb",
+      "instrument": "Teledyne T200",
+      "long_name": "Ambient air NOx mixing ratio",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "NO",
+      "unit": "ppb",
+      "instrument": "Teledyne T200",
+      "long_name": "Ambient air NO mixing ratio",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "NO2",
+      "unit": "ppb",
+      "instrument": "Teledyne T200",
+      "long_name": "Ambient air NO2 mixing ratio",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "1 second"
+    },
+    {
+      "stream_unit": "O3",
+      "unit": "ppb",
+      "instrument": "Teledyne T400",
+      "long_name": "Ambient air O3 mixing ratio",
+      "notes": "SINGLE/ADVANCED-AIR QUALITY",
+      "interval": "1 second"
+    }
+  ],
+  "stations": [
+    {
+      "station_id": 1,
+      "station_name":"veenendaal"
+    },
+    {
+      "station_id": 2,
+      "station_name":"loobos"
+
+    },{
+      "station_id": 3,
+      "station_name":"amsterdam"
+    }
+
+  ]
+}

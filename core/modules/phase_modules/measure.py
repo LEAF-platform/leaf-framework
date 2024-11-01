@@ -1,4 +1,5 @@
 import logging
+import time
 
 import influxobject
 
@@ -39,7 +40,14 @@ class MeasurePhase(PhaseModule):
             **kwargs: Additional arguments used to build the action term.
         """
         if self._interpreter is not None:
-            exp_id = self._interpreter.id
+            # Check if attributes are set
+            if getattr(self._interpreter, 'id', None) is None:
+                self._interpreter.id = "invalid_interpreter_id"
+                logger.error(f'No ID found for interpreter: {self._interpreter}')
+            logger.debug(f"Interpreter: {self._interpreter}")
+            logger.debug(f"Interpreter dict: {self._interpreter.__dict__}")
+            logger.debug(f"Interpreter ID: {self._interpreter.id}")
+            exp_id = self._interpreter.id or "invalid_interpreter_id"
             if exp_id is None:
                 raise ValueError(f'Trying to transmit measurements outside of experiment.')
 
@@ -55,6 +63,7 @@ class MeasurePhase(PhaseModule):
                 #     action = self._term_builder(experiment_id=exp_id, measurement=result['measurement'])
                 # self._output.transmit(action, result)
                 if self._stagger_transmit:
+                    logger.debug(f"Transmitting measurements as stagger: {result}")
                     for measurement_type, measurements in result["fields"].items():
                         if not isinstance(measurements,list):
                             measurements = [measurements]
@@ -67,12 +76,23 @@ class MeasurePhase(PhaseModule):
                     action = self._term_builder(experiment_id=exp_id, measurement=result["measurement"])
                     self._output.transmit(action, result)
             elif isinstance(result, str):
+                logger.debug(f"Transmitting measurement as string: {result}")
                 action = self._term_builder(experiment_id=exp_id, measurement="unknown")
                 self._output.transmit(action, result)
             elif isinstance(result, influxobject.influxpoint.InfluxPoint):
+                logger.debug(f"Transmitting measurement as InfluxPoint: {result}")
                 result = result.to_json()
                 action = self._term_builder(experiment_id=exp_id, measurement=result["measurement"])
                 self._output.transmit(action, result)
+            elif isinstance(result, list):
+                logger.debug(f"Transmitting measurements as list: {len(result)}")
+                for index, measurement in enumerate(result):
+                    measurement = measurement.to_json()
+                    action = self._term_builder(experiment_id=exp_id, measurement=measurement["measurement"])
+                    self._output.transmit(action, measurement)
+                    time.sleep(0.1)
+                    if index % 10 == 0:
+                        logger.debug(f"Transmitted {index} measurements of {len(result)}")
             else:
                 logger.error(f"Unknown measurement data type: {type(result)}")
                 action = self._term_builder(experiment_id=exp_id, measurement="unknown")

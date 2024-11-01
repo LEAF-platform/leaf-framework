@@ -1,11 +1,9 @@
-from typing import Literal, Optional
-from uuid import uuid4
+import json
+import logging
+import time
+from typing import Literal, Optional, Any, Union
 
 import paho.mqtt.client as mqtt
-import time
-import logging
-import json
-
 from paho.mqtt.enums import CallbackAPIVersion
 
 from core.modules.output_modules.output_module import OutputModule
@@ -79,7 +77,7 @@ class MQTT(OutputModule):
             self.client.tls_set()
             self.client.tls_insecure_set(True)
 
-        logging.debug(f"Connecting to MQTT broker at {broker}:{port}")
+        logger.debug(f"Connecting to MQTT broker at {broker}:{port}")
 
         try:
             self.client.connect(broker, port, 60)
@@ -103,7 +101,7 @@ class MQTT(OutputModule):
             if self._fallback is not None:
                 self._fallback.transmit(topic,data=data)
             else:
-                logging.error(f"Failed to send message: {result.rc}")
+                logger.error(f"Failed to send message: {result.rc}")
                 return None
         if self.client is None:
             return _fallback()
@@ -114,14 +112,18 @@ class MQTT(OutputModule):
         elif data is None:
             logger.error(f"No data was provided")
             data = ""
-        
-        logger.debug(f"Transmitting message to {topic}: {data[:50]}")
+
+        # kb size of data
+
+        logger.debug(f"Transmitting message to {topic}: {data[:50]}... {len(data)//1024}KB")
         result = self.client.publish(topic=topic, payload=data, qos=0, 
                                      retain=retain)
 
         if result.rc != mqtt.MQTT_ERR_SUCCESS:
             logger.error(f"Failed to send message: {result.rc}")
             return _fallback()
+        else:
+            logger.debug(f"Message sent: {result}")
         return result
 
     def flush(self, topic) -> None:
@@ -146,10 +148,11 @@ class MQTT(OutputModule):
             rc: The connection result code.
             metadata: Additional metadata (if any).
         """
+        logger.debug(f"Connected: {rc}")
         if rc != 0:
             logger.error(f"Failed to connect: {rc}")
 
-    def on_disconnect(client, userdata, rc):
+    def on_disconnect(self, client: mqtt.Client, userdata: Any, flags: mqtt.DisconnectFlags, rc, properties= None) -> None:
         """
         Callback for when the client disconnects from the broker.
 
@@ -205,7 +208,7 @@ class MQTT(OutputModule):
             message: The log message.
         """
         if paho_log_level == mqtt.MQTT_LOG_ERR:
-            print(message, paho_log_level)
+            logger.error(message)
 
     def on_message(self, client : mqtt.Client, userdata: str, msg: str) -> None:
         """

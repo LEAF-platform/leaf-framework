@@ -65,7 +65,10 @@ class EquipmentAdapter(ABC):
                 time.sleep(0.1)
         except KeyboardInterrupt:
             logger.warning("Keyboard interrupt detected.")
+        except Exception as e:
+            logger.error(f"Error in equipment adapter: {e}")
         finally:
+            logger.info("Stopping equipment adapter.")
             self._watcher.stop()
             self.stop()
 
