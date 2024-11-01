@@ -5,9 +5,9 @@ from typing import Optional
 from minknow_api.manager import Manager
 
 from core.adapters.equipment_adapter import EquipmentAdapter
+from core.adapters.functional_adapters.minknow.interpreter import MinKNOWInterpreter
 from core.metadata_manager.metadata import MetadataManager
-from core.modules.input_modules.api_watcher import APIWatcher
-from core.modules.input_modules.csv_watcher import CSVWatcher
+from core.modules.input_modules.simple_watcher import SimpleWatcher
 from core.modules.logger_modules.logger_utils import get_logger
 from core.modules.phase_modules.initialisation import InitialisationPhase
 from core.modules.phase_modules.measure import MeasurePhase
@@ -47,7 +47,8 @@ class MinKNOWAdapter(EquipmentAdapter):
         metadata_manager: MetadataManager = MetadataManager()
         metadata_manager.add_metadata("a", "b")
         # Create a CSV watcher for the write file
-        watcher: APIWatcher = APIWatcher(write_file, metadata_manager)
+        watcher: SimpleWatcher = SimpleWatcher(metadata_manager=metadata_manager, interval=10, measurement_callbacks=MinKNOWInterpreter.measurement)
+        measurements: list[str] = ["Aeration rate(Fg:L/h)"]
         # Create the phases?
         start_p: StartPhase = StartPhase(output, metadata_manager)
         stop_p: StopPhase = StopPhase(output, metadata_manager)

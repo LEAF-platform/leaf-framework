@@ -1,7 +1,7 @@
 from typing import List, Callable
 
 from core.metadata_manager.metadata import MetadataManager
-from core.modules.input_modules.polling_watcher import PollingWatcher, logger
+from core.modules.input_modules.polling_watcher import PollingWatcher
 
 
 class SimpleWatcher(PollingWatcher):

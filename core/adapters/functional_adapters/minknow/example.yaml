@@ -8,7 +8,7 @@ EQUIPMENT_INSTANCES:
         write_file: minknow.csv
         host: localhost
         port: 9501
-        token: 3bdf54c7-7139-4f95-8416-1e9bbbcb022c
+        token: c50dcbbd-fa64-4f9c-98f7-85c39d98c3c2
       simulation:
         interval: 0.1
         filename: start.py
