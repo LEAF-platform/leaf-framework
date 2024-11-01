@@ -120,6 +120,7 @@ class EquipmentTerms:
         try:
             return str(self._metadata[equipment_key][key])
         except KeyError:
+            logger.warning(f"Metadata key {key} not found.")
             return f"+"
 
     def __repr__(self) -> str:
