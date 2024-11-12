@@ -1,26 +1,28 @@
 import json
 import logging
+import os
+import re
 from typing import Any, Optional
 
 import yaml
-import os
-import re
-
-equipment_key = "equipment"
-
 from core.modules.logger_modules.logger_utils import get_logger
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
+equipment_key = "equipment"
+
 
 class MetadataManager:
-
     def __init__(self) -> None:
         """Initialize the metadata dictionary for each adapter."""
         logger.info("Initializing MetadataManager")
         self._metadata: dict = {}
         self.equipment_terms: Optional[EquipmentTerms] = None
+        self.required_keys: set[str] = set()
+        
+        # Load both equipment terms and required fields
         self.load_equipment_terms()
+        self.load_required_keys()
 
     def load_equipment_terms(self):
         """Load YAML configuration into equipment terms."""
@@ -29,19 +31,28 @@ class MetadataManager:
         try:
             with open(filepath, "r") as file:
                 yaml_content = yaml.safe_load(file)
-                self.equipment_terms = EquipmentTerms(
-                    yaml_content, self._metadata
-                )
+                self.equipment_terms = EquipmentTerms(yaml_content, self._metadata)
         except FileNotFoundError:
             print(f"YAML file {filepath} not found.")
 
-    def load_from_file(self, file_path: str, adapter_type: Any=None) -> None:
+    def load_required_keys(self):
+        """Load required keys from the second YAML document."""
+        curr_dir = os.path.dirname(os.path.realpath(__file__))
+        filepath = os.path.join(curr_dir, "equipment_data.yaml")
+        try:
+            with open(filepath, "r") as file:
+                yaml_content = yaml.safe_load(file)
+                self.required_keys = set(yaml_content.keys())
+        except FileNotFoundError:
+            print(f"Required fields YAML file {filepath} not found.")
+
+    def load_from_file(self, file_path, adapter_type=None) -> None:
         """Load metadata from a JSON file and update the metadata dictionary."""
         logger.debug(f"Loading metadata from file {file_path}")
         try:
             with open(file_path, "r") as file:
                 if adapter_type is not None:
-                    self._metadata[adapter_type].update(json.load(file))
+                    self._metadata.setdefault(adapter_type, {}).update(json.load(file))
                 else:
                     self._metadata.update(json.load(file))
         except FileNotFoundError:
@@ -56,20 +67,28 @@ class MetadataManager:
         self._metadata[key] = value
 
     def get_equipment_data(self) -> dict[str, str]:
-        if equipment_key in self._metadata:
-            return self._metadata[equipment_key]
+        return self._metadata.get(equipment_key, {})
 
     def add_equipment_data(self, filename: str) -> None:
         if isinstance(filename, dict):
-            return self._metadata[equipment_key].update(filename)
+            self._metadata.setdefault(equipment_key, {}).update(filename)
         else:
-            return self.load_from_file(filename, equipment_key)
+            self.load_from_file(filename, equipment_key)
 
     def is_called(self, action: str, term: str) -> bool:
         return action.split("/")[-1] == term.split("/")[-1]
 
-    def get_instance_id(self, topic: str) -> str:
-        return topic.split("/")[2]
+    def get_instance_id(self, topic: str=None) -> str:
+        if topic:
+            return topic.split("/")[2]
+        return self._metadata.get(equipment_key, {}).get("instance_id", "")
+
+    def is_valid(self) -> bool:
+        """Check if all required keys are present in the metadata."""
+        missing_keys = [key for key in self.required_keys if key not in self._metadata.get(equipment_key, {})]
+        if missing_keys:
+            logger.warning(f"Missing required keys in metadata: {missing_keys}")
+        return not missing_keys
 
     def __getattr__(self, item: str) -> Any:
         """Dynamically handle attribute access based on equipment terms."""

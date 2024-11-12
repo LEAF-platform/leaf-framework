@@ -1,3 +1,4 @@
+
 EQUIPMENT_INSTANCES:
   - equipment:
       adapter: BioLector1
@@ -5,20 +6,29 @@ EQUIPMENT_INSTANCES:
         instance_id: biolector_devonshire10
         institute: NCL
       requirements:
-        write_file: tmp1.csv
-
+        write_file: test/tmp.csv
+      simulation:
+        filename: mcrowther-ecoli-GFP-mCherry_20060101_120512.csv
+        interval: 10
+  - equipment:
+      adapter: BioLector1
+      data:
+        instance_id: test_instance_id
+        institute: NCL
+      requirements:
+        write_file: test/tmp123.csv
 OUTPUTS:
   - plugin: MQTT
-    broker: test.mosquitto.org
+    broker: localhost
     port: 1883
+    username: mcrowther
+    password: Radeon12300
     fallback: KEYDB
-
   - plugin: KEYDB
     host: localhost
     port: 6379
     db: 0
     fallback: FILE
-
   - plugin: FILE
     filename: local.json
     fallback: null

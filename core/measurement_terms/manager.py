@@ -24,11 +24,12 @@ class MeasurementManager:
         if not hasattr(self, "_initialized"):
             self._initialized = True
             if file_path is None:
-                file_path = os.path.join(os.path.dirname(__file__), "measurements.yaml")
-            self.measurements_data = self.load_measurements(file_path)
+                file_path = os.path.join(os.path.dirname(__file__), 
+                                         "measurements.yaml")
+            self.measurements_data = self._load_measurements(file_path)
             self._measurement_instances = {}
 
-    def load_measurements(self, file_path):
+    def _load_measurements(self, file_path):
         """Load the measurement data from the YAML file."""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"The file '{file_path}' was not found.")
@@ -53,8 +54,9 @@ class MeasurementManager:
 
     def _load_class(self, key, class_name):
         """
-        Dynamically load the measurement class from the appropriate module and find the class
-        that inherits from the Measurement base class.
+        Dynamically load the measurement class from the appropriate 
+        module and find the class that inherits from the Measurement 
+        base class.
         """
         module_name = f"core.modules.measurement_modules.{class_name.lower()}"
         try:

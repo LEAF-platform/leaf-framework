@@ -1,12 +1,21 @@
 from abc import abstractmethod
 from abc import ABC
+import logging
+
+from core.error_handler.exceptions import AdapterLogicError
+from core.error_handler.exceptions import ClientUnreachableError
+from core.error_handler.exceptions import LEAFError
+from core.error_handler.error_holder import ErrorHolder
+from core.modules.logger_modules.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="app.log", log_level=logging.WARNING)
 
 from core.modules.input_modules.file_watcher import logger
 
 
 class OutputModule(ABC):
     """
-    Abstract class that defines the structure for output adapters and are 
+    Abstract class that defines the structure for output adapters and are
     responsible for outputting information using a particular system. 
     For example, save them to a local database or publish them to an 
     external service. A fallback mechanism is also supported, where if 
@@ -14,7 +23,8 @@ class OutputModule(ABC):
     fallback module can be used to handle the output.
     """
     
-    def __init__(self, fallback: str|None=None) -> None:
+    def __init__(self, fallback: str|None=None,
+                 error_holder:ErrorHolder=None) -> None:
         """
         Initialise the OutputModule with an 
         optional fallback OutputModule.
@@ -28,8 +38,10 @@ class OutputModule(ABC):
             ValueError: If the fallback argument is not an instance of OutputModule.
         """
         if fallback is not None and not isinstance(fallback, OutputModule):
-            raise ValueError("Fallback argument must be an OutputModule.")
+            raise AdapterLogicError("Output fallback argument must be an OutputModule.")
         self._fallback = fallback
+        self._error_holder = error_holder
+        self._enabled = True
 
     @abstractmethod
     def transmit(self, topic: str, data: str) -> None:
@@ -55,4 +67,45 @@ class OutputModule(ABC):
             data: The data to be transmitted 
                     (optional, may be None).
         """
-        self._fallback.transmit(topic, data)
+        if self._fallback is not None:
+            return self._fallback.transmit(topic, data)
+        else:
+            self._handle_exception(ClientUnreachableError(f'Cant store data, no output mechanisms available'))
+            return False
+
+    def enable(self):
+        '''
+        Reenables an output transmitting.
+        Only needs to be called if the disable 
+        function has been called previously.
+        '''
+        logger.info(f'{self.__class__.__name__} is enabled as an output.')
+        self._enabled = True
+
+    def disable(self):
+        '''
+        Stops an output from transmitting.
+        This will be used to disable output modules which arent 
+        working for whatever reason to stop them locking the system.
+        '''
+        logger.warning(f'{self.__class__.__name__} is disabled as an output.')
+        self._enabled = False
+
+    def _handle_exception(self,exception:LEAFError):
+        '''
+        When exception is created add to error holder if 
+        its set else raise it.
+        '''
+        if self._error_holder is not None:
+            self._error_holder.add_error(exception)
+        else:
+            raise exception
+        
+
+    @abstractmethod
+    def connect(self):
+        pass
+
+    @abstractmethod
+    def disconnect(self):
+        pass
