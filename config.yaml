@@ -8,7 +8,7 @@ EQUIPMENT_INSTANCES:
       requirements:
         write_file: test/tmp.csv
       simulation:
-        filename: mcrowther-ecoli-GFP-mCherry_20060101_120512.csv
+        filename: tests/static_files/biolector1_full.csv
         interval: 10
   - equipment:
       adapter: BioLector1

@@ -1,15 +1,18 @@
 import logging
 from typing import Optional, Callable, List
 from core.metadata_manager.metadata import MetadataManager
-from abc import ABC, abstractmethod
-
-logger = logging.getLogger(__name__)
+from core.modules.logger_modules.logger_utils import get_logger
+from abc import ABC
+from abc import abstractmethod
+logger = get_logger(__name__, log_file="app.log", 
+                    log_level=logging.DEBUG)
 
 class EventWatcher(ABC):
     """
-    Base class for monitoring and handling equipment events. Allows 
-    registration of callbacks for initialisation, measurement, start, 
-    and stop events, triggering each on event detection.
+    Aims to monitor and extract specific information from the equipment. 
+    It is designed to detect and handle events, such as when equipment 
+    provides measurements by writing to a file or any other 
+    observable event. 
     """
     def __init__(self, metadata_manager: MetadataManager, 
                  initialise_callbacks: Optional[list[Callable]] = None,
@@ -29,16 +32,9 @@ class EventWatcher(ABC):
                                     functions to be executed when 
                                     a measurement event occurs.
         """
-        Initialise the EventWatcher instance with callback lists 
-        for various events and a metadata manager.
         
-        Args:
-            metadata_manager: Manages equipment data for event handling.
-            initialise_callbacks: List of callbacks for initialisation.
-            measurement_callbacks: List of callbacks for measurements.
-            start_callbacks: List of callbacks for start events.
-            stop_callbacks: List of callbacks for stop events.
-        """
+        self._initialise_callbacks = self._cast_callbacks(initialise_callbacks)
+        self._measurement_callbacks = self._cast_callbacks(measurement_callbacks)        
         self._metadata_manager = metadata_manager
         self._error_holder = error_holder
         self._running = False
@@ -46,8 +42,7 @@ class EventWatcher(ABC):
     @abstractmethod
     def start(self) -> None:
         """
-        Start the EventWatcher, triggering initialisation callbacks.
-        Subclasses implement this to start monitoring events.
+        Start the EventWatcher and trigger the initialise callbacks.
         """
         equipment_data = self._metadata_manager.get_equipment_data()
         for callback in self.initialise_callbacks:
@@ -63,14 +58,10 @@ class EventWatcher(ABC):
     @property
     def initialise_callbacks(self) -> list[Callable]:
         """
-        Ensure callbacks are in a list. If none, return an empty list.
-
-        Args:
-            callbacks: A callable or list/tuple/set of callables 
-                       for a specific event.
+        Return the initialisation callbacks.
         
         Returns:
-            A list of callback functions.
+            A list of callable functions for initialisation.
         """
         return self._initialise_callbacks
 
@@ -132,14 +123,8 @@ class EventWatcher(ABC):
         return list(callbacks)
 
     def _initiate_callbacks(self, callbacks: List[Callable], 
-                            data: Optional[dict] = None) -> None:
-        """
-        Trigger each callback in the list, passing in optional event data.
-
-        Args:
-            callbacks: List of callback functions to execute.
-            data: Optional event data dictionary for context.
-        """
+                            data: dict = None) -> None:
+        """Trigger all the registered callbacks."""
         for callback in callbacks:
             callback(data)
 

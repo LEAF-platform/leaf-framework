@@ -31,7 +31,8 @@ from core.error_handler.exceptions import SeverityLevel
 #            VARIABLES
 #
 ###################################
-logger = get_logger(__name__, log_file="app.log", log_level=logging.INFO)
+logger = get_logger(__name__, log_file="app.log", 
+                    log_level=logging.INFO)
 adapters = []
 
 ##################################
@@ -39,13 +40,6 @@ adapters = []
 #            FUNCTIONS
 #
 ###################################
-
-"""
-Things to do before integration.
-1. 1 Final practical run of the code.
-3. Push and fix conflicts!
-"""
-
 
 def parse_args() -> argparse.Namespace:
     """Parses commandline arguments."""
@@ -236,7 +230,6 @@ def run_adapters(equipment_instances, output, error_handler):
     max_warning_retries = 2
     client_warning_retry_count = 0
     cooldown_period_warning = 1
-
     try:
         # Initialize and start all adapters
         for equipment_instance in equipment_instances:
