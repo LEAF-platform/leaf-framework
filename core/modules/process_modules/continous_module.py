@@ -1,5 +1,5 @@
 from core.modules.process_modules.process_module import ProcessModule
-
+from core.error_handler.exceptions import AdapterBuildError
 class ContinousProcess(ProcessModule):
     """
     A ProcessModule for processes with a single phase.
@@ -18,6 +18,7 @@ class ContinousProcess(ProcessModule):
         Raises:
             ValueError: If more than one phase is provided.
         """
-        if isinstance(phase, (list, tuple, set)):
-            raise ValueError(f'Continous process may only have one phase.')
         super().__init__([phase])
+        if isinstance(phase, (list, tuple, set)):
+            raise AdapterBuildError(f'Continous process may only have one phase.')
+        

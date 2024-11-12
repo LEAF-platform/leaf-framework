@@ -8,6 +8,8 @@ from typing import Any
 
 from core.adapters.equipment_adapter import AbstractInterpreter
 from core.measurement_terms.manager import measurement_manager
+from core.error_handler.exceptions import InterpreterError
+from core.error_handler.exceptions import SeverityLevel
 
 # Define wavelength ranges for different measurement types
 OD_EX_RANGE = (600, 630)
@@ -27,8 +29,8 @@ class Biolector1Interpreter(AbstractInterpreter):
     Interpreter for Biolector1 EquipmentAdapter. Handles metadata extraction,
     measurement processing, and simulation based on Biolector1 CSV data.
     """
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self,error_holder=None):
+        super().__init__(error_holder=error_holder)
         self._TARGET_PARAMS_KEY = "target_parameters"
         self._SENSORS_KEY = "sensors"
         self._filtermap = None
@@ -69,8 +71,11 @@ class Biolector1Interpreter(AbstractInterpreter):
         Raises:
             ValueError: If the identifier is not in the filter map.
         """
+        if self._filtermap is None:
+            return None
         if identifier not in self._filtermap:
-            raise ValueError(f'{identifier} not a valid filter code.')
+            self._handle_exception(InterpreterError(f'{identifier} not a valid filter code'))
+            return None
         return self._filtermap[identifier]
 
     def _get_sensor_data(self, name):
@@ -87,7 +92,8 @@ class Biolector1Interpreter(AbstractInterpreter):
             ValueError: If the sensor name is not found.
         """
         if name not in self._sensors:
-            raise ValueError(f'{name} not a valid sensor name.')
+            self._handle_exception(InterpreterError(f'{name} not a valid filter code.'))
+            return None
         return self._sensors[name]
 
     def metadata(self, data) -> dict[str, any]:
@@ -118,12 +124,12 @@ class Biolector1Interpreter(AbstractInterpreter):
         GAIN2_IDX = 11
         PROCESS_PARAM_IDX = 12
         PROCESS_VALUE_IDX = 13
-
         filtersets = {}
         parameters = {}
         md = {'PROTOCOL': '', 'DEVICE': '', 'USER': '', 'COMMENT': ''}
         in_filtersets = False
-
+        if not isinstance(data,list):
+            self._handle_exception(InterpreterError(f'Cant extract metadata, input malformed'))
         for row in data:
             if not row or not row[0]:
                 continue
@@ -205,6 +211,13 @@ class Biolector1Interpreter(AbstractInterpreter):
             data = data[1:]
         reading = data[0][0]
 
+        if self._filtermap is None:
+            self._handle_exception(InterpreterError("No filters defined, " 
+                                                     "likely because the "
+                                                     "adapter hasn't identified "
+                                                     "experiment start",
+                                                     severity=SeverityLevel.WARNING))
+        
         for row in data:
             if len(row) == 0 or row[0] == "R":
                 continue
@@ -213,24 +226,29 @@ class Biolector1Interpreter(AbstractInterpreter):
 
             fs_code = int(row[4])
             name = self._get_filtername(fs_code)
-            sensor_data = self._get_sensor_data(name)
-            excitation = int(sensor_data["EX [nm]"])
-            emitence = int(sensor_data["EM [nm]"])
-            measurement = self._get_measurement_type(excitation, emitence)
             well_num = row[1]
             amplitude = row[5]
+            if name is not None:
+                sensor_data = self._get_sensor_data(name)
+                excitation = int(sensor_data["EX [nm]"])
+                emitence = int(sensor_data["EM [nm]"])
+                measurement = self._get_measurement_type(excitation, emitence)
+                measurement_term = measurement.term
+                value = measurement.transform(amplitude)
+            else:
+                measurement_term = "unknown_measurement"
+                value = amplitude
 
-            if measurement.term not in measurements:
-                measurements[measurement.term] = []
+            if measurement_term not in measurements:
+                measurements[measurement_term] = []
 
-            value = measurement.transform(amplitude)
+            
             measurement_data = {
                 "value": value,
                 "name": name,
                 "well_num": well_num
             }
-            measurements[measurement.term].append(measurement_data)
-
+            measurements[measurement_term].append(measurement_data)
         return update
 
     def simulate(self, read_file, write_file, wait):
@@ -245,6 +263,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             wait: Time (in seconds) to wait between writing chunks of data.
         """
         def write(chunk):
+            os.makedirs(os.path.dirname(write_file), exist_ok=True)
             with open(write_file, mode='a', newline='', encoding='latin-1') as file:
                 writer = csv.writer(file, delimiter=';')
                 writer.writerows(chunk)
@@ -260,7 +279,7 @@ class Biolector1Interpreter(AbstractInterpreter):
                 metadata = rows[:index + 1]
                 data = rows[index + 1:]
                 break
-        
+
         write(metadata)
         time.sleep(wait)
 
@@ -275,5 +294,4 @@ class Biolector1Interpreter(AbstractInterpreter):
                 time.sleep(wait)
             else:
                 chunk.append(row)
-        
         write(chunk)

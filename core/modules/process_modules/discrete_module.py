@@ -1,6 +1,6 @@
 from typing import Any
 from core.modules.process_modules.process_module import ProcessModule
-
+from core.error_handler.exceptions import AdapterBuildError
 class DiscreteProcess(ProcessModule):
     """
     ProcessModule for processes with multiple phases.
@@ -22,8 +22,9 @@ class DiscreteProcess(ProcessModule):
             ValueError: If only one phase is provided. 
                         Use ContinousProcess instead.
         """
-        if not isinstance(phases, (list, tuple, set)):
-            raise ValueError(f'''Discrete process should have 
+        super().__init__(phases)
+        if not isinstance(phases, (list, tuple, set)) or len(phases) <= 1:
+            raise AdapterBuildError(f'''Discrete process should have 
                              more than one phase. Use continous 
                              process instead.''')
-        super().__init__(phases)
+        

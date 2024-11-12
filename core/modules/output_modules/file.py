@@ -1,16 +1,46 @@
 import json
 import os
 from typing import Any
-
 from core.modules.output_modules.output_module import OutputModule
+from core.error_handler.error_holder import ErrorHolder
+from core.error_handler.exceptions import ClientUnreachableError
+from core.error_handler.exceptions import SeverityLevel
+
 
 class FILE(OutputModule):
-    def __init__(self, filename: str, fallback: str|None=None) -> None:
-        super().__init__(fallback=fallback)
+    def __init__(self, filename: str, fallback: str | None = None, 
+                 error_holder: ErrorHolder = None) -> None:
+        super().__init__(fallback=fallback, error_holder=error_holder)
         self.filename = filename
 
-    def transmit(self, topic:str, data:str|None=None) -> None:
-        """Transmit data to the file associated with a specific topic."""
+    def _handle_file_error(self, error) -> None:
+        """
+        Handles file-related exceptions consistently with a structured error message.
+        """
+        if isinstance(error, FileNotFoundError):
+            message = f"File not found '{self.filename}'"
+            severity = SeverityLevel.WARNING
+        elif isinstance(error, PermissionError):
+            message = f"Permission denied when accessing '{self.filename}'"
+            severity = SeverityLevel.CRITICAL
+        elif isinstance(error, OSError):
+            message = f"I/O error in file '{self.filename}': {error}"
+            severity = SeverityLevel.ERROR
+        elif isinstance(error, json.JSONDecodeError):
+            message = f"JSON decode error when reading '{self.filename}' "
+            severity = SeverityLevel.WARNING
+        else:
+            message = f"Unexpected error in file '{self.filename}': {error}"
+            severity = SeverityLevel.WARNING
+
+        self._handle_exception(ClientUnreachableError(message,
+                                                      output_module=self,
+                                                      severity=severity))
+
+    def transmit(self, topic: str, data: str | None = None) -> bool:
+        """
+        Transmit data to the file associated with a specific topic.
+        """
         try:
             if os.path.exists(self.filename):
                 with open(self.filename, 'r') as f:
@@ -20,6 +50,7 @@ class FILE(OutputModule):
                         file_data = {}
             else:
                 file_data = {}
+
             if topic in file_data:
                 if not isinstance(file_data[topic], list):
                     file_data[topic] = [file_data[topic]]
@@ -28,30 +59,41 @@ class FILE(OutputModule):
 
             if data is not None:
                 file_data[topic].append(data)
+
             with open(self.filename, 'w') as f:
                 json.dump(file_data, f, indent=4)
-                
+            return True
 
         except (OSError, IOError, json.JSONDecodeError) as e:
-            if self._fallback is not None:
-                self._fallback.transmit(topic, data=data)
+            self._handle_file_error(e)
+            if self._fallback:
+                return self._fallback.transmit(topic, data=data)
+            return False
 
-    def retrieve(self, topic: str) -> Any|None:
-        """Retrieve data associated with a specific topic."""
+    def retrieve(self, topic: str) -> Any | None:
+        """
+        Retrieve data associated with a specific topic.
+        """
         try:
             if os.path.exists(self.filename):
                 with open(self.filename, 'r') as f:
                     try:
                         file_data = json.load(f)
-                    except json.JSONDecodeError:
+                    except json.JSONDecodeError as e:
+                        self._handle_file_error(e)
                         return None
             else:
                 return None
 
-            if topic in file_data:
-                return file_data[topic]
-            else:
-                return None
+            return file_data.get(topic, None)
 
         except (OSError, IOError) as e:
+            self._handle_file_error(e)
             return None
+        
+    def connect(self):
+        pass
+        
+    def disconnect(self):
+        pass
+

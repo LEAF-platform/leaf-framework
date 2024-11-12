@@ -1,49 +1,93 @@
+from typing import Optional, Callable, Any
+from core.modules.output_modules.output_module import OutputModule
+from core.metadata_manager.metadata import MetadataManager
+from core.error_handler.error_holder import ErrorHolder
+from core.adapters.equipment_adapter import AbstractInterpreter
+
+
 class PhaseModule:
     """
-    Manages distinct phases within a ProcessAdapter and ensures that 
-    tasks are executed in the correct sequence for each phase.PhaseModule 
-    allows related processes to be grouped together. For example, equipment 
-    may run multiple processes, each consisting of discrete phases 
-    (start, measurement, stop).
+    Manages distinct phases within a ProcessAdapter to ensure tasks
+    execute in sequence for each phase. PhaseModule allows related
+    processes to be grouped. For example, equipment may run multiple
+    processes, each with discrete phases (start, measurement, stop).
     """
     
-    def __init__(self, output_adapter, term_builder, metadata_manager, interpreter=None):
+    def __init__(self, 
+                 output_adapter: OutputModule, 
+                 term_builder: Callable[..., str], 
+                 metadata_manager: MetadataManager, 
+                 interpreter: Optional[AbstractInterpreter] = None,
+                 error_holder: Optional[ErrorHolder] = None) -> None:
         """
-        Initialise the PhaseModule with the necessary components.
+        Initialize the PhaseModule with essential components.
 
         Args:
-            output_adapter: The OutputAdapter used to transmit data.
-            term_builder: A function from the metadata_manager to construct the 
-                          action term for each phase.
-            metadata_manager: Manages metadata associated with the phase.
-            interpreter: Optional, an interpreter to process data if needed.
+            output_adapter (OutputModule): The OutputAdapter used to
+                          transmit data.
+            term_builder (Callable[..., str]): A function from the
+                          metadata_manager to construct the action
+                          term for each phase.
+            metadata_manager (MetadataManager): Manages metadata for
+                          the phase.
+            interpreter (Optional[AbstractInterpreter]): Optional, an
+                          interpreter to process data if needed.
+            error_holder (Optional[ErrorHolder]): Optional, an error
+                          holder to manage phase errors.
         """
         super().__init__()
         self._output = output_adapter
         self._interpreter = interpreter
         self._term_builder = term_builder
         self._metadata_manager = metadata_manager
+        self._error_holder = error_holder
 
-    def set_interpreter(self, interpreter):
+    def set_interpreter(self, interpreter: AbstractInterpreter) -> None:
         """
         Set or update the interpreter for the phase.
 
         Args:
-            interpreter: The interpreter to be used for processing data.
+            interpreter (AbstractInterpreter): The interpreter to be
+                          used for processing data.
         """
         self._interpreter = interpreter
 
-    def update(self, data=None, retain=False, **kwargs):
+    def update(self, data: Optional[Any] = None, retain: bool = False,
+               **kwargs: Any) -> None:
         """
-        Trigger the update action for the phase, 
-        transmitting data using the OutputAdapter. Within the larger 
-        system, this function would likely be passed to an 
-        InputModule as a callback.
+        Trigger the update action for the phase, transmitting data
+        via the OutputAdapter. This function may be used as a
+        callback within the larger system.
 
         Args:
-            data: Optional data to be transmitted.
-            retain: Whether to retain the transmitted data.
-            **kwargs: Additional arguments used to build the action term.
+            data (Optional[Any]): Optional data to be transmitted.
+            retain (bool): Whether to retain the transmitted data.
+            **kwargs (Any): Additional arguments to build the action
+                            term.
         """
         action = self._term_builder(**kwargs)
         self._output.transmit(action, data, retain=retain)
+
+    def set_error_holder(self, error_holder: ErrorHolder) -> None:
+        """
+        Set or update the error holder to manage exceptions in this
+        phase.
+
+        Args:
+            error_holder (ErrorHolder): The error holder for errors
+                                        in the phase.
+        """
+        self._error_holder = error_holder
+
+    def _handle_exception(self, exception: Exception) -> None:
+        """
+        Handle exceptions by passing them to the error holder or
+        raising them.
+
+        Args:
+            exception (Exception): The exception to handle.
+        """
+        if self._error_holder is not None:
+            self._error_holder.add_error(exception)
+        else:
+            raise exception

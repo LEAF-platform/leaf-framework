@@ -7,7 +7,7 @@ class ProcessModule:
     under one process for better organisation and execution.
     """
     
-    def __init__(self, phases):
+    def __init__(self, phases,error_holder=None):
         """
         Initialise the ProcessModule with a collection of phases.
 
@@ -19,6 +19,7 @@ class ProcessModule:
         if not isinstance(phases, (list, set, tuple)):
             phases = [phases]
         self._phases = phases
+        self._error_holder=error_holder
             
     def set_interpreter(self, interpreter):
         """
@@ -31,3 +32,10 @@ class ProcessModule:
         """
         for p in self._phases:
             p.set_interpreter(interpreter)
+
+    def set_error_holder(self, error_holder):
+        self._error_holder = error_holder
+        for p in self._phases:
+            p.set_error_holder(error_holder)
+
+

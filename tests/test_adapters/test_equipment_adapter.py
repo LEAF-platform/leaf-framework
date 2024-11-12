@@ -21,7 +21,7 @@ from core.modules.process_modules.discrete_module import DiscreteProcess
 from core.adapters.core_adapters.bioreactor import Bioreactor
 from core.adapters.equipment_adapter import AbstractInterpreter
 
-from ..mock_mqtt_client import MockBioreactorClient
+import mock_mqtt_client
 from core.metadata_manager.metadata import MetadataManager
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -108,7 +108,8 @@ class MockBioreactor(Bioreactor):
         )
 
 
-class TestBioreactor(unittest.TestCase):
+# Note the tests haven't been updated here since the rework.
+class TestEquipmentAdapter(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
 
@@ -158,6 +159,14 @@ class TestBioreactor(unittest.TestCase):
         self.mock_client.subscribe(self.stop_topic)
         self.mock_client.subscribe(self.details_topic)
         time.sleep(2)
+    
+    def tearDown(self):
+        try:
+            self._adapter.stop()
+        except Exception:
+            pass
+        if os.path.isfile(text_watch_file):
+            os.remove(text_watch_file)
 
     def test_details(self):
         self.initialize_experiment()
@@ -226,6 +235,26 @@ class TestBioreactor(unittest.TestCase):
         time.sleep(2)
         self.assertIn(exp_tp, self.mock_client.messages)
 
+
+
+    def test_exceptions(self):
+        instance_data = {"instance_id" : "test_exceptions_instance",
+                        "institute" : "test_exceptions_ins",
+                        "equipment_id" : "test_exceptions_equip"}
+        
+        test_exp_tw_watch_file = os.path.join("tmp_exception.txt")
+        adapter = MockBioreactor(instance_data,
+                                 test_exp_tw_watch_file)
+        
+        mthread = Thread(target=adapter.start)
+        mthread.start()
+        with open(measurement_file, 'r') as src:
+            content = src.read()
+        with open(test_exp_tw_watch_file, 'a') as dest:
+            dest.write(content)
+        time.sleep(2)
+        adapter.stop()
+        mthread.join()  
 
 if __name__ == "__main__":
     unittest.main()
