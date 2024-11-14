@@ -1,22 +1,32 @@
 
 EQUIPMENT_INSTANCES:
   - equipment:
-      adapter: BioLector1
+      adapter: ConcreteAdapter1
       data:
-        instance_id: biolector_devonshire10
-        institute: NCL
+        instance_id: example_equipment_id1
+        institute: example_equipment_institute1
+      requirements:
+        write_file: test/tmp123.csv
+  - equipment:
+      adapter: ConcreteAdapter1
+      data:
+        instance_id: example_equipment_id1
+        institute: example_equipment_institute1
       requirements:
         write_file: test/tmp.csv
       simulation:
         filename: tests/static_files/biolector1_full.csv
         interval: 10
   - equipment:
-      adapter: BioLector1
+      adapter: ConcreteAdapter2
       data:
-        instance_id: test_instance_id
-        institute: NCL
+        instance_id: example_equipment_id3
+        institute: example_equipment_institute3
       requirements:
-        write_file: test/tmp123.csv
+        host: localhost
+        port: 9501
+        token: c50dcbbd-fa64-4f9c-98f7-85c39d98c3c2
+      stagger_transmit: 1
 OUTPUTS:
   - plugin: MQTT
     broker: localhost
