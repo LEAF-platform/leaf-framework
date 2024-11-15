@@ -16,6 +16,7 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
+from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
@@ -43,6 +44,7 @@ class TableSimulatorAdapter(EquipmentAdapter):
         time_column: str,
         start_date: Optional[date] = None,
         sep: str = ",",
+        error_holder: Optional[ErrorHolder] = None
     ) -> None:
         logger.info(
             f"Initializing TableSimulator with instance data {instance_data} and output {output} and write file {write_file}"
@@ -51,11 +53,12 @@ class TableSimulatorAdapter(EquipmentAdapter):
         metadata_manager.add_metadata("sep", sep)
         metadata_manager.add_metadata("experiment", "experiment?")
         # Create a CSV watcher for the write file
-        watcher: CSVWatcher = CSVWatcher(file_path=write_file, metadata_manager=metadata_manager, measurement_callbacks=[self.measurement])
+        watcher: CSVWatcher = CSVWatcher(file_path=write_file, metadata_manager=metadata_manager)
         logger.info(f"Watcher set: {watcher}")
         # measurements = {"experiment": {"measurement": "Aeration rate(Fg:L/h)"}}
         # measurements: list[str] = ["Aeration rate(Fg:L/h)"]
-        # Create the phases?
+
+        # Create the phases
         start_p: StartPhase = StartPhase(output, metadata_manager)
         stop_p: StopPhase = StopPhase(output, metadata_manager)
 
@@ -78,33 +81,15 @@ class TableSimulatorAdapter(EquipmentAdapter):
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p, measure_p, stop_p]
         mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, process_adapters=mock_process, interpreter=TableSimulatorInterpreter(time_column, start_date, sep), metadata_manager=metadata_manager)  # type: ignore
+
+        interpreter = TableSimulatorInterpreter(time_column, start_date, sep)
+        super().__init__(instance_data=instance_data, watcher=watcher, 
+                         process_adapters=mock_process, 
+                         interpreter=interpreter, 
+                         metadata_manager=metadata_manager,
+                         error_holder=error_holder)
+
         self._write_file = write_file
         if start_date is not None:
             self._start_datetime = datetime.combine(start_date, datetime.min.time())
         self._metadata_manager.add_equipment_data(metadata_fn)
-
-    def measurement(self, data: list[str]) -> None:
-        logger.debug(f"Measurement detected with {len(data)} rows")
-
-    def metadata(self, data: str) -> None:
-        logger.info(f"Metadata {data}")
-
-    def stop(self) -> None:
-        """
-        Stop the equipment adapter process.
-
-        Stops the watcher and flushes all output channels.
-        """
-        logger.info("Stopping TableSimulatorAdapter")
-        # Needs reworking really.
-        for process in self._processes:
-            for phase in process._phases:
-                # Flush all retained mqtt topics.
-                logger.info(f"Flushing {phase._output}")
-                phase._output.flush(self._metadata_manager.details())
-                phase._output.flush(self._metadata_manager.running())
-                phase._output.flush(self._metadata_manager.experiment.start())
-                phase._output.flush(self._metadata_manager.experiment.start())
-        self._stop_event.set()
-        self._watcher.stop()

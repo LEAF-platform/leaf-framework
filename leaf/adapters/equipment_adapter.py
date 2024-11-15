@@ -221,3 +221,8 @@ class EquipmentAdapter(ABC):
             self._watcher.stop()
 
 
+    def _handle_exception(self, exception: Exception) -> None:
+        if self._error_holder is not None:
+            self._error_holder.add_error(exception)
+        else:
+            raise exception

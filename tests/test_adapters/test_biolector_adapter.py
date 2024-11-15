@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
-from leaf.adapters.functional_adapters.biolector1.biolector1_interpreter import (
+from leaf.adapters.functional_adapters.biolector1.adapter import Biolector1Adapter
+from leaf.adapters.functional_adapters.biolector1.interpreter import (
     Biolector1Interpreter,
 )
 from leaf.modules.output_modules.mqtt import MQTT
