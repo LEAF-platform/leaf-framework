@@ -3,10 +3,8 @@ from threading import Thread
 import time
 from typing import Optional
 
-from leaf.adapters.core_adapters.bioreactor import Bioreactor
-from leaf.adapters.functional_adapters.biolector1.interpreter import (
-    Biolector1Interpreter,
-)
+from leaf.adapters.equipment_adapter import EquipmentAdapter
+from leaf.adapters.functional_adapters.opentrons.interpreter import OpentronsInterpreter
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
@@ -21,24 +19,13 @@ from leaf.modules.output_modules.output_module import OutputModule
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "adapter.json")
 
-class Biolector1Adapter(Bioreactor):
-    """
-    Adapter class for Biolector1, a discrete bioreactor with microwell plates.
-    """
-
+class OpentronsAdapter(EquipmentAdapter):
     def __init__(self,instance_data: dict,output: OutputModule,
-        write_file: Optional[str] = None,stagger_transmit: bool = False,
-        error_holder: Optional[ErrorHolder] = None):
-        """
-        Initialise Biolector1Adapter, setting up phases, process adapters, and metadata.
-
-        Args:
-            instance_data: Data specific to this bioreactor instance.
-            output: The OutputModule responsible for handling and transmitting data.
-            write_file: The file that the CSVWatcher will watch and the biolector machine writes to.
-            stagger_transmit: If True, transmits data in staggered intervals. Set True for large measurements.
-        """
+                 stagger_transmit: bool = False, 
+                 error_holder: Optional[ErrorHolder] = None):
+        
         metadata_manager = MetadataManager()
+        # Its unsure what this mechanism will be.
         watcher = CSVWatcher(write_file, metadata_manager)
 
         start_p = StartPhase(output, metadata_manager)
@@ -59,17 +46,15 @@ class Biolector1Adapter(Bioreactor):
         phase = [start_p, measure_p, stop_p]
         process = [DiscreteProcess(phase)]
 
-        interpreter = Biolector1Interpreter(error_holder=error_holder)
+        interpreter = OpentronsInterpreter(error_holder=error_holder)
         super().__init__(
             instance_data,
             watcher,
             process,
             interpreter,
             metadata_manager=metadata_manager,
-            error_holder=error_holder,
-        )
-
-        self._write_file: Optional[str] = write_file
+            error_holder=error_holder)
+        
         self._metadata_manager.add_equipment_data(metadata_fn)
 
     def simulate(self, filepath: str, wait: Optional[int] = None, 
@@ -85,26 +70,4 @@ class Biolector1Adapter(Bioreactor):
         Raises:
             ValueError: If the write file already exists, to prevent overwriting.
         """
-        if wait is None:
-            wait = 10
-
-        if os.path.isfile(self._write_file):
-            e = AdapterLogicError("Trying to run test when file exists.",
-                                  severity=SeverityLevel.CRITICAL)
-            self._handle_exception(e)
-
-        proxy_thread = Thread(target=self.start)
-        proxy_thread.start()
-
-        if delay is not None:
-            print(f"Delay for {delay} seconds.")
-            time.sleep(delay)
-            print("Delay finished.")
-
-        self._interpreter.simulate(filepath, self._write_file, wait)
-        time.sleep(wait)
-
-        os.remove(self._write_file)
-
-        self.stop()
-        proxy_thread.join()
+        pass

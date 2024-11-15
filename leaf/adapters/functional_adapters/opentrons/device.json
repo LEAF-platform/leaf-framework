@@ -1,0 +1,35 @@
+{
+  "class": "OpentronsAdapter",
+  "equipment_id": "OpentronsRobot",
+  "version": "1.0",
+  "manufacturer": "Opentrons Labworks Inc.",
+  "device_type": "Liquid Handling Robot",
+  "application": "Automated liquid handling for laboratory workflows",
+  "features": {
+      "high_precision_pipetting": true,
+      "multi-channel_pipetting": true,
+      "temperature_control_modules": true,
+      "magnetic_bead_separation": true,
+      "protocol_scripting": true,
+      "deck_customization": true,
+      "labware_calibration": true
+  },
+  "supported_pipette_volumes": "1 µL to 1000 µL",
+  "measurement_range": {
+      "pipetting_accuracy": "+/- 10% at 1 µL, +/- 2% at 100 µL",
+      "temperature_control": "4°C to 95°C"
+  },
+  "parameters": {
+      "pipetting_speed": "1 to 500 µL/s",
+      "deck_slots": "11 standard slots",
+      "compatible_labware": "96-well plates, 384-well plates, PCR tubes, custom labware"
+  },
+  "interface": {
+      "data_export": "CSV, JSON",
+      "connectivity": "USB, Ethernet, Wi-Fi",
+      "software": "Opentrons App, Python API"
+  },
+  "power_supply": "110-240V AC, 50/60Hz",
+  "dimensions": "650mm x 560mm x 300mm",
+  "weight": "25kg"
+}
