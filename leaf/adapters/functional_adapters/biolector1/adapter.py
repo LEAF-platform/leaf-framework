@@ -19,7 +19,7 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "adapter.json")
+metadata_fn = os.path.join(current_dir, "device.json")
 
 class Biolector1Adapter(Bioreactor):
     """
@@ -89,9 +89,14 @@ class Biolector1Adapter(Bioreactor):
             wait = 10
 
         if os.path.isfile(self._write_file):
-            e = AdapterLogicError("Trying to run test when file exists.",
-                                  severity=SeverityLevel.CRITICAL)
-            self._handle_exception(e)
+            exception = AdapterLogicError(
+                "Trying to run test when the file exists.",
+                severity=SeverityLevel.CRITICAL,
+            )
+            if self._error_holder is not None:
+                self._error_holder.add_error(exception)
+            else:
+                raise exception
 
         proxy_thread = Thread(target=self.start)
         proxy_thread.start()

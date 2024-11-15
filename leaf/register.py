@@ -19,24 +19,23 @@ from leaf.error_handler.exceptions import AdapterBuildError
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
-adapter_dir = os.path.join(root_dir,"core", "adapters")
+adapter_dir = os.path.join(root_dir, "adapters")
 equipment_adapter_dirs = [
     os.path.join(adapter_dir, "core_adapters"),
     os.path.join(adapter_dir, "functional_adapters"),
 ]
 
 equipment_key = "equipment_id"
-output_adapter_dir = os.path.join(root_dir,"core", 
-                                  "modules", "output_modules")
+output_adapter_dir = os.path.join(root_dir, "modules", "output_modules")
 
 
 def get_equipment_adapter(code: str):
     """
     Searches for and returns the equipment adapter class corresponding to the given equipment code.
 
-    This function traverses through the directories defined in `equipment_adapter_dirs` to locate a JSON file
-    containing the specified equipment ID. It then attempts to load the corresponding Python class from the
-    associated `.py` file.
+    This function traverses through the directories defined in `equipment_adapter_dirs` to locate a 
+    `device.json` file containing the specified equipment ID. It then attempts to load the corresponding
+    class from the `adapter.py` file in the same directory.
 
     Args:
         code (str): The equipment code to search for.
@@ -45,30 +44,28 @@ def get_equipment_adapter(code: str):
         type: The class of the equipment adapter corresponding to the given code.
 
     Raises:
-        FileNotFoundError: If the Python file associated with the equipment is not found.
-        ValueError: If the equipment code is not found in the directories.
-        AttributeError: If the class specified in the JSON file is not found in the Python module.
+        AdapterBuildError: If the adapter files or class cannot be found for the given code.
     """
     for adapter_dir in equipment_adapter_dirs:
         if os.path.exists(adapter_dir):
             for root, dirs, files in os.walk(adapter_dir):
-                for file in files:
-                    if file.endswith(".json"):
-                        json_fp = os.path.join(root, file)
-                        with open(json_fp, "r") as f:
-                            data = json.load(f)
-                            if equipment_key in data and data[equipment_key] == code:
-                                python_fn = file.replace(".json", ".py")
-                                python_fp = os.path.join(root, python_fn)
-                                if os.path.exists(python_fp):
-                                    return _load_class_from_file(
-                                        python_fp, data["class"]
-                                    )
-                                else:
-                                    raise AdapterBuildError(f"'{python_fp}' not found.")
+                # Look for device.json in the directory
+                json_fp = os.path.join(root, "device.json")
+                python_fp = os.path.join(root, "adapter.py")
+
+                if os.path.exists(json_fp) and os.path.exists(python_fp):
+                    with open(json_fp, "r") as f:
+                        data = json.load(f)
+                        # Check if the code matches the equipment ID in the JSON file
+                        if equipment_key in data and data[equipment_key] == code:
+                            # Attempt to load the class specified in the JSON file
+                            if "class" in data:
+                                return _load_class_from_file(python_fp, data["class"])
                             else:
-                                continue
-    raise AdapterBuildError(f"{code} Unknown.")
+                                raise AdapterBuildError(
+                                    f"'class' key not found in {json_fp}."
+                                )
+    raise AdapterBuildError(f"Adapter for code '{code}' not found.")
 
 
 def get_output_adapter(code: str):
