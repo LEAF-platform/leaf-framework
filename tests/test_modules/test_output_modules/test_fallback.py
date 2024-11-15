@@ -10,11 +10,10 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from core.modules.output_modules.mqtt import MQTT
-from core.modules.output_modules.keydb_client import KEYDB
-from core.modules.output_modules.file import FILE
+from leaf.modules.output_modules.mqtt import MQTT
+from leaf.modules import KEYDB
+from leaf.modules import FILE
 from ...mock_mqtt_client import MockBioreactorClient
-from core.metadata_manager.metadata import MetadataManager
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))

@@ -7,9 +7,9 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
-from core.modules.output_modules.mqtt import MQTT, logger
+from leaf.modules.output_modules.mqtt import MQTT, logger
 from ...mock_mqtt_client import MockBioreactorClient
-from core.metadata_manager.metadata import MetadataManager
+from leaf.metadata_manager.metadata import MetadataManager
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))

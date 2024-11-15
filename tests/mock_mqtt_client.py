@@ -1,7 +1,7 @@
 import re
 import json
 import paho.mqtt.client as mqtt
-from core.modules.output_modules.mqtt import MQTT
+from leaf.modules.output_modules.mqtt import MQTT
 
 class MockBioreactorClient(MQTT):
     def __init__(self, broker_address: str, port: int=1883,

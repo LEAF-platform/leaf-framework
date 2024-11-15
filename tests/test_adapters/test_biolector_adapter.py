@@ -15,13 +15,13 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from core.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
-from core.adapters.functional_adapters.biolector1.biolector1_interpreter import (
+from leaf.adapters.functional_adapters.biolector1.biolector1 import Biolector1Adapter
+from leaf.adapters.functional_adapters.biolector1.biolector1_interpreter import (
     Biolector1Interpreter,
 )
-from core.modules.output_modules.mqtt import MQTT
+from leaf.modules.output_modules.mqtt import MQTT
 from ..mock_mqtt_client import MockBioreactorClient
-from core.measurement_terms.manager import measurement_manager
+from leaf.measurement_terms import measurement_manager
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 

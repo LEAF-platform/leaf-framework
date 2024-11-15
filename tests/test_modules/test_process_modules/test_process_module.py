@@ -11,14 +11,14 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
-from core.modules.output_modules.mqtt import MQTT
-from core.modules.input_modules.file_watcher import FileWatcher
-from core.modules.phase_modules.measure import MeasurePhase
-from core.modules.phase_modules.control import ControlPhase
-from core.modules.process_modules.continous_module import ContinousProcess
-from core.modules.process_modules.discrete_module import DiscreteProcess
+from leaf.modules.output_modules.mqtt import MQTT
+from leaf.modules import FileWatcher
+from leaf.modules.phase_modules.measure import MeasurePhase
+from leaf.modules import ControlPhase
+from leaf.modules.process_modules.continous_module import ContinousProcess
+from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from ...mock_mqtt_client import MockBioreactorClient
-from core.metadata_manager.metadata import MetadataManager
+from leaf.metadata_manager.metadata import MetadataManager
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
