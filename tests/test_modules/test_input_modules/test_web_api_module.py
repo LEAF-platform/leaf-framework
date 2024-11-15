@@ -1,20 +1,16 @@
-import unittest
 import sys
 import os
 import time
-from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from core.metadata_manager.metadata import MetadataManager
-from core.modules.input_modules.http_watcher import HTTPWatcher, URLState
-from requests.models import Response
+from leaf.modules.input_modules.http_watcher import HTTPWatcher, URLState
 
 import unittest
-from unittest.mock import patch, MagicMock, call
-from core.metadata_manager.metadata import MetadataManager
+from unittest.mock import patch, MagicMock
+from leaf.metadata_manager.metadata import MetadataManager
 from requests.models import Response
 
 

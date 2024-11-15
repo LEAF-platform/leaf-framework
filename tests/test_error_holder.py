@@ -7,8 +7,8 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 from unittest.mock import MagicMock
-from core.error_handler.exceptions import SeverityLevel
-from core.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import SeverityLevel
+from leaf.error_handler.error_holder import ErrorHolder
 
 class CustomException(Exception):
     def __init__(self, message, severity=SeverityLevel.INFO):

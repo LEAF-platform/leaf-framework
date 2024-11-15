@@ -11,9 +11,9 @@ from typing import Union, IO, Any, List
 import dateparser
 import yaml
 
-from core.adapters.functional_adapters.table_simulator.adapter import TableSimulatorAdapter
-from core.modules.logger_modules.logger_utils import get_logger
-from core.modules.output_modules.mqtt import MQTT
+from leaf.adapters.functional_adapters.table_simulator.adapter import TableSimulatorAdapter
+from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.output_modules.mqtt import MQTT
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 

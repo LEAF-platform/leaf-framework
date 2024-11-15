@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from core.modules.input_modules.file_watcher import FileWatcher
-from core.metadata_manager.metadata import MetadataManager
+from leaf.modules import FileWatcher
+from leaf.metadata_manager.metadata import MetadataManager
 
 
 class TestFileWatcher(unittest.TestCase):

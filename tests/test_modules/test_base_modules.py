@@ -5,12 +5,12 @@ import unittest
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
 
-from core.modules.phase_modules.phase import PhaseModule
-from core.modules.input_modules.event_watcher import EventWatcher
-from core.modules.measurement_modules.measurement_module import MeasurementModule
-from core.modules.output_modules.output_module import OutputModule
-from core.modules.process_modules.process_module import ProcessModule
-from core.metadata_manager.metadata import MetadataManager
+from leaf.modules.phase_modules.phase import PhaseModule
+from leaf.modules import EventWatcher
+from leaf.modules import MeasurementModule
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.modules import ProcessModule
+from leaf.metadata_manager.metadata import MetadataManager
 
 
 class MockEventWatcherModule(EventWatcher):

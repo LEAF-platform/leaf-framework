@@ -6,9 +6,9 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
 sys.path.insert(0, os.path.join("..","..",".."))
 
-from core.measurement_terms.manager import measurement_manager
-from core.modules.measurement_modules.ph import pH
-from core.modules.measurement_modules.measurement_module import MeasurementModule
+from leaf.measurement_terms import measurement_manager
+from leaf.modules import pH
+from leaf.modules import MeasurementModule
 import logging
 
 logging.basicConfig(level=logging.DEBUG)

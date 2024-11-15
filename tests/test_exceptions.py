@@ -1,4 +1,3 @@
-import os
 import sys
 import unittest
 import json
@@ -16,33 +15,31 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from core.adapters.equipment_adapter import EquipmentAdapter
-from core.adapters.equipment_adapter import AbstractInterpreter
-from core.modules.output_modules.mqtt import MQTT
-from core.modules.output_modules.keydb_client import KEYDB
-from core.modules.input_modules.file_watcher import FileWatcher
-from core.modules.phase_modules.measure import MeasurePhase
-from core.modules.phase_modules.control import ControlPhase
-from core.modules.process_modules.discrete_module import DiscreteProcess
-from core.modules.process_modules.continous_module import ContinousProcess
+from leaf.adapters.equipment_adapter import EquipmentAdapter
+from leaf.adapters.equipment_adapter import AbstractInterpreter
+from leaf.modules.output_modules.mqtt import MQTT
+from leaf.modules import KEYDB
+from leaf.modules import FileWatcher
+from leaf.modules.phase_modules.measure import MeasurePhase
+from leaf.modules import ControlPhase
+from leaf.modules.process_modules.discrete_module import DiscreteProcess
+from leaf.modules.process_modules.continous_module import ContinousProcess
 from start import _process_instance
 from start import _get_output_module
 from start import run_adapters
-from start import _start_all_adapters_in_threads
 from start import stop_all_adapters
 import start
-from core.metadata_manager.metadata import MetadataManager
-from core.modules.input_modules.csv_watcher import CSVWatcher
-from core.modules.output_modules.file import FILE
-from core.error_handler.exceptions import ClientUnreachableError
-from core.error_handler.exceptions import SeverityLevel
-from core.error_handler.exceptions import AdapterBuildError
-from core.error_handler.exceptions import InputError
-from core.error_handler.exceptions import AdapterLogicError
-from core.error_handler.exceptions import InterpreterError
-from core.error_handler.error_holder import ErrorHolder
-from core.adapters import equipment_adapter
-from core.adapters.functional_adapters.biolector1.biolector1_interpreter import (
+from leaf.metadata_manager.metadata import MetadataManager
+from leaf.modules.input_modules.csv_watcher import CSVWatcher
+from leaf.modules import FILE
+from leaf.error_handler.exceptions import ClientUnreachableError
+from leaf.error_handler.exceptions import SeverityLevel
+from leaf.error_handler.exceptions import AdapterBuildError
+from leaf.error_handler.exceptions import InputError
+from leaf.error_handler.exceptions import InterpreterError
+from leaf.error_handler.error_holder import ErrorHolder
+from leaf.adapters import equipment_adapter
+from leaf.adapters.functional_adapters.biolector1.biolector1_interpreter import (
     Biolector1Interpreter,
 )
 
