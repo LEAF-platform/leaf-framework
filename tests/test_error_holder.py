@@ -8,12 +8,9 @@ sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 from unittest.mock import MagicMock
 from leaf.error_handler.exceptions import SeverityLevel
+from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.error_holder import ErrorHolder
 
-class CustomException(Exception):
-    def __init__(self, message, severity=SeverityLevel.INFO):
-        super().__init__(message)
-        self.severity = severity
 
 class TestErrorHolder(unittest.TestCase):
     def setUp(self):
@@ -34,7 +31,7 @@ class TestErrorHolder(unittest.TestCase):
         self.assertEqual(errors[0][0].severity, SeverityLevel.INFO)
 
     def test_severity_upgrade_on_frequent_errors(self):
-        mock_error = CustomException("Test Error", severity=SeverityLevel.INFO)
+        mock_error = AdapterBuildError("Test Error", severity=SeverityLevel.INFO)
         for _ in range(3):
             self.error_holder.add_error(mock_error)
             time.sleep(0.5)  

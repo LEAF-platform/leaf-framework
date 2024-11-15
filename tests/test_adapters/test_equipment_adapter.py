@@ -22,6 +22,7 @@ from leaf.adapters.core_adapters.bioreactor import Bioreactor
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 from leaf.metadata_manager.metadata import MetadataManager
+from tests.mock_mqtt_client import MockBioreactorClient
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -164,8 +165,8 @@ class TestEquipmentAdapter(unittest.TestCase):
             self._adapter.stop()
         except Exception:
             pass
-        if os.path.isfile(text_watch_file):
-            os.remove(text_watch_file)
+        if os.path.isfile(self.text_watch_file):
+            os.remove(self.text_watch_file)
 
     def test_details(self):
         self.initialize_experiment()
