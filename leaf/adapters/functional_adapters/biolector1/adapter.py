@@ -19,41 +19,10 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "adapter.json")
+metadata_fn = os.path.join(current_dir, "biolector1.json")
 
-from leaf.adapters.equipment_adapter import EquipmentAdapter
-from leaf.adapters.equipment_adapter import AbstractInterpreter
 
-class StartStopAdapter(EquipmentAdapter):
-    def __init__(self,instance_data: dict,output: OutputModule,
-                 interpreter:AbstractInterpreter,watcher:OutputModule,
-                 stagger_transmit: bool = False,
-                 error_holder: Optional[ErrorHolder] = None,
-                 metadata_manager:MetadataManager=None):
-    
-        start_p = StartPhase(output, metadata_manager)
-        stop_p = StopPhase(output, metadata_manager)
-        measure_p = MeasurePhase(output, metadata_manager, 
-                                 stagger_transmit=stagger_transmit)
-        details_p = InitialisationPhase(output, metadata_manager)
-
-        # Trigger start phase when experiment starts
-        watcher.add_start_callback(start_p.update)  
-        # Trigger measure phase when measurement is taken.
-        watcher.add_measurement_callback(measure_p.update)
-        # Trigger stop phase when experiment stops.
-        watcher.add_stop_callback(stop_p.update)
-        # Trigger initialization phase when adapter starts.
-        watcher.add_initialise_callback(details_p.update)
-
-        phase = [start_p, measure_p, stop_p]
-        process = [DiscreteProcess(phase)]
-
-        super().__init__(instance_data,output,process,interpreter,
-                         metadata_manager=metadata_manager,
-                         error_holder=error_holder)
-        
-class Biolector1Adapter(StartStopAdapter):
+class Biolector1Adapter(Bioreactor):
     """
     Adapter class for Biolector1, a discrete bioreactor with microwell plates.
     """
@@ -73,11 +42,34 @@ class Biolector1Adapter(StartStopAdapter):
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file, metadata_manager)
 
+        start_p = StartPhase(output, metadata_manager)
+        stop_p = StopPhase(output, metadata_manager)
+        measure_p = MeasurePhase(output, metadata_manager, 
+                                 stagger_transmit=stagger_transmit)
+        details_p = InitialisationPhase(output, metadata_manager)
+
+        # Trigger start phase when experiment starts
+        watcher.add_start_callback(start_p.update)  
+        # Trigger measure phase when measurement is taken.
+        watcher.add_measurement_callback(measure_p.update)
+        # Trigger stop phase when experiment stops.
+        watcher.add_stop_callback(stop_p.update)
+        # Trigger initialization phase when adapter starts.
+        watcher.add_initialise_callback(details_p.update)
+
+        phase = [start_p, measure_p, stop_p]
+        process = [DiscreteProcess(phase)]
+
         interpreter = Biolector1Interpreter(error_holder=error_holder)
-        super().__init__(instance_data,output,interpreter,watcher,
-                         stagger_transmit=stagger_transmit,error_holder=error_holder,
-                         metadata_manager=metadata_manager)
-        
+        super().__init__(
+            instance_data,
+            watcher,
+            process,
+            interpreter,
+            metadata_manager=metadata_manager,
+            error_holder=error_holder,
+        )
+
         self._write_file: Optional[str] = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
 
@@ -98,9 +90,14 @@ class Biolector1Adapter(StartStopAdapter):
             wait = 10
 
         if os.path.isfile(self._write_file):
-            e = AdapterLogicError("Trying to run test when file exists.",
-                                  severity=SeverityLevel.CRITICAL)
-            self._handle_exception(e)
+            exception = AdapterLogicError(
+                "Trying to run test when the file exists.",
+                severity=SeverityLevel.CRITICAL,
+            )
+            if self._error_holder is not None:
+                self._error_holder.add_error(exception)
+            else:
+                raise exception
 
         proxy_thread = Thread(target=self.start)
         proxy_thread.start()
