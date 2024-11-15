@@ -20,7 +20,7 @@ from leaf.adapters.functional_adapters.table_simulator.adapter import (
 )
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.output_modules.mqtt import MQTT
-from .. import mock_mqtt_client
+from tests import mock_mqtt_client
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 

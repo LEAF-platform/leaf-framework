@@ -13,9 +13,9 @@ sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
-from leaf.modules import FileWatcher
+from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.phase_modules.measure import MeasurePhase
-from leaf.modules import ControlPhase
+from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 
 from leaf.adapters.core_adapters.bioreactor import Bioreactor

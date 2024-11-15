@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
-from leaf.modules import KEYDB
-from leaf.modules import FILE
+from leaf.modules.output_modules.keydb_client import KEYDB
+from leaf.modules.output_modules.file import FILE
 from ...mock_mqtt_client import MockBioreactorClient
 
 # Current location of this script
