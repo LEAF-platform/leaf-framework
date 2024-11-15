@@ -19,7 +19,7 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "biolector1.json")
+metadata_fn = os.path.join(current_dir, "device.json")
 
 
 class Biolector1Adapter(Bioreactor):
