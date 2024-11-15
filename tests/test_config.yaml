@@ -26,7 +26,7 @@ EQUIPMENT_INSTANCES:
 
 OUTPUTS:
   - plugin: MQTT
-    broker test.mosquitto.org
+    broker: test.mosquitto.org
     port: 1883
     #username: mcrowther
     #password: Radeon12300
