@@ -18,7 +18,7 @@ import signal
 import sys
 import inspect
 
-from leaf import register
+#from leaf import register
 from leaf.metadata_manager.metadata import MetadataManager
 
 from leaf.modules.logger_modules.logger_utils import get_logger
