@@ -106,6 +106,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 def _get_existing_ids(output_module, metadata_manager, time_to_sleep=2):
     """Returns IDS of equipment already in the system."""
     topic = metadata_manager.details()
+    logging.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
     output_module.unsubscribe(topic)
