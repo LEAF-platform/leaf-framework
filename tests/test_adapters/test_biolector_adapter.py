@@ -1,17 +1,16 @@
+import csv
 import os
 import shutil
 import sys
+import tempfile
 import time
 import unittest
+import uuid
 from pathlib import Path
 from threading import Thread
 from typing import Any
-import tempfile
-import yaml
-import csv
-import uuid
 
-from leaf.measurement_terms.manager import measurement_manager
+import yaml
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
