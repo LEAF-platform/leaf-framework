@@ -60,7 +60,7 @@ def parse_args() -> argparse.Namespace:
         "-c",
         "--config",
         type=str,
-        default="config.yaml",
+        # default="config.yaml",
         help="The configuration file to use.",
     )
     parser.add_argument(
@@ -361,6 +361,10 @@ def main():
     """Main function as a wrapper for all steps."""
     logging.info("Starting the proxy.")
     args = parse_args()
+
+    if args.config is None:
+        logging.error("No configuration file provided (See the documentation for more details).")
+        return
 
     if args.debug:
         logging.debug("Debug logging enabled.")
