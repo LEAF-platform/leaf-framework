@@ -3,13 +3,14 @@ import logging
 import os
 from datetime import datetime
 from pprint import pprint
-from typing import Any
+from typing import Any,Optional
 
 from google.protobuf.json_format import MessageToJson
 from influxobject import InfluxPoint
 
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.error_handler.error_holder import ErrorHolder
 from minknow_api.manager import Manager, FlowCellPosition
 import re
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
@@ -33,8 +34,9 @@ def flatten(dictionary: dict[str, Any], parent_key='', separator='_') -> dict[st
     return dict(items)
 
 class MinKNOWInterpreter(AbstractInterpreter):
-    def __init__(self, host: str, port: int, token: str) -> None:
-        super().__init__()
+    def __init__(self, host: str, port: int, token: str,
+                 error_holder: Optional[ErrorHolder] = None) -> None:
+        super().__init__(error_holder=error_holder)
         logger.info("Initializing MinKNOWInterpreter")
         self._host = host
         self._port = port

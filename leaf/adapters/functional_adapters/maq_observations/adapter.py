@@ -13,6 +13,7 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
+from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
@@ -24,7 +25,7 @@ class MAQAdapter(EquipmentAdapter):
         write_file: Optional[str],
         token: str,
         endpoint: str = "https://www.maq-observations.nl",
-    ) -> None:
+        error_holder: Optional[ErrorHolder] = None) -> None:
         logger.info(
             f"Initializing MAQ Observations with instance data {instance_data} and output {output} and write file {write_file}"
         )
@@ -52,7 +53,11 @@ class MAQAdapter(EquipmentAdapter):
         # watcher.add_initialise_callback(details_p.update)
         phase = [start_p, measure_p, stop_p]
         mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, process_adapters=mock_process, interpreter=MAQInterpreter(token=token), metadata_manager=metadata_manager)  # type: ignore
+        super().__init__(instance_data=instance_data, watcher=watcher, 
+                         process_adapters=mock_process, 
+                         interpreter=MAQInterpreter(token=token), 
+                         metadata_manager=metadata_manager,
+                         error_holder=error_holder)  # type: ignore
         self._metadata_manager.add_equipment_data(metadata_fn)
 
     def _fetch_data(self):

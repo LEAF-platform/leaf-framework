@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.modules import FILE
+from leaf.modules.output_modules.file import FILE
 
 
 class TestFILEOutputModule(unittest.TestCase):

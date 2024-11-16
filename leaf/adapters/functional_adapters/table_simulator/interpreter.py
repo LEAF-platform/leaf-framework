@@ -5,9 +5,12 @@ import os
 import dateparser
 import pandas as pd
 from influxobject import InfluxPoint
+from typing import Optional
 
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import InterpreterError
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
@@ -16,14 +19,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "device.json")
 
 class TableSimulatorInterpreter(AbstractInterpreter):
-    def __init__(self, time_column: str, start_date: str, sep: str) -> None:
-        super().__init__()
+    def __init__(self, time_column: str, start_date: str, sep: str, 
+                 error_holder: Optional[ErrorHolder] = None) -> None:
+        super().__init__(error_holder=error_holder)
         logger.info("Initializing TableSimulatorInterpreter")
         self._time_column = time_column
         self._start_date = start_date
         self._sep = sep
 
-
+    
     def measurement(
         self, data: list[str]) -> InfluxPoint:
         logger.info(f"Measurement - TableSimulatoInterpreter data")
@@ -89,7 +93,8 @@ class TableSimulatorInterpreter(AbstractInterpreter):
             logger.debug(f"Sending message to the MQTT broker {influx_point}")
             return influx_point
         except Exception as e:
-            raise BaseException(f"Failed to create InfluxPoint: {e}")
+            excp = InterpreterError(f"Failed to create InfluxPoint: {e}")
+            self._handle_exception(excp)
 
     def metadata(self, data: list[str]) -> dict[str, str]:
         logger.debug(f"Metadata {str(data)[:50]}")

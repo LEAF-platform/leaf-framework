@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from datetime import datetime, timezone
-from typing import MutableMapping, Any, List
+from typing import MutableMapping, Any, List,Optional
 
 import dateparser
 import requests
@@ -10,6 +10,7 @@ from influxobject import InfluxPoint
 
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
@@ -32,8 +33,8 @@ def flatten(dictionary: dict[str, Any], parent_key='', separator='_') -> dict[st
 
 class MAQInterpreter(AbstractInterpreter):
     # '<institute>/<equipment_id>/<instance_id>/details'
-    def __init__(self, token: str) -> None:
-        super().__init__()
+    def __init__(self, token: str,error_holder: Optional[ErrorHolder] = None) -> None:
+        super().__init__(error_holder=error_holder)
         logger.info("Initializing MAQInterpreter")
         self._host = "https://www.maq-observations.nl"
         self._token = token

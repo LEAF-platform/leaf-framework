@@ -4,7 +4,7 @@ import time
 from typing import Optional
 
 from leaf.adapters.core_adapters.bioreactor import Bioreactor
-from leaf.adapters.functional_adapters.biolector1.biolector1_interpreter import (
+from leaf.adapters.functional_adapters.biolector1.interpreter import (
     Biolector1Interpreter,
 )
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
@@ -19,7 +19,7 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "biolector1.json")
+metadata_fn = os.path.join(current_dir, "device.json")
 
 
 class Biolector1Adapter(Bioreactor):

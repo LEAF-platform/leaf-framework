@@ -14,6 +14,7 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
+from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
@@ -26,7 +27,7 @@ class MinKNOWAdapter(EquipmentAdapter):
         token: Optional[str],
         host: str = "localhost",
         port: int = 9501,
-    ) -> None:
+        error_holder: Optional[ErrorHolder] = None) -> None:
         logger.info(
             f"Initializing TableSimulator with instance data {instance_data} and output {output} and write file {write_file}"
         )
@@ -48,7 +49,6 @@ class MinKNOWAdapter(EquipmentAdapter):
         metadata_manager.add_metadata("a", "b")
         # Create a CSV watcher for the write file
         watcher: SimpleWatcher = SimpleWatcher(metadata_manager=metadata_manager, interval=10, measurement_callbacks=MinKNOWInterpreter.measurement)
-        measurements: list[str] = ["Aeration rate(Fg:L/h)"]
         # Create the phases?
         start_p: StartPhase = StartPhase(output, metadata_manager)
         stop_p: StopPhase = StopPhase(output, metadata_manager)
@@ -61,7 +61,11 @@ class MinKNOWAdapter(EquipmentAdapter):
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p, measure_p, stop_p]
         mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, process_adapters=mock_process, interpreter=interpreter, metadata_manager=metadata_manager)  # type: ignore
+        super().__init__(instance_data=instance_data, watcher=watcher, 
+                         process_adapters=mock_process, 
+                         interpreter=interpreter, 
+                         metadata_manager=metadata_manager,
+                         error_holder=error_holder)  # type: ignore
         self._write_file = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
 
