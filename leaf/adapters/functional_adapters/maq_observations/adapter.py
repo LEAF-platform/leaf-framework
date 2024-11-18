@@ -2,22 +2,17 @@ import logging
 import os
 from typing import Optional
 
-from leaf.adapters.equipment_adapter import EquipmentAdapter
+from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
 from leaf.adapters.functional_adapters.maq_observations.interpreter import MAQInterpreter
 from leaf.modules.input_modules.simple_watcher import SimpleWatcher
 from leaf.metadata_manager.metadata import MetadataManager
 from leaf.modules.input_modules.polling_watcher import PollingWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.phase_modules.initialisation import InitialisationPhase
-from leaf.modules.phase_modules.measure import MeasurePhase
-from leaf.modules.phase_modules.start import StartPhase
-from leaf.modules.phase_modules.stop import StopPhase
-from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
-class MAQAdapter(EquipmentAdapter):
+class MAQAdapter(StartStopAdapter):
     def __init__(
         self,
         instance_data,
@@ -40,24 +35,11 @@ class MAQAdapter(EquipmentAdapter):
         metadata_manager: MetadataManager = MetadataManager()
         metadata_manager.load_from_file(metadata_fn)
         # Create a polling watcher
-        watcher: PollingWatcher = SimpleWatcher(metadata_manager=metadata_manager, interval=10, measurement_callbacks=[])
-        # Create the phases?
-        start_p: StartPhase = StartPhase(output, metadata_manager)
-        stop_p: StopPhase = StopPhase(output, metadata_manager)
-        measure_p: MeasurePhase = MeasurePhase(output_adapter=output, metadata_manager=metadata_manager)
-        details_p: InitialisationPhase = InitialisationPhase(output, metadata_manager)
-        logger.info(f"Instance data: {instance_data}")
-        # watcher.add_start_callback(start_p.update)
-        watcher.add_measurement_callback(measure_p.update)
-        # watcher.add_stop_callback(stop_p.update)
-        # watcher.add_initialise_callback(details_p.update)
-        phase = [start_p, measure_p, stop_p]
-        mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, 
-                         process_adapters=mock_process, 
-                         interpreter=MAQInterpreter(token=token), 
-                         metadata_manager=metadata_manager,
-                         error_holder=error_holder)  # type: ignore
+        watcher: PollingWatcher = SimpleWatcher(metadata_manager=metadata_manager, interval=10)
+        interpreter=MAQInterpreter(token=token),
+        super().__init__(instance_data,watcher,output,interpreter,
+                         error_holder=error_holder,
+                         metadata_manager=metadata_manager)
         self._metadata_manager.add_equipment_data(metadata_fn)
 
     def _fetch_data(self):

@@ -3,15 +3,10 @@ from threading import Thread
 import time
 from typing import Optional
 
-from leaf.adapters.core_adapters.bioreactor import Bioreactor
+from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
 from leaf.adapters.functional_adapters.biolector1.interpreter import (
     Biolector1Interpreter,
 )
-from leaf.modules.process_modules.discrete_module import DiscreteProcess
-from leaf.modules.phase_modules.start import StartPhase
-from leaf.modules.phase_modules.stop import StopPhase
-from leaf.modules.phase_modules.measure import MeasurePhase
-from leaf.modules.phase_modules.initialisation import InitialisationPhase
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.metadata_manager.metadata import MetadataManager
 from leaf.error_handler.exceptions import AdapterLogicError, SeverityLevel
@@ -20,9 +15,8 @@ from leaf.modules.output_modules.output_module import OutputModule
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "device.json")
-
-
-class Biolector1Adapter(Bioreactor):
+        
+class Biolector1Adapter(StartStopAdapter):
     """
     Adapter class for Biolector1, a discrete bioreactor with microwell plates.
     """
@@ -42,34 +36,10 @@ class Biolector1Adapter(Bioreactor):
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file, metadata_manager)
 
-        start_p = StartPhase(output, metadata_manager)
-        stop_p = StopPhase(output, metadata_manager)
-        measure_p = MeasurePhase(output, metadata_manager, 
-                                 stagger_transmit=stagger_transmit)
-        details_p = InitialisationPhase(output, metadata_manager)
-
-        # Trigger start phase when experiment starts
-        watcher.add_start_callback(start_p.update)  
-        # Trigger measure phase when measurement is taken.
-        watcher.add_measurement_callback(measure_p.update)
-        # Trigger stop phase when experiment stops.
-        watcher.add_stop_callback(stop_p.update)
-        # Trigger initialization phase when adapter starts.
-        watcher.add_initialise_callback(details_p.update)
-
-        phase = [start_p, measure_p, stop_p]
-        process = [DiscreteProcess(phase)]
-
         interpreter = Biolector1Interpreter(error_holder=error_holder)
-        super().__init__(
-            instance_data,
-            watcher,
-            process,
-            interpreter,
-            metadata_manager=metadata_manager,
-            error_holder=error_holder,
-        )
-
+        super().__init__(instance_data,watcher,output,interpreter,
+                         stagger_transmit=stagger_transmit,error_holder=error_holder,
+                         metadata_manager=metadata_manager)
         self._write_file: Optional[str] = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
 

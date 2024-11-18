@@ -18,7 +18,7 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 
-from leaf.adapters.core_adapters.bioreactor import Bioreactor
+from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 from leaf.metadata_manager.metadata import MetadataManager
@@ -79,7 +79,7 @@ class MockBioreactorInterpreter(AbstractInterpreter):
         return
 
 
-class MockBioreactor(Bioreactor):
+class MockEquipmentAdapter(EquipmentAdapter):
     def __init__(self, instance_data, fp):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
@@ -114,19 +114,18 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
 
     def tearDown(self):
-
         self._adapter.stop()
         self.temp_dir.cleanup()
         self.mock_client.reset_messages()
 
     def initialize_experiment(self):
         """
-        Helper function to initialize a unique MockBioreactor
+        Helper function to initialize a unique MockEquipmentAdapter
         instance with unique file paths and instance data.
         """
 
         unique_instance_id = str(uuid.uuid4())
-        unique_institute = "TestInstitute_" + unique_instance_id[:8]
+        unique_institute = "TestInstitute_" #+ unique_instance_id[:8]
 
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
         self.text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
@@ -141,7 +140,7 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockBioreactor(instance_data, self.text_watch_file)
+        self._adapter = MockEquipmentAdapter(instance_data, self.text_watch_file)
         self._adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
             "TestBioreactor_transmit_" + unique_instance_id
         )
@@ -153,12 +152,14 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client.flush(self.details_topic)
         self.mock_client.flush(self.start_topic)
         self.mock_client.flush(self.stop_topic)
-
         time.sleep(2)
         self.mock_client.subscribe(self.start_topic)
+        time.sleep(0.1)
         self.mock_client.subscribe(self.stop_topic)
+        time.sleep(0.1)
         self.mock_client.subscribe(self.details_topic)
         time.sleep(2)
+    
     
     def tearDown(self):
         try:
@@ -175,6 +176,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
+        time.sleep(2)
         self.assertIn(self.details_topic, self.mock_client.messages)
         self.assertTrue(len(self.mock_client.messages[self.details_topic]) == 1)
 
@@ -236,14 +238,13 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.assertIn(exp_tp, self.mock_client.messages)
 
 
-
     def test_exceptions(self):
         instance_data = {"instance_id" : "test_exceptions_instance",
                         "institute" : "test_exceptions_ins",
                         "equipment_id" : "test_exceptions_equip"}
         
         test_exp_tw_watch_file = os.path.join("tmp_exception.txt")
-        adapter = MockBioreactor(instance_data,
+        adapter = MockEquipmentAdapter(instance_data,
                                  test_exp_tw_watch_file)
         
         mthread = Thread(target=adapter.start)
