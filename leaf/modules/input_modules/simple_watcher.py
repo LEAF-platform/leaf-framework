@@ -6,7 +6,7 @@ from leaf.modules.input_modules.polling_watcher import PollingWatcher
 
 class SimpleWatcher(PollingWatcher):
     def __init__(self, metadata_manager: MetadataManager, interval: int, measurement_callbacks: List[Callable]) -> None:
-        super().__init__(metadata_manager, interval, measurement_callbacks)
+        super().__init__(metadata_manager=metadata_manager, interval=interval, measurement_callbacks=measurement_callbacks)
         self._metadata_manager = metadata_manager
         self._measurement_callbacks = measurement_callbacks
         self._interval = interval

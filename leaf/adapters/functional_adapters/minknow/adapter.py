@@ -4,21 +4,16 @@ from typing import Optional
 
 from minknow_api.manager import Manager
 
-from leaf.adapters.equipment_adapter import EquipmentAdapter
+from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
 from leaf.adapters.functional_adapters.minknow.interpreter import MinKNOWInterpreter
 from leaf.metadata_manager.metadata import MetadataManager
 from leaf.modules.input_modules.simple_watcher import SimpleWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.phase_modules.initialisation import InitialisationPhase
-from leaf.modules.phase_modules.measure import MeasurePhase
-from leaf.modules.phase_modules.start import StartPhase
-from leaf.modules.phase_modules.stop import StopPhase
-from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
-class MinKNOWAdapter(EquipmentAdapter):
+class MinKNOWAdapter(StartStopAdapter):
     def __init__(
         self,
         instance_data,
@@ -49,23 +44,9 @@ class MinKNOWAdapter(EquipmentAdapter):
         metadata_manager.add_metadata("a", "b")
         # Create a CSV watcher for the write file
         watcher: SimpleWatcher = SimpleWatcher(metadata_manager=metadata_manager, interval=10, measurement_callbacks=MinKNOWInterpreter.measurement)
-        # Create the phases?
-        start_p: StartPhase = StartPhase(output, metadata_manager)
-        stop_p: StopPhase = StopPhase(output, metadata_manager)
-        measure_p: MeasurePhase = MeasurePhase(output_adapter=output, metadata_manager=metadata_manager)
-        details_p: InitialisationPhase = InitialisationPhase(output, metadata_manager)
-        logger.info(f"Instance data: {instance_data}")
-        watcher.add_start_callback(start_p.update)
-        watcher.add_measurement_callback(measure_p.update)
-        watcher.add_stop_callback(stop_p.update)
-        watcher.add_initialise_callback(details_p.update)
-        phase = [start_p, measure_p, stop_p]
-        mock_process = [DiscreteProcess(phase)]
-        super().__init__(instance_data=instance_data, watcher=watcher, 
-                         process_adapters=mock_process, 
-                         interpreter=interpreter, 
-                         metadata_manager=metadata_manager,
-                         error_holder=error_holder)  # type: ignore
+        super().__init__(instance_data,watcher,output,interpreter,
+                         error_holder=error_holder,
+                         metadata_manager=metadata_manager)
         self._write_file = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
 

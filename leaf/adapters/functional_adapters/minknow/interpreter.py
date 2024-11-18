@@ -17,7 +17,7 @@ logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 # Note the biolector json file is an example, not a concrete decision on terms...
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "table_simulator.json")
+metadata_fn = os.path.join(current_dir, "device.json")
 
 from collections.abc import MutableMapping
 

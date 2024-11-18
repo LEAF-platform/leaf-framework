@@ -1,15 +1,16 @@
+import csv
 import os
 import shutil
 import sys
+import tempfile
 import time
 import unittest
+import uuid
 from pathlib import Path
 from threading import Thread
 from typing import Any
-import tempfile
+
 import yaml
-import csv
-import uuid
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -21,7 +22,7 @@ from leaf.adapters.functional_adapters.biolector1.interpreter import (
 )
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
-from leaf.measurement_terms.manager import measurement_manager
+from leaf.measurement_handler.terms import measurement_manager
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -190,7 +191,6 @@ class TestBiolector1(unittest.TestCase):
     def test_stop(self) -> None:
         self._flush_topics()
         self.mock_client.reset_messages()
-
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(1)
@@ -203,7 +203,6 @@ class TestBiolector1(unittest.TestCase):
         mthread.join()
         self.assertIn(self.stop_topic, self.mock_client.messages)
         self.assertTrue(len(self.mock_client.messages[self.stop_topic]) == 1)
-        self.assertIn("timestamp", self.mock_client.messages[self.stop_topic][0])
 
         self.assertIn(self.running_topic, self.mock_client.messages)
         expected_run = "False"

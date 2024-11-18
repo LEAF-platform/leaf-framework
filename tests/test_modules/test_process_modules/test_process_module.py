@@ -17,7 +17,7 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.continous_module import ContinousProcess
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
-from ...mock_mqtt_client import MockBioreactorClient
+from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.metadata_manager.metadata import MetadataManager
 
 # Current location of this script

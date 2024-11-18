@@ -60,7 +60,7 @@ def parse_args() -> argparse.Namespace:
         "-c",
         "--config",
         type=str,
-        default="config.yaml",
+        # default="config.yaml",
         help="The configuration file to use.",
     )
     parser.add_argument(
@@ -106,6 +106,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 def _get_existing_ids(output_module, metadata_manager, time_to_sleep=2):
     """Returns IDS of equipment already in the system."""
     topic = metadata_manager.details()
+    logging.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
     output_module.unsubscribe(topic)
@@ -361,6 +362,10 @@ def main():
     """Main function as a wrapper for all steps."""
     logging.info("Starting the proxy.")
     args = parse_args()
+
+    if args.config is None:
+        logging.error("No configuration file provided (See the documentation for more details).")
+        return
 
     if args.debug:
         logging.debug("Debug logging enabled.")
