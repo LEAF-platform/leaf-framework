@@ -8,7 +8,7 @@ from leaf.metadata_manager.metadata import MetadataManager
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler import exceptions
 from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.output_modules.output_module import OutputModule
+from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.error_handler.error_holder import ErrorHolder
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -80,7 +80,7 @@ class EquipmentAdapter(ABC):
 
     def __init__(self, 
                  instance_data: dict, 
-                 watcher: OutputModule, 
+                 watcher: EventWatcher, 
                  process_adapters: Union[ProcessModule, List[ProcessModule]], 
                  interpreter: AbstractInterpreter, 
                  metadata_manager: Optional[MetadataManager] = None, 
@@ -90,7 +90,7 @@ class EquipmentAdapter(ABC):
         
         Args:
             instance_data (dict): Data related to the equipment instance.
-            watcher (OutputModule): An object that watches or monitors events or data.
+            watcher (EventWatcher): An object that watches or monitors events or data.
             process_adapters (Union[ProcessModule, List[ProcessModule]]): A list or a single instance of ProcessModules.
             interpreter (AbstractInterpreter): An interpreter object to process the data.
             metadata_manager (Optional[MetadataManager]): Optional metadata manager instance
@@ -107,7 +107,7 @@ class EquipmentAdapter(ABC):
         [p.set_interpreter(interpreter) for p in self._processes]
 
         self._interpreter: AbstractInterpreter = interpreter
-        self._watcher: OutputModule = watcher
+        self._watcher: EventWatcher = watcher
         self._stop_event: Event = Event()
 
         if metadata_manager is None:

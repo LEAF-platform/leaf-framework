@@ -1,6 +1,7 @@
 {
     "class" : "Biolector1Adapter",
     "equipment_id": "BioLector1",
+    "type" : "Bioreactor",
     "version": "1.0",
     "manufacturer": "m2p-labs GmbH",
     "device_type": "Microbioreactor",

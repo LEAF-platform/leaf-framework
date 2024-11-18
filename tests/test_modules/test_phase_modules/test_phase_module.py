@@ -15,7 +15,7 @@ from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
-from ...mock_mqtt_client import MockBioreactorClient
+from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.metadata_manager.metadata import MetadataManager
 
 # Current location of this script

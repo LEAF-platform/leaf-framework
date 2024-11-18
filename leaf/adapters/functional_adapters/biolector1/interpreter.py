@@ -5,9 +5,10 @@ import csv
 from datetime import datetime
 import time
 from typing import Any
+from influxobject import InfluxPoint
 
 from leaf.adapters.equipment_adapter import AbstractInterpreter
-from leaf.measurement_terms.manager import measurement_manager
+from leaf.measurement_handler.terms import measurement_manager
 from leaf.error_handler.exceptions import InterpreterError
 from leaf.error_handler.exceptions import SeverityLevel
 
@@ -198,7 +199,6 @@ class Biolector1Interpreter(AbstractInterpreter):
         if data[-1][0] == "READING":
             return None
         data = data[::-1]
-
         measurements: dict[str, list[dict[str, Any]]] = {}
         update = {
             "measurement": "Biolector1",
@@ -218,7 +218,7 @@ class Biolector1Interpreter(AbstractInterpreter):
                                                      "experiment start",
                                                      severity=SeverityLevel.WARNING))
         
-        for row in data:
+        for row in data:            
             if len(row) == 0 or row[0] == "R":
                 continue
             if row[0] != reading:
@@ -238,11 +238,10 @@ class Biolector1Interpreter(AbstractInterpreter):
             else:
                 measurement_term = "unknown_measurement"
                 value = amplitude
-
+            
             if measurement_term not in measurements:
                 measurements[measurement_term] = []
 
-            
             measurement_data = {
                 "value": value,
                 "name": name,

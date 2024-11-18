@@ -58,7 +58,7 @@ class MeasurementManager:
         module and find the class that inherits from the Measurement 
         base class.
         """
-        module_name = f"core.modules.measurement_modules.{class_name.lower()}"
+        module_name = f"leaf.modules.measurement_modules.{class_name.lower()}"
         try:
             module = importlib.import_module(module_name)
         except ModuleNotFoundError:
