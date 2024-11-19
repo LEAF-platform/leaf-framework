@@ -15,8 +15,7 @@ logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 class MeasurePhase(PhaseModule):
     """
     Handles the measurement-related actions within a process.
-    It transmits measurement data and can stagger 
-    transmission if needed.
+    It transmits measurement data.
     """
 
     def __init__(self, 
@@ -25,15 +24,16 @@ class MeasurePhase(PhaseModule):
                  maximum_message_size: Optional[int] = 1) -> None:
         """
         Initialise the MeasurePhase with the output adapter,
-        metadata manager, and optional stagger transmission setting.
+        metadata manager, and optional maximum_message_size transmission 
+        setting.
 
         Args:
             output_adapter (OutputModule): The OutputModule used 
                            to transmit data.
             metadata_manager (MetadataManager): Manages metadata 
                              associated with the phase.
-            stagger_transmit (bool): Whether to stagger the 
-                             transmission of measurements.
+            maximum_message_size (bool): The maximum number of measurements 
+                                          in a single message.
         """
         term_builder = metadata_manager.experiment.measurement
         super().__init__(output_adapter, term_builder, metadata_manager)
@@ -43,8 +43,6 @@ class MeasurePhase(PhaseModule):
         """
         Called by the InputModule, uses interpreter to get the new
         measurements and transmits the data using the OutputModule.
-        If staggered transmission is enabled, data is 
-        transmitted piece by piece.
 
         Args:
             data (Optional[Any]): Optional data to be transmitted.

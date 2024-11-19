@@ -120,9 +120,9 @@ class TestMeasurePhase(unittest.TestCase):
             self.fail()
 
 
-    def test_measure_phase_stagger(self):
+    def test_measure_phase_max_measurement(self):
         self._module._maximum_message_size = 10
-        exp_id = "test_measure_phase_stagger"
+        exp_id = "test_measure_phase_max_measurement"
         class MockInterpreter:
             def __init__(self):
                 self.id = exp_id

@@ -22,7 +22,7 @@ class Biolector1Adapter(StartStopAdapter):
     """
 
     def __init__(self,instance_data: dict,output: OutputModule,
-        write_file: Optional[str] = None,stagger_transmit: bool = False,
+        write_file: Optional[str] = None,maximum_message_size: Optional[int] = 1,
         error_holder: Optional[ErrorHolder] = None):
         """
         Initialise Biolector1Adapter, setting up phases, process adapters, and metadata.
@@ -31,14 +31,15 @@ class Biolector1Adapter(StartStopAdapter):
             instance_data: Data specific to this bioreactor instance.
             output: The OutputModule responsible for handling and transmitting data.
             write_file: The file that the CSVWatcher will watch and the biolector machine writes to.
-            stagger_transmit: If True, transmits data in staggered intervals. Set True for large measurements.
+            maximum_message_size: Sets the maximum number of messages send in a single payload.
         """
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file, metadata_manager)
 
         interpreter = Biolector1Interpreter(error_holder=error_holder)
         super().__init__(instance_data,watcher,output,interpreter,
-                         stagger_transmit=stagger_transmit,error_holder=error_holder,
+                         maximum_message_size=maximum_message_size,
+                         error_holder=error_holder,
                          metadata_manager=metadata_manager)
         self._write_file: Optional[str] = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
