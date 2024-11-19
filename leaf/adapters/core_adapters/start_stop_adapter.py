@@ -13,14 +13,14 @@ from leaf.adapters.equipment_adapter import AbstractInterpreter
 class StartStopAdapter(EquipmentAdapter):
     def __init__(self,instance_data: dict,watcher:OutputModule,
                  output: OutputModule,interpreter:AbstractInterpreter,
-                 stagger_transmit: bool = False,
+                 maximum_message_size: Optional[int] = 1,
                  error_holder: Optional[ErrorHolder] = None,
                  metadata_manager:MetadataManager=None):
     
         start_p = StartPhase(output, metadata_manager)
         stop_p = StopPhase(output, metadata_manager)
         measure_p = MeasurePhase(output, metadata_manager, 
-                                 stagger_transmit=stagger_transmit)
+                                 maximum_message_size=maximum_message_size)
         details_p = InitialisationPhase(output, metadata_manager)
 
         # Trigger start phase when experiment starts

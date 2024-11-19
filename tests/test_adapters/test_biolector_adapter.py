@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.adapters.functional_adapters.biolector1.adapter import Biolector1Adapter
 from leaf.adapters.functional_adapters.biolector1.interpreter import (
-    Biolector1Interpreter,
+    Biolector1Interpreter,MEASUREMENT_NAME_KEY
 )
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
@@ -83,10 +83,10 @@ class TestBiolector1Interpreter(unittest.TestCase):
         with open(measurement_file, "r", encoding="latin-1") as file:
             data = list(csv.reader(file, delimiter=";"))
         result = self._interpreter.measurement(data)
-        for measurement, measurements in result["fields"].items():
-            self.assertIn(measurement, measurement_terms)
-            for data in measurements:
-                self.assertIn(data["name"], names)
+        for measurement in result:
+            for m_type, value in measurement["fields"].items():
+                self.assertIn(m_type, measurement_terms)
+                self.assertIn(measurement["tags"][MEASUREMENT_NAME_KEY], names)
 
 
 class TestBiolector1(unittest.TestCase):
@@ -241,17 +241,17 @@ class TestBiolector1(unittest.TestCase):
         self.mock_client.subscribe(exp_tp)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(1)
+        time.sleep(0.1)
         _create_file(self.watch_file)
-        time.sleep(1)
+        time.sleep(0.1)
         _modify_file(self.watch_file)
         experiment_id = self._adapter._interpreter.id
-        time.sleep(1)
+        time.sleep(0.1)
         _delete_watch_file(self.watch_file)
-        time.sleep(1)
+        time.sleep(0.1)
         self._adapter.stop()
         mthread.join()
-        time.sleep(1)
+        time.sleep(0.1)
 
         actual_mes = self._get_measurements_run()
         expected_measurements = ["Biomass", "GFP", "mCherrry/RFPII", "pH-hc", "pO2-hc"]
@@ -263,23 +263,23 @@ class TestBiolector1(unittest.TestCase):
             )
             if exp_tp in topic:
                 data = self.mock_client.messages[exp_tp]
-                self.assertTrue(len(data), 1)
-                data = data[0]
-                self.assertIn("timestamp", data)
-                measurement_type = topic.split("/")[-1]
-                self.assertIn(measurement_type, actual_mes["measurement"])
-                for measurement, measurement_data in data["fields"].items():
-                    for md in measurement_data:
-                        for am in actual_mes["fields"][measurement]:
-                            self.assertIn("value", am)
-                            if am == md:
+                for measurement in data:
+                    self.assertIn("timestamp", measurement)
+                    name = measurement["tags"][MEASUREMENT_NAME_KEY]
+                    self.assertIn(name, expected_measurements)
+                    if name not in seens:
+                        seens.append(name)
+                    for m_type, value in measurement["fields"].items():
+                        found = False
+                        for meas in actual_mes:
+                            for a_measurement_type,a_measurement_value in meas["fields"].items():
+                                if a_measurement_type == m_type and a_measurement_value == value:
+                                    found = True
+                                    break
+                            if found:
                                 break
                         else:
                             self.fail()
-                        name = md["name"]
-                        self.assertIn(name, expected_measurements)
-                        if name not in seens:
-                            seens.append(name)
         self.assertCountEqual(seens, expected_measurements)
         self._flush_topics()
         self.mock_client.reset_messages()
