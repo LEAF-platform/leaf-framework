@@ -173,7 +173,7 @@ def _process_instance(instance, output):
     adapter_params = inspect.signature(adapter).parameters
     adapter_param_names = set(adapter_params.keys())
     fixed_params = {"instance_data", "output", "error_holder"}
-    optional_params = {"stagger_transmit"}
+    optional_params = {"maximum_message_size"}
     required_params = {
         name
         for name, param in adapter_params.items()
