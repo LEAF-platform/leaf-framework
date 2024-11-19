@@ -22,7 +22,7 @@ class MeasurePhase(PhaseModule):
     def __init__(self, 
                  output_adapter: OutputModule, 
                  metadata_manager: MetadataManager, 
-                 stagger_transmit: bool = False) -> None:
+                 maximum_message_size: Optional[int] = 1) -> None:
         """
         Initialise the MeasurePhase with the output adapter,
         metadata manager, and optional stagger transmission setting.
@@ -37,7 +37,7 @@ class MeasurePhase(PhaseModule):
         """
         term_builder = metadata_manager.experiment.measurement
         super().__init__(output_adapter, term_builder, metadata_manager)
-        self._stagger_transmit: bool = stagger_transmit
+        self._maximum_message_size: int = maximum_message_size
 
     def update(self, data: Optional[Any] = None, **kwargs: Any) -> None:
         """
@@ -79,9 +79,10 @@ class MeasurePhase(PhaseModule):
                 self._handle_exception(excp)
                 return
 
-
             if isinstance(result,(set,list,tuple)):
-                for data in result:
+                chunks = [result[i:i + self._maximum_message_size] for 
+                          i in range(0, len(result), self._maximum_message_size)]
+                for data in chunks:
                     self._transmit_message(exp_id,data)
                     time.sleep(0.1)
             else:
@@ -91,28 +92,16 @@ class MeasurePhase(PhaseModule):
 
 
     def _transmit_message(self,experiment_id,result):
-        '''
-        if self._stagger_transmit:
-            for measurement_type, measurements in result["fields"].items():
-                if not isinstance(measurements, list):
-                    measurements = [measurements]
-                for measurement in measurements:
-                    action = self._term_builder(
-                        experiment_id=exp_id, measurement=measurement_type
-                    )
-                    if isinstance(measurement, dict):
-                        measurement["timestamp"] = result["timestamp"]
-                    self._output.transmit(action, measurement)
-        '''
         measurement = "unknown"
         if isinstance(result,dict):
             measurement = result["measurement"]
         elif isinstance(result,InfluxPoint):
             result = result.to_json()
             measurement = result["measurement"]
+        elif isinstance(result,list):
+            pass
         else:
             logger.error(f"Unknown measurement data type: {type(result)}")
-            self._output.transmit(action, result)
         
         action = self._term_builder(experiment_id=experiment_id, 
                                     measurement=measurement)

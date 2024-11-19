@@ -71,8 +71,8 @@ class TestMeasurePhase(unittest.TestCase):
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
 
         self.watcher = FileWatcher(self.text_watch_file, self._metadata_manager)
-        output = MQTT(broker, port, username=un, password=pw, clientid=None)
-        self._module = MeasurePhase(output, self._metadata_manager)
+        self._output = MQTT(broker, port, username=un, password=pw, clientid=None)
+        self._module = MeasurePhase(self._output, self._metadata_manager)
 
         # Ensure unique experiment_id and measurement_id for each test instance
         self._mock_experiment = f"test_experiment_id_{self._testMethodName}"
@@ -119,6 +119,40 @@ class TestMeasurePhase(unittest.TestCase):
         else:
             self.fail()
 
+
+    def test_measure_phase_stagger(self):
+        self._module._maximum_message_size = 10
+        exp_id = "test_measure_phase_stagger"
+        class MockInterpreter:
+            def __init__(self):
+                self.id = exp_id
+            def measurement(self,data):
+                return list(range(1, 24 + 1))
+            
+
+        self._module.set_interpreter(MockInterpreter())
+        
+        _create_file(self.text_watch_file)
+        proxy_thread = Thread(target=self.watcher.start)
+        proxy_thread.start()
+        time.sleep(2)
+        _run_change(_modify_file, self.text_watch_file)
+        time.sleep(3)
+        proxy_thread.join()
+        
+        exp_id = self._metadata_manager.experiment.measurement(experiment_id=exp_id,
+                                                               measurement="unknown")
+        measurement_messages = self.mock_client.messages[exp_id]
+
+        expected_chunks = [
+            list(range(1, 11)),
+            list(range(11, 21)),
+            list(range(21, 25))
+        ]
+        
+        self.assertEqual(len(measurement_messages), len(expected_chunks))
+        for chunk, expected_chunk in zip(measurement_messages, expected_chunks):
+            self.assertEqual(chunk, expected_chunk)
 
 class TestControlPhase(unittest.TestCase):
     def setUp(self) -> None:
