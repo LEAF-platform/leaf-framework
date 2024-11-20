@@ -15,36 +15,34 @@ logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 class MeasurePhase(PhaseModule):
     """
     Handles the measurement-related actions within a process.
-    It transmits measurement data and can stagger 
-    transmission if needed.
+    It transmits measurement data.
     """
 
     def __init__(self, 
                  output_adapter: OutputModule, 
                  metadata_manager: MetadataManager, 
-                 stagger_transmit: bool = False) -> None:
+                 maximum_message_size: Optional[int] = 1) -> None:
         """
         Initialise the MeasurePhase with the output adapter,
-        metadata manager, and optional stagger transmission setting.
+        metadata manager, and optional maximum_message_size transmission 
+        setting.
 
         Args:
             output_adapter (OutputModule): The OutputModule used 
                            to transmit data.
             metadata_manager (MetadataManager): Manages metadata 
                              associated with the phase.
-            stagger_transmit (bool): Whether to stagger the 
-                             transmission of measurements.
+            maximum_message_size (bool): The maximum number of measurements 
+                                          in a single message.
         """
         term_builder = metadata_manager.experiment.measurement
         super().__init__(output_adapter, term_builder, metadata_manager)
-        self._stagger_transmit: bool = stagger_transmit
+        self._maximum_message_size: int = maximum_message_size
 
     def update(self, data: Optional[Any] = None, **kwargs: Any) -> None:
         """
         Called by the InputModule, uses interpreter to get the new
         measurements and transmits the data using the OutputModule.
-        If staggered transmission is enabled, data is 
-        transmitted piece by piece.
 
         Args:
             data (Optional[Any]): Optional data to be transmitted.
@@ -79,9 +77,10 @@ class MeasurePhase(PhaseModule):
                 self._handle_exception(excp)
                 return
 
-
             if isinstance(result,(set,list,tuple)):
-                for data in result:
+                chunks = [result[i:i + self._maximum_message_size] for 
+                          i in range(0, len(result), self._maximum_message_size)]
+                for data in chunks:
                     self._transmit_message(exp_id,data)
                     time.sleep(0.1)
             else:
@@ -91,28 +90,16 @@ class MeasurePhase(PhaseModule):
 
 
     def _transmit_message(self,experiment_id,result):
-        '''
-        if self._stagger_transmit:
-            for measurement_type, measurements in result["fields"].items():
-                if not isinstance(measurements, list):
-                    measurements = [measurements]
-                for measurement in measurements:
-                    action = self._term_builder(
-                        experiment_id=exp_id, measurement=measurement_type
-                    )
-                    if isinstance(measurement, dict):
-                        measurement["timestamp"] = result["timestamp"]
-                    self._output.transmit(action, measurement)
-        '''
         measurement = "unknown"
         if isinstance(result,dict):
             measurement = result["measurement"]
         elif isinstance(result,InfluxPoint):
             result = result.to_json()
             measurement = result["measurement"]
+        elif isinstance(result,list):
+            pass
         else:
             logger.error(f"Unknown measurement data type: {type(result)}")
-            self._output.transmit(action, result)
         
         action = self._term_builder(experiment_id=experiment_id, 
                                     measurement=measurement)

@@ -46,7 +46,7 @@ Each entry under `EQUIPMENT_INSTANCES` represents an individual `EquipmentAdapte
     - **simulation** *(optional)*: This nested data is only needed if the adapter is wanted to run in simulated mode.
         - **filename**: A path to a file with simulated data (Note this may change for different adapters).
         - **interval**: The interval in seconds when the simulation will feed the adapter another chunk of data (measurement).
-    - **stagger_transmit** *(optional)*: If present, it enables staggered transmission, breaking data into smaller chunks for large data volumes.
+    - **maximum_message_size** *(optional)*: If present, it sets the maximum number of measurements that will be transmited within a single message. The higher this option, the less messages will be sent but each message will be a larger payload.ssss
 #### Outputs
 Each entry under `OUTPUTS` represents an `OutputModule` for transmitting or storing data. Output modules can be chained together through a fallback mechanism, where the next module in the sequence is used if the primary output fails. Like the requirement section within the `EquipmentAdapters`, most of the fields within an OUTPUTS element are specific to the type of module that is defined to be used.
 - **plugin**: This specifies the type of output module, e.g., MQTT, KEYDB, or FILE. The name needs to be the same as the `OutputModule` class.
@@ -86,7 +86,7 @@ EQUIPMENT_INSTANCES:
         host: localhost
         port: 9501
         token: c50dcbbd-fa64-4f9c-98f7-85c39d98c3c2
-      stagger_transmit: 1
+      maximum_message_size: 1
 OUTPUTS:
   - plugin: MQTT
     broker: localhost

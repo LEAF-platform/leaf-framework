@@ -25,6 +25,9 @@ DO_EM_RANGE = (590, 610)
 FLUORESCENCE_EX_RANGE = (350, 580)
 FLUORESCENCE_EM_RANGE = (450, 610)
 
+WELL_NUM_KEY = "well_number"
+MEASUREMENT_NAME_KEY = "measurement_name"
+
 class Biolector1Interpreter(AbstractInterpreter):
     """
     Interpreter for Biolector1 EquipmentAdapter. Handles metadata extraction,
@@ -199,14 +202,7 @@ class Biolector1Interpreter(AbstractInterpreter):
         if data[-1][0] == "READING":
             return None
         data = data[::-1]
-        measurements: dict[str, list[dict[str, Any]]] = {}
-        update = {
-            "measurement": "Biolector1",
-            "tags": {"project": "indpensim"},
-            "fields": measurements,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-
+        influx_objects = []
         if data[0][0] == "R":
             data = data[1:]
         reading = data[0][0]
@@ -222,11 +218,17 @@ class Biolector1Interpreter(AbstractInterpreter):
             if len(row) == 0 or row[0] == "R":
                 continue
             if row[0] != reading:
-                return update
+                return [i.to_json() for i in influx_objects]
 
             fs_code = int(row[4])
             name = self._get_filtername(fs_code)
             well_num = row[1]
+            ip = InfluxPoint()
+            ip.add_tag(WELL_NUM_KEY,well_num)
+            ip.set_measurement("Biolector")
+            ip.set_timestamp(datetime.now())
+            influx_objects.append(ip) 
+
             amplitude = row[5]
             if name is not None:
                 sensor_data = self._get_sensor_data(name)
@@ -235,20 +237,22 @@ class Biolector1Interpreter(AbstractInterpreter):
                 measurement = self._get_measurement_type(excitation, emitence)
                 measurement_term = measurement.term
                 value = measurement.transform(amplitude)
+                assert(measurement_term not in ip.fields)
+                ip.add_tag(MEASUREMENT_NAME_KEY,name)
+                ip.add_field(measurement_term,value)
             else:
-                measurement_term = "unknown_measurement"
+                excp = InterpreterError(f'Cant identify measurement name')
+                self._handle_exception(excp)
                 value = amplitude
-            
-            if measurement_term not in measurements:
-                measurements[measurement_term] = []
+                measurement_term = "unknown_measurement"
+                cur_measurement_term = measurement_term
+                index = 1
+                while cur_measurement_term not in ip.fields:
+                    cur_measurement_term = measurement_term + str(index)
+                    index +=1
+                ip.add_field(cur_measurement_term,value)
 
-            measurement_data = {
-                "value": value,
-                "name": name,
-                "well_num": well_num
-            }
-            measurements[measurement_term].append(measurement_data)
-        return update
+        return [i.to_json() for i in influx_objects]
 
     def simulate(self, read_file, write_file, wait):
         """
