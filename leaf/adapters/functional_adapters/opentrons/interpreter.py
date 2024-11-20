@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Any
 
+from influxobject import InfluxPoint
+
 from leaf.adapters.equipment_adapter import AbstractInterpreter
-from leaf.measurement_terms.manager import measurement_manager
+from leaf.measurement_handler.terms import measurement_manager
 from leaf.error_handler.exceptions import InterpreterError
 from leaf.error_handler.exceptions import SeverityLevel
 

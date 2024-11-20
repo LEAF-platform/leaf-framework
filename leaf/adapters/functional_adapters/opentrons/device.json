@@ -2,6 +2,7 @@
   "class": "OpentronsAdapter",
   "equipment_id": "OpentronsRobot",
   "version": "1.0",
+  "type" : "LiquidHandler",
   "manufacturer": "Opentrons Labworks Inc.",
   "device_type": "Liquid Handling Robot",
   "application": "Automated liquid handling for laboratory workflows",
