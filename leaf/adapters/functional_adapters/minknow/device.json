@@ -1,8 +1,0 @@
-{
-  "class" : "MinKNOWAdapter",
-  "equipment_id": "MinKNOW",
-  "version": "1.0",
-  "manufacturer": "Oxford Nanopore Technologies",
-  "device_type": "Long read sequencer",
-  "application": "Sequencing"
-}
