@@ -31,9 +31,7 @@ class PollingWatcher(EventWatcher):
         logger.debug("Initialising PollingWatcher...")
         super().__init__(metadata_manager,
                          initialise_callbacks=initialise_callbacks,
-                         measurement_callbacks=measurement_callbacks,
-                         start_callbacks=start_callbacks,
-                         stop_callbacks=stop_callbacks)
+                         measurement_callbacks=measurement_callbacks)
         logger.debug("Interval: %s", interval)
         self.interval = interval
         self.running = False
