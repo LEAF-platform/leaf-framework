@@ -43,7 +43,7 @@ adapters: list[Any] = []
 #
 ###################################
 
-def parse_args() -> argparse.Namespace:
+def parse_args(args=None) -> argparse.Namespace:
     """Parses commandline arguments."""
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--guidisable", action="store_false", help="Whether or not to disable the GUI."
     )
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def signal_handler(signal_received, frame) -> None:
@@ -358,10 +358,10 @@ sys.excepthook = handle_exception
 #        FUNCTION: Main
 #
 ###################################
-def main():
+def main(args=None):
     """Main function as a wrapper for all steps."""
     logging.info("Starting the proxy.")
-    args = parse_args()
+    args = parse_args(args)
 
     if args.config is None:
         logging.error("No configuration file provided (See the documentation for more details).")
