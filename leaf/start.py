@@ -33,8 +33,8 @@ from leaf.error_handler.exceptions import SeverityLevel
 #            VARIABLES
 #
 ###################################
-logger = get_logger(__name__, log_file="app.log", 
-                    log_level=logging.INFO)
+log_level = logging.INFO
+logger = get_logger(__name__, log_file="app.log", log_level=log_level)
 adapters: list[Any] = []
 
 ##################################
@@ -366,9 +366,15 @@ def main(args=None):
     if args.config is None:
         logging.error("No configuration file provided (See the documentation for more details).")
         return
+    if os.path.exists(args.config) is False:
+        abs_path = os.path.abspath(args.config)
+        logging.error(f"Configuration file {abs_path} not found.")
+        return
 
     if args.debug:
         logging.debug("Debug logging enabled.")
+        log_level = logging.DEBUG
+
 
     logging.debug(f"Loading configuration file: {args.config}")
 
