@@ -1,12 +1,32 @@
 
 EQUIPMENT_INSTANCES:
   - equipment:
-      adapter: BioLector1
+      adapter: hello_world
       data:
         instance_id: example_equipment_id1
         institute: example_equipment_institute1
       requirements:
-        write_file: test/tmp123.csv
+        interval: 11
+
+#  - equipment:
+#      adapter: BioLector1
+#      data:
+#        instance_id: example_equipment_id1
+#        institute: example_equipment_institute1
+#      requirements:
+#        write_file: test/tmp123.csv
+#  - equipment:
+#      adapter: BioLector1
+#      data:
+#        instance_id: example_equipment_id123
+#        institute: example_equipment_institute1
+#      requirements:
+#        write_file: test/tmp.csv
+#      simulation:
+#        filename: tests/static_files/biolector1_full.csv
+#        interval: 10
+#        write_file: test/tmp123.csv
+
 OUTPUTS:
   - plugin: MQTT
     broker: localhost
