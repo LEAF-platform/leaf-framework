@@ -11,7 +11,7 @@ import threading
 import time
 import logging
 import argparse
-from typing import Any
+from typing import Any, List
 
 import yaml
 import signal
@@ -193,7 +193,7 @@ def _process_instance(instance, output):
         )
     try:
         error_holder = ErrorHolder(instance_id)
-        return adapter(instance_data, output, error_holder=error_holder, **requirements)
+        return adapter(instance_data=instance_data, output=output, error_holder=error_holder, **requirements)
     except ValueError as ex:
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
@@ -236,6 +236,7 @@ def run_adapters(equipment_instances, output, error_handler):
     try:
         # Initialize and start all adapters
         for equipment_instance in equipment_instances:
+            logger.info(f"Processing instance: {equipment_instance}")
             simulated = None
             equipment_instance = equipment_instance["equipment"]
 
@@ -384,9 +385,13 @@ def main(args=None):
     logging.info(f"Configuration: {args.config} loaded.")
     general_error_holder = ErrorHolder()
     output = _get_output_module(config, general_error_holder)
-    run_adapters(config["EQUIPMENT_INSTANCES"], output, 
-                 general_error_holder)
+    # Dynamc loading of adapters
+    # available_adapters: List[Any] = load_adapters()
+    # Run the adapters
+    run_adapters(equipment_instances=config["EQUIPMENT_INSTANCES"], output=output, error_handler=general_error_holder)
 
 
 if __name__ == "__main__":
+    sys.argv.append("--config")
+    sys.argv.append("../config.yaml")
     main()

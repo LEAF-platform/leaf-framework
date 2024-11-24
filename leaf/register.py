@@ -12,6 +12,8 @@ import json
 import importlib.util
 import os
 import logging
+from typing import List, Any
+from importlib.metadata import entry_points
 
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.exceptions import AdapterBuildError
@@ -27,6 +29,19 @@ equipment_adapter_dirs = [
 
 equipment_key = "equipment_id"
 output_adapter_dir = os.path.join(root_dir, "modules", "output_modules")
+
+def load_adapters():
+    """
+    Loads and returns the equipment adapters from the installed packages.
+    """
+    adapters = {}
+    for entry_point in entry_points(group="leaf.adapters"):
+        adapters[entry_point.name] = entry_point.load()
+    logging.warning("The following adapters have been detected:")
+    for adapter in adapters:
+        logging.warning(adapter)
+    logging.info("Adapters loaded.")
+    return adapters
 
 
 def get_equipment_adapter(code: str):
@@ -46,7 +61,14 @@ def get_equipment_adapter(code: str):
     Raises:
         AdapterBuildError: If the adapter files or class cannot be found for the given code.
     """
+    # First search for the adapter in the pip installed adapters
+    # Dynamc loading of adapters
+    available_adapters: List[Any] = load_adapters()
+
     for adapter_dir in equipment_adapter_dirs:
+        if code in available_adapters:
+            # Attempt to load the class
+            return available_adapters[code]
         if os.path.exists(adapter_dir):
             for root, dirs, files in os.walk(adapter_dir):
                 # Look for device.json in the directory
