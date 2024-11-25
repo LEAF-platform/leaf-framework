@@ -19,7 +19,7 @@ from leaf.adapters.functional_adapters.opentrons.adapter import OpentronsAdapter
 from leaf.adapters.functional_adapters.opentrons.interpreter import OpentronsInterpreter
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
-from leaf.measurement_terms.manager import measurement_manager
+from leaf.measurement_handler.terms import measurement_manager
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -36,9 +36,7 @@ except KeyError:
     pw = None
 
 test_file_dir = os.path.join(curr_dir, "..", "static_files")
-initial_file = os.path.join(test_file_dir, "Opentrons_metadata.csv")
-measurement_file = os.path.join(test_file_dir, "Opentrons_measurement.csv")
-all_data_file = os.path.join(test_file_dir, "Opentrons_full.csv")
+log_file = os.path.join(test_file_dir, "opentrons_log_data.keep_log")
 
 
 def _create_file(watch_file: Path) -> None:
@@ -156,7 +154,8 @@ class TestOpentrons(unittest.TestCase):
         self._flush_topics()
         self.mock_client.reset_messages()
 
-
+    def test_simulate(self):
+        self._adapter.simulate(log_file)
 
 if __name__ == "__main__":
     unittest.main()

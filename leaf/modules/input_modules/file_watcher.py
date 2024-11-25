@@ -28,7 +28,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                  metadata_manager: MetadataManager, 
                  start_callbacks: Optional[List[Callable]] = None, 
                  measurement_callbacks: Optional[List[Callable]] = None, 
-                 stop_callbacks: Optional[List[Callable]] = None):
+                 stop_callbacks: Optional[List[Callable]] = None,
+                 last_line: bool=False):
         """
         Initialise the FileWatcher with the specified 
         file path and callbacks.
@@ -45,6 +46,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                                   triggered on file modification events.
             stop_callbacks (Optional[List[Callable]]): Callbacks triggered
                             on file deletion events.
+            last_line (Optional bool): Flag for returning only the 
+                      last time when the file is modified.
         Raises:
             AdapterBuildError: If the file path is invalid.
         """
@@ -73,6 +76,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         self._last_modified: Optional[float] = None
         self._last_created: Optional[float] = None
         self._debounce_delay: float = 0.75
+
+        self._last_line = last_line
 
     @property
     def start_callbacks(self) -> List[Callable]:
@@ -181,7 +186,10 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             if not self._is_last_modified():
                 return
             with open(fp, 'r') as file:
-                data = file.read()
+                if self._last_line:
+                    data = file.readlines()[-1]
+                else:
+                    data = file.read()
         except Exception as e:
             self._file_event_exception(e, "modification")
         self._initiate_callbacks(self._measurement_callbacks, data)
