@@ -37,6 +37,7 @@ class OpentronsAdapter(StartStopAdapter):
     Therefore, this adapter aims to transmit these steps rahter than measurements.
     """
     def __init__(self,instance_data: dict,output: OutputModule,
+                 write_file=None,
                  maximum_message_size: Optional[int] = 1, 
                  error_holder: Optional[ErrorHolder] = None):
         """
@@ -52,7 +53,7 @@ class OpentronsAdapter(StartStopAdapter):
         metadata_manager = MetadataManager()
         # Its unsure what this mechanism will be.
         # It will either be filewatching or using this journalctl approach.
-        self._write_file = "test/test.test"
+        self._write_file = write_file
         # This last_line appraoch probably wont work. Maybe some other method 
         # where we can only get the difference would be useful.
         # Keep track of last line or if there is some other way...

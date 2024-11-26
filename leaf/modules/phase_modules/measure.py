@@ -76,12 +76,11 @@ class MeasurePhase(PhaseModule):
                 )
                 self._handle_exception(excp)
                 return
-
             if isinstance(result,(set,list,tuple)):
                 chunks = [result[i:i + self._maximum_message_size] for 
                           i in range(0, len(result), self._maximum_message_size)]
-                for data in chunks:
-                    self._transmit_message(exp_id,data)
+                for chunk in chunks:
+                    self._transmit_message(exp_id,chunk)
                     time.sleep(0.1)
             else:
                 self._transmit_message(exp_id,result)
@@ -97,7 +96,7 @@ class MeasurePhase(PhaseModule):
             result = result.to_json()
             measurement = result["measurement"]
         elif isinstance(result,list):
-            pass
+            result = [l.to_json() if isinstance(l, InfluxPoint) else l for l in result]
         else:
             logger.error(f"Unknown measurement data type: {type(result)}")
         

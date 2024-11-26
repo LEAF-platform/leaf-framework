@@ -187,7 +187,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 return
             with open(fp, 'r') as file:
                 if self._last_line:
-                    data = file.readlines()[-1]
+                    data = [file.readlines()[-1]]
                 else:
                     data = file.read()
         except Exception as e:
