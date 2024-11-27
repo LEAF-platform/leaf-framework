@@ -12,6 +12,7 @@ import time
 import logging
 import argparse
 from typing import Any, List
+from urllib.parse import urlparse
 
 import yaml
 import signal
@@ -68,6 +69,13 @@ def parse_args(args=None) -> argparse.Namespace:
     )
     return parser.parse_args(args)
 
+def is_url(string: str) -> bool:
+    """Check if a string is a valid URL."""
+    try:
+        result = urlparse(string)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
 
 def signal_handler(signal_received, frame) -> None:
     """Handles shutting down of adapters when program is terminating."""
@@ -255,8 +263,16 @@ def run_adapters(equipment_instances, output, error_handler):
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
                 logging.info(f"Simulator started for instance {instance_id}.")
-                if not os.path.isfile(simulated["filename"]):
-                    raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
+                # Filenames, strings or a list of strings all stored in a temp list
+                filenames = []
+                if not isinstance(simulated["filename"], list):
+                    filenames.append(simulated["filename"])
+                for filename in filenames:
+                    if not os.path.isfile(filename):
+                        # Check if it is a URL
+                        if is_url(filename):
+                            continue
+                        raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
 
                 thread = _run_simulation_in_thread(
                     adapter, simulated["filename"], simulated["interval"]
