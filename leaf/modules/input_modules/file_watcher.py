@@ -58,7 +58,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             raise AdapterBuildError(f'{file_path} is not a valid path for FileWatcher.')
         
         if self._path == "":
-            self._path = ""
+            self._path = "."
 
         # Observer attributes
         self._observer = Observer()
