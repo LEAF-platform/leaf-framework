@@ -3,6 +3,7 @@ import shutil
 import sys
 import time
 import unittest
+from datetime import datetime
 from threading import Thread
 import yaml
 import tempfile
@@ -41,7 +42,7 @@ measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
 
 
-def _create_file(adapter):
+def _create_file(adapter) -> None:
     watch_file = adapter._write_file
     if os.path.isfile(watch_file):
         os.remove(watch_file)
@@ -49,7 +50,7 @@ def _create_file(adapter):
     time.sleep(1)
 
 
-def _modify_file(adapter):
+def _modify_file(adapter) -> None:
     watch_file = adapter._write_file
     with open(measurement_file, "r") as src:
         content = src.read()
@@ -58,14 +59,14 @@ def _modify_file(adapter):
     time.sleep(1)
 
 
-def _delete_file(adapter):
+def _delete_file(adapter) -> None:
     watch_file = adapter._write_file
     if os.path.isfile(watch_file):
         os.remove(watch_file)
 
 
 class TestAdapterArray(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
 
         self.temp_dir = tempfile.TemporaryDirectory()
 
@@ -119,13 +120,13 @@ class TestAdapterArray(unittest.TestCase):
             self.mock_client.subscribe(wildcard_measure)
             time.sleep(1)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for adapter in self.adapter_array:
             self._flush_topics(adapter)
 
         self.temp_dir.cleanup()
 
-    def _run_adapters(self):
+    def _run_adapters(self) -> list[Thread]:
         adapter_threads = []
         for adapter in self.adapter_array:
             thread = Thread(target=adapter.start)
@@ -134,13 +135,13 @@ class TestAdapterArray(unittest.TestCase):
             adapter_threads.append(thread)
         return adapter_threads
 
-    def _stop_adapters(self, adapter_threads):
+    def _stop_adapters(self, adapter_threads: list[Thread]) -> None:
         for adapter in self.adapter_array:
             adapter.stop()
         for thread in adapter_threads:
             thread.join()
 
-    def test_details(self):
+    def test_details(self) -> None:
         threads = self._run_adapters()
         time.sleep(1)
         self._stop_adapters(threads)
@@ -156,7 +157,7 @@ class TestAdapterArray(unittest.TestCase):
                 details_data["instance_id"],
             )
 
-    def test_start(self):
+    def test_start(self) -> None:
         threads = self._run_adapters()
         time.sleep(1)
         for adapter in self.adapter_array:
@@ -166,7 +167,7 @@ class TestAdapterArray(unittest.TestCase):
 
         for adapter in self.adapter_array:
             start_topic = adapter._metadata_manager.experiment.start()
-            self.assertIn(start_topic, self.mock_client.messages)
+            self.assertIn(start_topic, self.mock_client.messages.keys())
             self.assertTrue(len(self.mock_client.messages[start_topic]) == 1)
             self.assertIn("experiment_id", self.mock_client.messages[start_topic][0])
             self.assertIn(
@@ -180,7 +181,7 @@ class TestAdapterArray(unittest.TestCase):
             expected_run = "True"
             self.assertEqual(self.mock_client.messages[running_topic][0], expected_run)
 
-    def test_stop(self):
+    def test_stop(self) -> None:
         threads = self._run_adapters()
         time.sleep(1)
         for adapter in self.adapter_array:
@@ -196,13 +197,17 @@ class TestAdapterArray(unittest.TestCase):
             running_topic = adapter._metadata_manager.running()
             self.assertIn(stop_topic, self.mock_client.messages)
             self.assertTrue(len(self.mock_client.messages[stop_topic]) == 1)
-            self.assertIn("timestamp", self.mock_client.messages[stop_topic][0])
+            logging.debug(self.mock_client.messages)
+            timestamp_string = self.mock_client.messages[stop_topic][0]
+            # Check if it is a valid timestamp
+            self.assertTrue(datetime.strptime(timestamp_string, '%Y-%m-%d %H:%M:%S'), "The datetime should be valid")
+            # self.assertIn("timestamp", self.mock_client.messages[stop_topic][0])
 
             self.assertIn(running_topic, self.mock_client.messages)
             expected_run = "False"
             self.assertEqual(self.mock_client.messages[running_topic][1], expected_run)
 
-    def test_running(self):
+    def test_running(self) -> None:
         threads = self._run_adapters()
         time.sleep(1)
         for adapter in self.adapter_array:
@@ -220,7 +225,7 @@ class TestAdapterArray(unittest.TestCase):
             expected_run = "True"
             self.assertEqual(self.mock_client.messages[running_topic][0], expected_run)
 
-    def test_logic(self):
+    def test_logic(self) -> None:
         threads = self._run_adapters()
         self.mock_client.reset_messages()
         time.sleep(1)
@@ -272,7 +277,7 @@ class TestAdapterArray(unittest.TestCase):
 
         self.mock_client.reset_messages()
 
-    def _flush_topics(self, adapter):
+    def _flush_topics(self, adapter: Biolector1Adapter) -> None:
         details_topic = adapter._metadata_manager.details()
         start_topic = adapter._metadata_manager.experiment.start()
         stop_topic = adapter._metadata_manager.experiment.stop()

@@ -15,7 +15,7 @@ class TestHelloWorld(unittest.TestCase):
             os.remove("app.log")
 
     def test_hello_world_adapter(self) -> None:
-        self.output = MQTT("test.mosquitto.org", 1883)
+        self.output = MQTT("localhost", 1883)
         # self.output.transmit("test", """'{"test": "test"}""")
         self.instance_data: dict[str, str] = {
             "instance_id": "test_maq",

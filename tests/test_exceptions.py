@@ -11,6 +11,8 @@ from threading import Thread
 import time
 import csv
 
+from leaf.modules.output_modules.file import FILE
+
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -121,7 +123,7 @@ class TestExceptionsInit(unittest.TestCase):
             "OUTPUTS": [
                 {
                     "plugin": "MQTTT",
-                    "broker": "test.mosquitto.org",
+                    "broker": "localhost",
                     "port": 1883,
                     "fallback": "KEYDB",
                 },
@@ -143,7 +145,7 @@ class TestExceptionsInit(unittest.TestCase):
             "OUTPUTS": [
                 {
                     "plugin": "MQTT",
-                    "broker": "test.mosquitto.org",
+                    "broker": "localhost",
                     "port": 1883,
                     "fallback": "KEYDBB",
                 },
