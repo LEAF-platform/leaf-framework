@@ -39,6 +39,8 @@ test:
     # - python -m pip install pytest
     # - python -m pip install pytest-xdist
   script:
+    - poetry lock
+    - poetry install
     # - pip install -r requirements.txt
     - pytest tests/ --junitxml=test-reports/report.xml -n auto
 #    - mkdir -p reports  # Ensure the reports directory exists
