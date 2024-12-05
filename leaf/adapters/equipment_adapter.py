@@ -14,7 +14,6 @@ from leaf.error_handler.error_holder import ErrorHolder
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "equipment_adapter.json")
 
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 
 class AbstractInterpreter(ABC):
@@ -100,9 +99,7 @@ class EquipmentAdapter(ABC):
         if not isinstance(process_adapters, (list, tuple, set)):
             process_adapters = [process_adapters]
 
-        logger.debug(f"Process adapters {process_adapters}")
-        self._processes: List['ProcessModule'] = process_adapters
-        logger.debug(f"Processes {self._processes}")
+        self._processes: List[ProcessModule] = process_adapters
 
         [p.set_interpreter(interpreter) for p in self._processes]
 
@@ -123,6 +120,15 @@ class EquipmentAdapter(ABC):
         watcher.set_error_holder(error_holder)
         [p.set_error_holder(error_holder) for p in self._processes]
 
+        ins_id = self._metadata_manager.get_instance_id()
+        unique_logger_name = f"{__name__}.{ins_id}"
+        self._logger = get_logger(
+            name=unique_logger_name,
+            log_file=f"{ins_id}.log",
+            error_log_file=f"{ins_id}_error.log",
+            log_level=logging.INFO
+        )
+
     def start(self) -> None:
         """
         Start the equipment adapter process. 
@@ -130,9 +136,20 @@ class EquipmentAdapter(ABC):
         """
         self._stop_event.clear()
         if not self._metadata_manager.is_valid():
-            logger.error(f"{self._metadata_manager.get_instance_id()} is missing data.")
+            ins_id = self._metadata_manager.get_instance_id()
+            excp = exceptions.AdapterLogicError(f"{ins_id} is missing data.",
+                                                severity=exceptions.SeverityLevel.CRITICAL)
+            self._logger.error(f"Critical error, shutting down this adapter: {excp}",
+                            exc_info=excp)
+            self._handle_exception(excp)
             return self.stop()
 
+        ins_id = self._metadata_manager.get_instance_id()
+        excp = exceptions.AdapterLogicError(f"{ins_id} is missing data.",
+                                            severity=exceptions.SeverityLevel.ERROR)
+        self._logger.error(f"Critical error, shutting down this adapter: {excp}",
+                        exc_info=excp)
+        self._handle_exception(excp)
         try:
             self._watcher.start()
             while not self._stop_event.is_set():
@@ -141,20 +158,21 @@ class EquipmentAdapter(ABC):
                     continue
                 for error, tb in self._error_holder.get_unseen_errors():
                     if not isinstance(error, LEAFError):
-                        logger.error(
+                        self._logger.error(
                             f"{error} added to error holder, only LEAF errors should be used.",
                             exc_info=error)
                         return self.stop()
 
+                    self.transmit_error(error)
                     if error.severity == exceptions.SeverityLevel.CRITICAL:
-                        logger.error(
+                        self._logger.error(
                             f"Critical error, shutting down this adapter: {error}",
                             exc_info=error,
                         )
                         self._stop_event.set()
                         self.stop()
                     elif error.severity == exceptions.SeverityLevel.ERROR:
-                        logger.error(
+                        self._logger.error(
                             f"Error, resetting this adapter: {error}", exc_info=error
                         )
                         self.stop()
@@ -162,21 +180,21 @@ class EquipmentAdapter(ABC):
 
                     elif error.severity == exceptions.SeverityLevel.WARNING:
                         if isinstance(error, exceptions.InputError):
-                            logger.warning(
+                            self._logger.warning(
                                 f"Warning Input error, taking action on this adapter: {error}",
                                 exc_info=error)
                             if self._watcher.is_running():
                                 self._watcher.stop()
                             self._watcher.start()
                         elif isinstance(error, exceptions.HardwareStalledError):
-                            logger.warning(
+                            self._logger.warning(
                                 f"Warning Hardware error, taking action on this adapter: {error}",
                                 exc_info=error)
                             # Not much can be done here
                             raise NotImplementedError()
                         elif isinstance(error, exceptions.ClientUnreachableError):
                             # This should generally not occur.
-                            logger.warning(
+                            self._logger.warning(
                                 f"Warning Client error, taking action on this adapter: {error}",
                                 exc_info=error)
                             if error.client is not None:
@@ -190,17 +208,17 @@ class EquipmentAdapter(ABC):
                             # Interpreter errors typically indicate data or implementation issues
                             pass
                     elif error.severity == exceptions.SeverityLevel.INFO:
-                        logger.info(
+                        self._logger.info(
                             f"Information error, no action needed: {error}", exc_info=error)
 
         except KeyboardInterrupt:
-            logger.info("User keyboard input stopping adapter.")
+            self._logger.info("User keyboard input stopping adapter.")
             self._stop_event.set()
         except Exception as e:
-            logger.error(f"Unexpected error: {e}", exc_info=True)
+            self._logger.error(f"Unexpected error: {e}", exc_info=True)
             self._stop_event.set()
         finally:
-            logger.info("Stopping the watcher and cleaning up.")
+            self._logger.info("Stopping the watcher and cleaning up.")
             self._watcher.stop()
             self.stop()
 
@@ -210,6 +228,7 @@ class EquipmentAdapter(ABC):
 
         Stops the watcher and flushes all output channels.
         """
+        # Could do with a rework.
         for process in self._processes:
             for phase in process._phases:
                 phase._output.flush(self._metadata_manager.details())
@@ -220,6 +239,17 @@ class EquipmentAdapter(ABC):
         if self._watcher.is_running():
             self._watcher.stop()
 
+
+    def transmit_error(self,error):
+        # Could do with a rework.
+        # Initially designed as each phase 
+        # could have different outputs but that 
+        # isnt a thing anymore.
+        for process in self._processes:
+            for phase in process._phases:
+                error_topic = self._metadata_manager.error()
+                phase._output.transmit(error_topic,str(error))
+                return
 
     def _handle_exception(self, exception: Exception) -> None:
         if self._error_holder is not None:

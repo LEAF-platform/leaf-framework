@@ -1,4 +1,4 @@
-import logging
+
 from datetime import datetime
 import time
 import csv
@@ -6,10 +6,9 @@ from typing import Optional, List, Callable
 from watchdog.events import FileSystemEvent
 
 from leaf.modules.input_modules.file_watcher import FileWatcher
-from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.exceptions import InputError
 from leaf.metadata_manager.metadata import MetadataManager
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
+
 
 class CSVWatcher(FileWatcher):
     """
