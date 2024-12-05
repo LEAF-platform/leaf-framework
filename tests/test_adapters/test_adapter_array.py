@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import sys
@@ -9,6 +10,8 @@ import yaml
 import tempfile
 import uuid
 
+from leaf.modules.logger_modules.logger_utils import get_logger
+
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -17,9 +20,10 @@ from leaf.adapters.functional_adapters.biolector1.adapter import Biolector1Adapt
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
 
-import logging
+logger = get_logger(__name__, log_file="global.log",
+                    error_log_file="global_error.log",
+                    log_level=logging.INFO)
 
-logging.basicConfig(level=logging.DEBUG)
 
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -239,7 +243,7 @@ class TestAdapterArray(unittest.TestCase):
             start_topic = adapter._metadata_manager.experiment.start()
             stop_topic = adapter._metadata_manager.experiment.stop()
             running_topic = adapter._metadata_manager.running()
-
+            logger.debug(f"Number of messages: {len(self.mock_client.messages.keys())}")
             self.assertTrue(len(self.mock_client.messages.keys()) == 2)
             self.assertIn(details_topic, self.mock_client.messages)
             exp_tp = adapter._metadata_manager.experiment.measurement()
