@@ -1,17 +1,19 @@
-from typing import Literal, Union,Any
-import paho.mqtt.client as mqtt
-import time
-import logging
 import json
-from socket import gaierror
-from paho.mqtt.enums import CallbackAPIVersion
+import time
 from socket import error as socket_error
-from leaf.modules.output_modules.output_module import OutputModule
-from leaf.error_handler.exceptions import ClientUnreachableError
-from leaf.error_handler.exceptions import AdapterBuildError
-from leaf.error_handler.exceptions import SeverityLevel
+from socket import gaierror
+from typing import Literal, Union, Any
+
+from leaf import start
+import paho.mqtt.client as mqtt
+from paho.mqtt.enums import CallbackAPIVersion
+
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import AdapterBuildError, LEAFError
+from leaf.error_handler.exceptions import ClientUnreachableError
+from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.output_modules.output_module import OutputModule
 
 FIRST_RECONNECT_DELAY = 1
 RECONNECT_RATE = 2
@@ -81,6 +83,7 @@ class MQTT(OutputModule):
                                   protocol=self.protocol, 
                                   transport=transport)
         self.client.on_connect = self.on_connect
+        self.client.on_connect_fail = self.on_connect_fail
         self.client.on_disconnect = self.on_disconnect
         self.client.on_log = self.on_log
         self.client.on_message = self.on_message
@@ -212,6 +215,22 @@ class MQTT(OutputModule):
             }
             message = error_messages.get(rc, f"Unknown connection error with code {rc}")
             self._handle_exception(ClientUnreachableError(f"Connection refused: {message}", output_module=self))
+
+    def on_connect_fail(self, client, userdata, flags, rc, metadata=None):
+        """
+        Callback for when the client fails to connect to the broker.
+
+        Args:
+            client: The MQTT client instance.
+            userdata: The private user data as set in
+                      Client() or userdata_set().
+            flags: Response flags sent by the broker.
+            rc: The connection result code.
+            metadata: Additional metadata (if any).
+        """
+        logger.error(f"Connection failed: {rc}")
+        leaf_error = LEAFError("Failed to connect", SeverityLevel.CRITICAL)
+        self._handle_exception(leaf_error)
 
     def on_disconnect(self, client: mqtt.Client, userdata: Any, flags: mqtt.DisconnectFlags, rc, properties= None) -> None:
         """

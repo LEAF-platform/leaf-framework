@@ -66,7 +66,7 @@ class AbstractInterpreter(ABC):
         """
         pass
 
-    def _handle_exception(self, exception: Exception) -> None:
+    def _handle_exception(self, exception: LEAFError) -> None:
         if self._error_holder is not None:
             self._error_holder.add_error(exception)
         else:
