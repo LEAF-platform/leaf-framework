@@ -24,12 +24,15 @@ influxobject = "~0.0.1"
 pyyaml = "~6.0.2"
 poetry = "~1.8.3"
 watchdog = "~2.1.6"
-# mypy = "~0.910.0"
 pandas = "~2.2.3"
 dateparser = "~1.2.0"
 
+
 [tool.poetry.scripts]
 leaf = "leaf.start:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest-xdist = "^3.6.1"
 
 [build-system]
 requires = ["poetry-core"]

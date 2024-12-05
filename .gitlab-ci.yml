@@ -7,15 +7,14 @@ test:
   stage: test
   image: registry.gitlab.com/labequipmentadapterframework/leaf:runner
   before_script:
-    - mosquitto -d # Start mosquitto
-    - redis-server --daemonize yes # Start Redis
+    - mosquitto -d
+    - redis-server --daemonize yes
     - poetry lock
     - poetry install
-    - source $(poetry env info --path)/bin/activate
+    - poetry env info  # Debug Poetry environment
+    - poetry show  # Check installed dependencies
   script:
-    - source $(poetry env info --path)/bin/activate
-    - poetry lock
-    - poetry install
+    - poetry show pytest-xdist  # Verify pytest-xdist is installed
     - pytest tests/ --junitxml=test-reports/report.xml -n auto
   artifacts:
     when: always
@@ -23,10 +22,4 @@ test:
       junit: test-reports/*.xml
     paths:
       - test-reports/
-  timeout: 10m  # Set job timeout (increase if needed for larger test suites)
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .venv/  # Cache the virtual environment (if using virtualenv)
-      - requirements.txt  # Cache requirements file
-      - __pycache__/  # Cache Python bytecode
+  timeout: 10m
