@@ -1,30 +1,36 @@
 # Use the official Python 3.12 image as the base image
 # FROM python:3.12
-FROM ubuntu:jammy-20240911.1
-
-# Set the working directory in the container
-# WORKDIR /app
-
-# Copy the requirements file into the container
-COPY requirements.txt .
-
-USER root
+FROM ubuntu:noble
 
 # Upgrade pip and install dependencies
-RUN apt-get update && apt-get install --yes python3 python3-pip python3-venv && \
-    python3 -m venv /app/venv && \
-    /app/venv/bin/pip install --upgrade pip && \
-    /app/venv/bin/pip install -r requirements.txt && \
-    /app/venv/bin/pip install pytest pytest-xdist
+RUN apt-get update && \
+    apt-get install -y python3-venv python3-pip lsb-release wget python3-launchpadlib software-properties-common &&\
+    apt-get update && \
+    add-apt-repository -y ppa:mosquitto-dev/mosquitto-ppa && \
+    apt-get install --yes mosquitto mosquitto-clients redis-server && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Update PATH to use the venv
-ENV PATH="/app/venv/bin:$PATH"
+# Add pyproject.toml and poetry.lock to the container \
+COPY pyproject.toml ./
 
-RUN apt-get update && apt-get install -y lsb-release wget && apt-get clean all
+RUN python3 -m venv /venv && \
+    . /venv/bin/activate && \
+    pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install
 
-# Install KeyDB
-RUN echo "deb https://download.keydb.dev/open-source-dist $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/keydb.list && \
-    wget -O /etc/apt/trusted.gpg.d/keydb.gpg https://download.keydb.dev/open-source-dist/keyring.gpg && apt update && apt install --yes systemctl keydb-server=6:6.3.3-1~jammy1 keydb-tools=6:6.3.3-1~jammy1
+# Activate the virtual environment by default
+ENV PATH="/venv/bin:$PATH"
 
+# Expose ports (e.g., Mosquitto and Redis)
+EXPOSE 1883 6379
 
-# TODO install MQTT broker (mosquitto?)
+# Copy the entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+
+# Set the entrypoint script as the entrypoint
+RUN chmod +x /entrypoint.sh
+
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
