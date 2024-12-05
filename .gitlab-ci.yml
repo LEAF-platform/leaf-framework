@@ -27,6 +27,7 @@ test:
   image: registry.gitlab.com/labequipmentadapterframework/leaf:runner
   before_script:
     - mosquitto -d # Start mosquitto
+    - redis-server --daemonize yes # Start Redis
     # - python3 --version
     # - keydb-server --version
     # - keydb-server & # Start the KeyDB server in the background
