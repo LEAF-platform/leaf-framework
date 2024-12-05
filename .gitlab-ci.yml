@@ -25,7 +25,8 @@ stages:
 test:
   stage: test
   image: registry.gitlab.com/labequipmentadapterframework/leaf:runner
-  # before_script:
+  before_script:
+    - mosquitto -d # Start mosquitto
     # - python3 --version
     # - keydb-server --version
     # - keydb-server & # Start the KeyDB server in the background
