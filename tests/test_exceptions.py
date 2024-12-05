@@ -1,17 +1,16 @@
-import sys
-import unittest
-import json
-from unittest.mock import patch, MagicMock, mock_open
-import yaml
-import errno
-import os
-from csv import Error as csv_error
-import paho.mqtt.client as mqtt
-from threading import Thread
-import time
 import csv
+import errno
+import json
+import os
+import sys
+import time
+import unittest
+from csv import Error as csv_error
+from threading import Thread
+from unittest.mock import patch, MagicMock, mock_open
 
-from leaf.modules.output_modules.file import FILE
+import paho.mqtt.client as mqtt
+import yaml
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -80,12 +79,12 @@ class MockBioreactorInterpreter(AbstractInterpreter):
     def measurement(self, data):
         return data
 
-    def simulate(self):
+    def simulate(self) -> None:
         return
 
 
 class MockEquipment(EquipmentAdapter):
-    def __init__(self, instance_data, fp, error_holder=None):
+    def __init__(self, instance_data, fp, error_holder=None) -> None:
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
@@ -116,10 +115,10 @@ class MockEquipment(EquipmentAdapter):
 
 
 class TestExceptionsInit(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
-    def test_start_get_output_module_not_found(self):
+    def test_start_get_output_module_not_found(self) -> None:
         config = {
             "OUTPUTS": [
                 {
@@ -141,7 +140,7 @@ class TestExceptionsInit(unittest.TestCase):
         with self.assertRaises(AdapterBuildError):
             _get_output_module(config, None)
 
-    def test_start_get_output_fallback_not_found(self):
+    def test_start_get_output_fallback_not_found(self) -> None:
         config = {
             "OUTPUTS": [
                 {
@@ -163,7 +162,7 @@ class TestExceptionsInit(unittest.TestCase):
         with self.assertRaises(AdapterBuildError):
             _get_output_module(config, None)
 
-    def test_start_get_output_invalid_params(self):
+    def test_start_get_output_invalid_params(self) -> None:
         config = {
             "OUTPUTS": [
                 {
@@ -184,7 +183,7 @@ class TestExceptionsInit(unittest.TestCase):
         with self.assertRaises(AdapterBuildError):
             _get_output_module(config, None)
 
-    def test_start_process_instance_not_found(self):
+    def test_start_process_instance_not_found(self) -> None:
         config = {
             "adapter": "BioLector123",
             "data": {"instance_id": "biolector_devonshire10", "institute": "NCL"},
@@ -194,7 +193,7 @@ class TestExceptionsInit(unittest.TestCase):
         with self.assertRaises(AdapterBuildError):
             _process_instance(config, output)
 
-    def test_start_process_instance_no_requirements(self):
+    def test_start_process_instance_no_requirements(self) -> None:
         config = {
             "adapter": "BioLector1",
             "data": {"instance_id": "biolector_devonshire10", "institute": "NCL"},
@@ -204,7 +203,7 @@ class TestExceptionsInit(unittest.TestCase):
         with self.assertRaises(AdapterBuildError):
             _process_instance(config, output)
 
-    def test_start_process_instance_missing_id(self):
+    def test_start_process_instance_missing_id(self) -> None:
         config = {
             "adapter": "BioLector1",
             "data": {"institute": "NCL"},
@@ -214,18 +213,18 @@ class TestExceptionsInit(unittest.TestCase):
         with self.assertRaises(AdapterBuildError):
             _process_instance(config, output)
 
-    def test_file_watcher_invalid_filepath(self):
+    def test_file_watcher_invalid_filepath(self) -> None:
         filepath = None
         metadata_manager = MetadataManager()
         with self.assertRaises(AdapterBuildError):
             FileWatcher(filepath, metadata_manager)
 
-    def test_output_module_connect(self):
+    def test_output_module_connect(self) -> None:
         f_broker = "Unknown_broker_addr"
         with self.assertRaises(ClientUnreachableError):
             MQTT(f_broker, clientid=None)
 
-    def test_raise_continous_discrete_process(self):
+    def test_raise_continous_discrete_process(self) -> None:
         metadata_manager = MetadataManager()
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         start_p = ControlPhase(
@@ -238,10 +237,10 @@ class TestExceptionsInit(unittest.TestCase):
 
         phase = [start_p, measure_p, stop_p]
 
-        def _init_cont_proc():
+        def _init_cont_proc() -> None:
             ContinousProcess(phase)
 
-        def _init_disc_proc():
+        def _init_disc_proc() -> None:
             DiscreteProcess([phase[0]])
 
         self.assertRaises(AdapterBuildError, _init_cont_proc)
@@ -249,7 +248,7 @@ class TestExceptionsInit(unittest.TestCase):
 
 
 class TestExceptionsGeneral(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.error_holder = MagicMock()
         self.broker = "test_broker"
         self.port = 1883
@@ -262,8 +261,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         )
         self.file_client = FILE(filename="test.json", error_holder=self.error_holder)
 
-    @patch("core.modules.output_modules.mqtt.mqtt.Client.connect")
-    def test_mqtt_module_cant_connect_init(self, mock_connect):
+    @patch("leaf.modules.output_modules.mqtt.mqtt.Client.connect")
+    def test_mqtt_module_cant_connect_init(self, mock_connect: MagicMock) -> None:
         mock_connect.side_effect = ClientUnreachableError("Broker unreachable")
         with self.assertRaises(ClientUnreachableError):
             self.mqtt_client.__init__(
@@ -271,9 +270,9 @@ class TestExceptionsGeneral(unittest.TestCase):
             )
         self.error_holder.add_error.assert_called_once()
 
-    @patch("core.modules.output_modules.mqtt.MQTT._handle_exception")
-    @patch("core.modules.output_modules.mqtt.mqtt.Client.publish")
-    def test_mqtt_module_cant_transmit(self, mock_publish, mock_handle_exception):
+    @patch("leaf.modules.output_modules.mqtt.MQTT._handle_exception")
+    @patch("leaf.modules.output_modules.mqtt.mqtt.Client.publish")
+    def test_mqtt_module_cant_transmit(self, mock_publish, mock_handle_exception) -> None:
         mock_publish.return_value.rc = mqtt.MQTT_ERR_NO_CONN
         self.mqtt_client.transmit("test/topic", "message")
 
@@ -281,16 +280,16 @@ class TestExceptionsGeneral(unittest.TestCase):
         first_call = mock_handle_exception.call_args_list[0]
         self.assertIn("no output mechanisms available", str(first_call))
 
-    @patch("core.modules.output_modules.mqtt.mqtt.Client.publish")
-    def test_mqtt_module_cant_flush(self, mock_publish):
+    @patch("leaf.modules.output_modules.mqtt.mqtt.Client.publish")
+    def test_mqtt_module_cant_flush(self, mock_publish) -> None:
         mock_publish.side_effect = ClientUnreachableError("No connection")
 
         with self.assertRaises(ClientUnreachableError):
             self.mqtt_client.flush("test/topic")
         self.error_holder.add_error.assert_called_once()
 
-    @patch("core.modules.output_modules.mqtt.MQTT._handle_exception")
-    def test_mqtt_module_on_connect_invalid_input(self, mock_handle_exception):
+    @patch("leaf.modules.output_modules.mqtt.MQTT._handle_exception")
+    def test_mqtt_module_on_connect_invalid_input(self, mock_handle_exception) -> None:
         self.mqtt_client.on_connect("test_client", None, None, rc=1)
         mock_handle_exception.assert_called_once()
         self.assertIn(
@@ -298,37 +297,37 @@ class TestExceptionsGeneral(unittest.TestCase):
             str(mock_handle_exception.call_args[0][0]),
         )
 
-    @patch("core.modules.output_modules.mqtt.mqtt.Client.connect")
-    def test_mqtt_module_on_connect_cant_reach_broker(self, mock_connect):
+    @patch("leaf.modules.output_modules.mqtt.mqtt.Client.connect")
+    def test_mqtt_module_on_connect_cant_reach_broker(self, mock_connect) -> None:
         mock_connect.side_effect = ClientUnreachableError("Server unavailable")
         with self.assertRaises(ClientUnreachableError):
             self.mqtt_client.__init__(
                 broker=self.broker, port=self.port, error_holder=self.error_holder
             )
 
-    @patch("core.modules.output_modules.keydb_client.redis.StrictRedis.set")
-    def test_keydb_transmit_cant_access_client(self, mock_set):
+    @patch("leaf.modules.output_modules.keydb_client.redis.StrictRedis.set")
+    def test_keydb_transmit_cant_access_client(self, mock_set) -> None:
         mock_set.side_effect = ClientUnreachableError("Unable to connect to KeyDB")
         self.keydb_client.transmit("test_key", "test_data")
         self.assertEqual(self.error_holder.add_error.call_count, 2)
 
-    @patch("core.modules.output_modules.keydb_client.KEYDB._handle_redis_error")
-    @patch("core.modules.output_modules.keydb_client.redis.StrictRedis")
-    def test_keydb_connect_cant_access_client(self, mock_redis, mock_handle_error):
+    @patch("leaf.modules.output_modules.keydb_client.KEYDB._handle_redis_error")
+    @patch("leaf.modules.output_modules.keydb_client.redis.StrictRedis")
+    def test_keydb_connect_cant_access_client(self, mock_redis, mock_handle_error) -> None:
         mock_redis.side_effect = ClientUnreachableError("Connection to KeyDB failed")
         with self.assertRaises(ClientUnreachableError):
             self.keydb_client.connect()
 
 
-    @patch("core.modules.output_modules.mqtt.mqtt.Client.on_disconnect")
-    def test_mqtt_module_on_disconnect_reconnect_failure(self, mock_on_disconnect):
+    @patch("leaf.modules.output_modules.mqtt.mqtt.Client.on_disconnect")
+    def test_mqtt_module_on_disconnect_reconnect_failure(self, mock_on_disconnect: MagicMock) -> None:
         mock_on_disconnect.side_effect = ClientUnreachableError("Reconnect failed")
-        self.mqtt_client.on_disconnect("test_client", None, rc=2)
+        self.mqtt_client.on_disconnect(client="test_client",userdata=None, rc=2, flags=DisconnectFlags.is_disconnect_packet_from_server)
         self.assertEqual(self.error_holder.add_error.call_count, 2)
 
-    @patch("core.modules.output_modules.file.open", new_callable=mock_open)
-    @patch("core.modules.output_modules.file.os.path.exists", return_value=True)
-    def test_file_transmit_cant_access_file(self, mock_exists, mock_open_file):
+    @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
+    @patch("leaf.modules.output_modules.file.os.path.exists", return_value=True)
+    def test_file_transmit_cant_access_file(self, mock_exists, mock_open_file) -> None:
         self.error_holder.reset_mock()  # Reset previous error calls
         mock_open_file.side_effect = OSError("Unable to open file")
 
@@ -338,8 +337,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         # Verify the error was handled
         self.error_holder.add_error.assert_called_once()
 
-    @patch("core.modules.output_modules.file.open", new_callable=mock_open)
-    def test_file_transmit_invalid_json(self, mock_open_file):
+    @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
+    def test_file_transmit_invalid_json(self, mock_open_file) -> None:
         self.error_holder.reset_mock()  # Reset previous error calls
         # Simulate a JSON decoding error
         mock_open_file.side_effect = json.JSONDecodeError("Invalid JSON", doc="", pos=0)
@@ -350,9 +349,9 @@ class TestExceptionsGeneral(unittest.TestCase):
         # Verify the error was handled
         self.error_holder.add_error.assert_called_once()
 
-    @patch("core.modules.output_modules.file.open", new_callable=mock_open)
-    @patch("core.modules.output_modules.file.os.path.exists", return_value=True)
-    def test_file_retrieve_cant_access_file(self, mock_exists, mock_open_file):
+    @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
+    @patch("leaf.modules.output_modules.file.os.path.exists", return_value=True)
+    def test_file_retrieve_cant_access_file(self, mock_exists, mock_open_file) -> None:
         self.error_holder.reset_mock()  # Reset previous error calls
         # Simulate an OSError during file retrieval
         mock_open_file.side_effect = OSError("Unable to access file")
@@ -365,8 +364,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.error_holder.add_error.assert_called_once()
 
     @patch("json.load", side_effect=json.JSONDecodeError("Invalid JSON", doc="", pos=0))
-    @patch("core.modules.output_modules.file.open", new_callable=mock_open)
-    def test_file_retrieve_invalid_json(self, mock_open_file, mock_json_load):
+    @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
+    def test_file_retrieve_invalid_json(self, mock_open_file, mock_json_load) -> None:
         # Attempt to retrieve data
         result = self.file_client.retrieve("test_topic")
 
@@ -374,7 +373,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertIsNone(result)
         self.error_holder.add_error.assert_called_once()
 
-    def test_start_handler_no_fallback(self):
+    def test_start_handler_no_fallback(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
             broker,
@@ -403,12 +402,12 @@ class TestExceptionsGeneral(unittest.TestCase):
             }
         ]
 
-        def _start():
+        def _start() -> None:
             mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
             mthread.start()
             return mthread
 
-        def _stop(thread):
+        def _stop(thread) -> None:
             stop_all_adapters()
             thread.join()
 
@@ -432,14 +431,14 @@ class TestExceptionsGeneral(unittest.TestCase):
             exc_type, exc_value, exc_traceback = log.exc_info
             for exp_exc in list(expected_exceptions):
                 if (
-                    type(exp_exc) == exc_type
-                    and exp_exc.severity == exc_value.severity
-                    and exp_exc.args == exc_value.args
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
 
-    def test_start_handler_no_connection(self):
+    def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
         if not os.path.isdir(write_dir):
@@ -471,12 +470,12 @@ class TestExceptionsGeneral(unittest.TestCase):
             }
         ]
 
-        def _start():
+        def _start() -> None:
             mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
             mthread.start()
             return mthread
 
-        def _stop(thread):
+        def _stop(thread) -> None:
             stop_all_adapters()
             thread.join()
 
@@ -502,16 +501,16 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_logs.remove(exp_log)
             for exp_exc in list(expected_exceptions):
                 if (
-                    type(exp_exc) == exc_type
-                    and exp_exc.severity == exc_value.severity
-                    and exp_exc.args == exc_value.args
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
         self.assertEqual(len(expected_logs), 0)
 
-    def test_start_handler_multiple_adapter_critical(self):
+    def test_start_handler_multiple_adapter_critical(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
         if not os.path.isdir(write_dir):
@@ -553,12 +552,12 @@ class TestExceptionsGeneral(unittest.TestCase):
             },
         ]
 
-        def _start():
+        def _start() -> None:
             mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
             mthread.start()
             return mthread
 
-        def _stop(thread):
+        def _stop(thread) -> None:
             stop_all_adapters()
             thread.join()
 
@@ -580,15 +579,15 @@ class TestExceptionsGeneral(unittest.TestCase):
             exc_type, exc_value, exc_traceback = log.exc_info
             for exp_exc in list(expected_exceptions):
                 if (
-                    type(exp_exc) == exc_type
-                    and exp_exc.severity == exc_value.severity
-                    and exp_exc.args == exc_value.args
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
 
-    def test_start_handler_multiple_adapter_reset(self):
+    def test_start_handler_multiple_adapter_reset(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
         if not os.path.isdir(write_dir):
@@ -630,12 +629,12 @@ class TestExceptionsGeneral(unittest.TestCase):
             },
         ]
 
-        def _start():
+        def _start() -> None:
             mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
             mthread.start()
             return mthread
 
-        def _stop(thread):
+        def _stop(thread) -> None:
             stop_all_adapters()
             thread.join()
 
@@ -648,7 +647,7 @@ class TestExceptionsGeneral(unittest.TestCase):
             )
             error_holder.add_error(exception)
             while not output.client.is_connected() or not _is_error_seen(
-                exception, error_holder
+                    exception, error_holder
             ):
                 time.sleep(0.1)
             self.assertTrue(output.client.is_connected())
@@ -660,16 +659,16 @@ class TestExceptionsGeneral(unittest.TestCase):
             exc_type, exc_value, exc_traceback = log.exc_info
             for exp_exc in list(expected_exceptions):
                 if (
-                    type(exp_exc) == exc_type
-                    and exp_exc.severity == exc_value.severity
-                    and exp_exc.args == exc_value.args
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
 
 class TestExceptionsAdapterSpecific(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.file_path = "/some/fake/path/file.txt"
         self.metadata_manager = MagicMock()
         self.file_watcher = FileWatcher(
@@ -680,8 +679,8 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             stop_callbacks=[MagicMock()],
         )
 
-    @patch("core.modules.input_modules.file_watcher.Observer.start")
-    def test_file_watcher_start_os_error(self, mock_observer_start):
+    @patch("leaf.modules.input_modules.file_watcher.Observer.start")
+    def test_file_watcher_start_os_error(self, mock_observer_start) -> None:
         # Simulate an OSError with specific errno (e.g., ENOSPC)
         mock_observer_start.side_effect = OSError(
             errno.ENOSPC, "No space left on device"
@@ -692,8 +691,8 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
 
         self.assertIn("Inotify watch limit reached", str(context.exception))
 
-    @patch("core.modules.input_modules.file_watcher.Observer.start")
-    def test_file_watcher_start_unexpected_os_error(self, mock_observer_start):
+    @patch("leaf.modules.input_modules.file_watcher.Observer.start")
+    def test_file_watcher_start_unexpected_os_error(self, mock_observer_start) -> None:
         # Simulate an OSError with an unexpected errno code
         mock_observer_start.side_effect = OSError("Unexpected OS error")
         with self.assertRaises(InputError) as context:
@@ -701,7 +700,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("Unexpected OS error", str(context.exception))
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_file_watcher_on_created_os_error(self, mock_open_file):
+    def test_file_watcher_on_created_os_error(self, mock_open_file) -> None:
         # Simulate an OSError during file opening on creation
         mock_open_file.side_effect = OSError("Failed to open file on creation")
         mock_event = MagicMock()
@@ -711,7 +710,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("I/O error during creation event", str(context.exception))
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_csv_watcher_on_created_parse_error(self, mock_open_file):
+    def test_csv_watcher_on_created_parse_error(self, mock_open_file) -> None:
         # Setup CSVWatcher and simulate csv.Error during file reading
         csv_watcher = CSVWatcher(
             file_path=self.file_path, metadata_manager=self.metadata_manager
@@ -724,7 +723,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("CSV parsing error", str(context.exception))
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_file_watcher_on_modified_not_found(self, mock_open_file):
+    def test_file_watcher_on_modified_not_found(self, mock_open_file) -> None:
         # Simulate a FileNotFoundError during file opening on modification
         mock_open_file.side_effect = FileNotFoundError("File not found on modification")
         mock_event = MagicMock()
@@ -736,7 +735,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         )
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_file_watcher_on_modified_os_error(self, mock_open_file):
+    def test_file_watcher_on_modified_os_error(self, mock_open_file) -> None:
         # Simulate an OSError during file modification
         mock_open_file.side_effect = OSError("OS error during modification")
         mock_event = MagicMock()
@@ -746,7 +745,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("I/O error during modification event", str(context.exception))
 
     @patch.object(FileWatcher, "_handle_exception")
-    def test_file_not_found_error(self, mock_handle_exception):
+    def test_file_not_found_error(self, mock_handle_exception) -> None:
         error = FileNotFoundError("File not found")
         self.file_watcher._file_event_exception(error, "creation")
 
@@ -756,7 +755,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("File not found during creation event", str(args))
 
     @patch.object(FileWatcher, "_handle_exception")
-    def test_permission_error(self, mock_handle_exception):
+    def test_permission_error(self, mock_handle_exception) -> None:
         error = PermissionError("Permission denied")
         self.file_watcher._file_event_exception(error, "modification")
 
@@ -768,7 +767,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         )
 
     @patch.object(FileWatcher, "_handle_exception")
-    def test_io_error(self, mock_handle_exception):
+    def test_io_error(self, mock_handle_exception) -> None:
         error = IOError("I/O error occurred")
         self.file_watcher._file_event_exception(error, "deletion")
 
@@ -778,7 +777,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("I/O error during deletion event", str(args))
 
     @patch.object(FileWatcher, "_handle_exception")
-    def test_unicode_decode_error(self, mock_handle_exception):
+    def test_unicode_decode_error(self, mock_handle_exception) -> None:
         error = UnicodeDecodeError("utf-8", b"", 0, 1, "invalid start byte")
         self.file_watcher._file_event_exception(error, "creation")
 
@@ -788,7 +787,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIn("Encoding error while reading file", str(args))
 
     @patch.object(FileWatcher, "_handle_exception")
-    def test_generic_error(self, mock_handle_exception):
+    def test_generic_error(self, mock_handle_exception) -> None:
         error = Exception("Generic error")
         self.file_watcher._file_event_exception(error, "modification")
 
@@ -797,19 +796,19 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertIsInstance(args, InputError)
         self.assertIn("Error during modification event", str(args))
 
-    def test_event_watcher_hardware_stalled(self):
+    def test_event_watcher_hardware_stalled(self) -> None:
         """
         When the FileWatcher cant monitor a file.
         """
         pass
 
-    def test_measurement_adapter_outlier(self):
+    def test_measurement_adapter_outlier(self) -> None:
         """
         When the FileWatcher cant monitor a file.
         """
         pass
 
-    def test_biolector_no_start(self):
+    def test_biolector_no_start(self) -> None:
         fp = os.path.join(test_file_dir, "biolector1_measurement.csv")
         with open(fp, "r", encoding="latin-1") as file:
             reader = list(csv.reader(file, delimiter=";"))
@@ -827,14 +826,14 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         for error, tb in actual_errors:
             for exp_exc in list(exp_excep):
                 if (
-                    type(exp_exc) == type(error)
-                    and exp_exc.severity == error.severity
-                    and exp_exc.args == error.args
+                        type(exp_exc) == type(error)
+                        and exp_exc.severity == error.severity
+                        and exp_exc.args == error.args
                 ):
                     exp_excep.remove(exp_exc)
         self.assertEqual(len(exp_excep), 0)
 
-    def test_biolector_interpreter_measurements(self):
+    def test_biolector_interpreter_measurements(self) -> None:
         measure_fp = os.path.join(test_file_dir, "biolector1_measurement.csv")
         metadata_fp = os.path.join(test_file_dir, "biolector1_metadata.csv")
         with open(metadata_fp, "r", encoding="latin-1") as file:
@@ -860,17 +859,17 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             )
             self.assertEqual(exp_excep.args, error.args)
 
-    def test_equipment_adapter_start_input_file_not_found(self):
+    def test_equipment_adapter_start_input_file_not_found(self) -> None:
         """Tests the starting file watcher when
         dir file is in doesnt exist"""
 
-        def _start_adapter(adapter):
+        def _start_adapter(adapter) -> None:
             mthread = Thread(target=adapter.start)
             mthread.daemon = True
             mthread.start()
             return mthread
 
-        def _stop_adapter(adapter, thread):
+        def _stop_adapter(adapter, thread) -> None:
             adapter.stop()
             thread.join()
 
@@ -910,25 +909,25 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             exc_type, exc_value, exc_traceback = log.exc_info
             for exp_exc in list(expected_exceptions):
                 if (
-                    type(exp_exc) == exc_type
-                    and exp_exc.severity == exc_value.severity
-                    and exp_exc.args == exc_value.args
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
 
-    def test_equipment_adapter_created_file_not_found(self):
+    def test_equipment_adapter_created_file_not_found(self) -> None:
         """Tests the handling of all the custom exceptions using
         the equipment adapter start and error holder system."""
 
-        def _start_adapter(adapter):
+        def _start_adapter(adapter: EquipmentAdapter) -> Thread:
             mthread = Thread(target=adapter.start)
             mthread.daemon = True
             mthread.start()
             return mthread
 
-        def _stop_adapter(adapter, thread):
+        def _stop_adapter(adapter, thread) -> None:
             adapter.stop()
             thread.join()
 
@@ -977,16 +976,16 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             print(exc_type,exc_value)
             for exp_exc in list(expected_exceptions):
                 if (
-                    type(exp_exc) == exc_type
-                    and exp_exc.severity == exc_value.severity
-                    and exp_exc.args == exc_value.args
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
 
 
-def _is_error_seen(exception, error_holder):
+def _is_error_seen(exception, error_holder: ErrorHolder) -> bool:
     for error in error_holder._errors:
         if exception == error["error"]:
             return error["is_seen"]
