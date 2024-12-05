@@ -180,6 +180,7 @@ class MQTT(OutputModule):
                                          qos=0, retain=True)
             error = self._handle_return_code(result.rc)
             if error is not None:
+                logger.error(f"Failed to flush retained messages on: {topic} {self._username}@{self._broker}")
                 self._handle_exception(error)
                 return self.fallback(topic, None)
         except ValueError:
