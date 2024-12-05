@@ -1,5 +1,4 @@
 import gzip
-import logging
 import os
 from datetime import datetime, date
 from typing import Any, Optional
@@ -10,12 +9,8 @@ from leaf.adapters.functional_adapters.table_simulator.interpreter import (
 )
 from leaf.metadata_manager.metadata import MetadataManager
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
-from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.error_holder import ErrorHolder
 
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
-
-# Note the biolector json file is an example, not a concrete decision on terms...
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "device.json")
 
@@ -41,15 +36,11 @@ class TableSimulatorAdapter(StartStopAdapter):
         sep: str = ",",
         error_holder: Optional[ErrorHolder] = None
     ) -> None:
-        logger.info(
-            f"Initializing TableSimulator with instance data {instance_data} and output {output} and write file {write_file}"
-        )
         metadata_manager: MetadataManager = MetadataManager()
         metadata_manager.add_metadata("sep", sep)
         metadata_manager.add_metadata("experiment", "experiment?")
         # Create a CSV watcher for the write file
         watcher: CSVWatcher = CSVWatcher(file_path=write_file, metadata_manager=metadata_manager)
-        logger.info(f"Watcher set: {watcher}")
         # measurements = {"experiment": {"measurement": "Aeration rate(Fg:L/h)"}}
         # measurements: list[str] = ["Aeration rate(Fg:L/h)"]
 

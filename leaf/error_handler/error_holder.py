@@ -1,12 +1,8 @@
 import threading
 import traceback
-import logging
 import time
 from collections import defaultdict
 from typing import Optional, List, Dict, Tuple, Any
-from leaf.modules.logger_modules.logger_utils import get_logger
-
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 class ErrorHolder:
     """

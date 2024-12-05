@@ -22,7 +22,7 @@ RECONNECT_RATE = 2
 MAX_RECONNECT_COUNT = 12
 MAX_RECONNECT_DELAY = 1
 
-logger = get_logger(__name__, log_file="app.log", log_level=logging.ERROR)
+logger = get_logger(__name__, log_file="mqtt.log", log_level=logging.ERROR)
 
 class MQTT(OutputModule):
     """
@@ -215,7 +215,7 @@ class MQTT(OutputModule):
                 4: 'Bad username or password',
                 5: 'Not authorized'
             }
-            message = error_messages.get(rc, f"Unknown connection error with code {rc}")
+            message = error_messages.get(rc.value, f"Unknown connection error with code {rc}")
             self._handle_exception(ClientUnreachableError(f"Connection refused: {message}", output_module=self))
 
     def on_connect_fail(self, client, userdata, flags, rc, metadata=None):

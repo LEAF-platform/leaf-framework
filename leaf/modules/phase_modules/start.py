@@ -12,7 +12,8 @@ class StartPhase(ControlPhase):
     """
     
     def __init__(self, output_adapter: OutputModule, 
-                 metadata_manager: MetadataManager) -> None:
+                 metadata_manager: MetadataManager,
+                 error_holder=None) -> None:
         """
         Initialize the StartPhase with the output adapter and metadata
         manager.
@@ -24,7 +25,8 @@ class StartPhase(ControlPhase):
                           associated with the phase.
         """
         term_builder = metadata_manager.experiment.start
-        super().__init__(output_adapter, term_builder, metadata_manager)
+        super().__init__(output_adapter, term_builder, metadata_manager,
+                         error_holder=error_holder)
 
     def update(self, data: Any) -> None:
         """

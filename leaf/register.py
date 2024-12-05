@@ -15,10 +15,7 @@ import logging
 from typing import List, Any
 from importlib.metadata import entry_points
 
-from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.exceptions import AdapterBuildError
-
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 adapter_dir = os.path.join(root_dir, "adapters")

@@ -11,8 +11,7 @@ import threading
 import time
 import logging
 import argparse
-from typing import Any, List
-from urllib.parse import urlparse
+from typing import Any
 
 import yaml
 import signal
@@ -23,6 +22,8 @@ from leaf import register
 from leaf.metadata_manager.metadata import MetadataManager
 
 from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.logger_modules.logger_utils import set_log_dir
+
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
@@ -34,8 +35,12 @@ from leaf.error_handler.exceptions import SeverityLevel
 #            VARIABLES
 #
 ###################################
-log_level = logging.INFO
-logger = get_logger(__name__, log_file="app.log", log_level=log_level)
+cache_dir = "cache"
+error_log_dir = os.path.join(cache_dir,"error_logs")
+set_log_dir(error_log_dir)
+logger = get_logger(__name__, log_file="global.log",
+                    error_log_file="global_error.log",
+                    log_level=logging.INFO)
 adapters: list[Any] = []
 
 ##################################
@@ -44,7 +49,7 @@ adapters: list[Any] = []
 #
 ###################################
 
-def parse_args(args=None) -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     """Parses commandline arguments."""
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
@@ -67,15 +72,8 @@ def parse_args(args=None) -> argparse.Namespace:
     parser.add_argument(
         "--guidisable", action="store_false", help="Whether or not to disable the GUI."
     )
-    return parser.parse_args(args)
+    return parser.parse_args()
 
-def is_url(string: str) -> bool:
-    """Check if a string is a valid URL."""
-    try:
-        result = urlparse(string)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
 
 def signal_handler(signal_received, frame) -> None:
     """Handles shutting down of adapters when program is terminating."""
@@ -201,7 +199,7 @@ def _process_instance(instance, output):
         )
     try:
         error_holder = ErrorHolder(instance_id)
-        return adapter(instance_data=instance_data, output=output, error_holder=error_holder, **requirements)
+        return adapter(instance_data, output, error_holder=error_holder, **requirements)
     except ValueError as ex:
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
@@ -244,7 +242,6 @@ def run_adapters(equipment_instances, output, error_handler):
     try:
         # Initialize and start all adapters
         for equipment_instance in equipment_instances:
-            logger.info(f"Processing instance: {equipment_instance}")
             simulated = None
             equipment_instance = equipment_instance["equipment"]
 
@@ -263,16 +260,8 @@ def run_adapters(equipment_instances, output, error_handler):
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
                 logging.info(f"Simulator started for instance {instance_id}.")
-                # Filenames, strings or a list of strings all stored in a temp list
-                filenames = []
-                if not isinstance(simulated["filename"], list):
-                    filenames.append(simulated["filename"])
-                for filename in filenames:
-                    if not os.path.isfile(filename):
-                        # Check if it is a URL
-                        if is_url(filename):
-                            continue
-                        raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
+                if not os.path.isfile(simulated["filename"]):
+                    raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
 
                 thread = _run_simulation_in_thread(
                     adapter, simulated["filename"], simulated["interval"]
@@ -297,6 +286,9 @@ def run_adapters(equipment_instances, output, error_handler):
                     output.disconnect()
                     stop_all_adapters()
                     return
+                
+                for adapter in adapters:
+                    adapter.transmit_error(error)
                 if error.severity == SeverityLevel.CRITICAL:
                     logger.error(
                         f"Critical error encountered: {error}. Shutting down.",
@@ -375,23 +367,17 @@ sys.excepthook = handle_exception
 #        FUNCTION: Main
 #
 ###################################
-def main(args=None):
+def main():
     """Main function as a wrapper for all steps."""
     logging.info("Starting the proxy.")
-    args = parse_args(args)
+    args = parse_args()
 
     if args.config is None:
         logging.error("No configuration file provided (See the documentation for more details).")
         return
-    if os.path.exists(args.config) is False:
-        abs_path = os.path.abspath(args.config)
-        logging.error(f"Configuration file {abs_path} not found.")
-        return
 
     if args.debug:
         logging.debug("Debug logging enabled.")
-        log_level = logging.DEBUG
-
 
     logging.debug(f"Loading configuration file: {args.config}")
 
@@ -401,13 +387,9 @@ def main(args=None):
     logging.info(f"Configuration: {args.config} loaded.")
     general_error_holder = ErrorHolder()
     output = _get_output_module(config, general_error_holder)
-    # Dynamc loading of adapters
-    # available_adapters: List[Any] = load_adapters()
-    # Run the adapters
-    run_adapters(equipment_instances=config["EQUIPMENT_INSTANCES"], output=output, error_handler=general_error_holder)
+    run_adapters(config["EQUIPMENT_INSTANCES"], output, 
+                 general_error_holder)
 
 
 if __name__ == "__main__":
-    sys.argv.append("--config")
-    sys.argv.append("../config.yaml")
     main()

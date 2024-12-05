@@ -1,11 +1,7 @@
-import logging
 from typing import Optional, Callable, List
 from leaf.metadata_manager.metadata import MetadataManager
-from leaf.modules.logger_modules.logger_utils import get_logger
 from abc import ABC
 from abc import abstractmethod
-logger = get_logger(__name__, log_file="app.log", 
-                    log_level=logging.DEBUG)
 
 class EventWatcher(ABC):
     """
