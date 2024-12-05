@@ -13,7 +13,8 @@ class ControlPhase(PhaseModule):
     def __init__(self, 
                  output_module: OutputModule, 
                  phase_term: str, 
-                 metadata_manager: MetadataManager) -> None:
+                 metadata_manager: MetadataManager,
+                 error_holder=None) -> None:
         """
         Initialise the ControlPhase with the output adapter, 
         phase term, and metadata manager.
@@ -26,7 +27,8 @@ class ControlPhase(PhaseModule):
             metadata_manager (MetadataManager): Manages metadata 
                              associated with the phase.
         """
-        super().__init__(output_module, phase_term, metadata_manager)
+        super().__init__(output_module, phase_term, metadata_manager,
+                         error_holder=error_holder)
 
     def update(self, data: Optional[Any] = None, **kwargs: Any) -> None:
         """

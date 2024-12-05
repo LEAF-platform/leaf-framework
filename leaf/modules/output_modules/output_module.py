@@ -1,17 +1,10 @@
 from abc import abstractmethod
 from abc import ABC
-import logging
 
 from leaf.error_handler.exceptions import AdapterLogicError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.modules.logger_modules.logger_utils import get_logger
-
-logger = get_logger(__name__, log_file="app.log", log_level=logging.WARNING)
-
-from leaf.modules.input_modules.file_watcher import logger
-
 
 class OutputModule(ABC):
     """
@@ -53,7 +46,6 @@ class OutputModule(ABC):
                    data should be transmitted.
             data: The data to be transmitted.
         """
-        logger.error("Method 'transmit' must be implemented in a subclass.")
         pass
     
     def fallback(self, topic:str , data:str) -> None:
@@ -79,7 +71,6 @@ class OutputModule(ABC):
         Only needs to be called if the disable 
         function has been called previously.
         '''
-        logger.info(f'{self.__class__.__name__} is enabled as an output.')
         self._enabled = True
 
     def disable(self):
@@ -88,7 +79,6 @@ class OutputModule(ABC):
         This will be used to disable output modules which arent 
         working for whatever reason to stop them locking the system.
         '''
-        logger.warning(f'{self.__class__.__name__} is disabled as an output.')
         self._enabled = False
 
     def _handle_exception(self,exception:LEAFError):

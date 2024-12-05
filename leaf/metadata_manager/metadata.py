@@ -1,13 +1,9 @@
 import json
-import logging
 import os
 import re
 from typing import Any, Optional
 
 import yaml
-from leaf.modules.logger_modules.logger_utils import get_logger
-
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 equipment_key = "equipment"
 
@@ -15,7 +11,6 @@ equipment_key = "equipment"
 class MetadataManager:
     def __init__(self) -> None:
         """Initialize the metadata dictionary for each adapter."""
-        logger.info("Initializing MetadataManager")
         self._metadata: dict = {}
         self.equipment_terms: Optional[EquipmentTerms] = None
         self.required_keys: set[str] = set()
@@ -48,7 +43,6 @@ class MetadataManager:
 
     def load_from_file(self, file_path, adapter_type=None) -> None:
         """Load metadata from a JSON file and update the metadata dictionary."""
-        logger.debug(f"Loading metadata from file {file_path}")
         try:
             with open(file_path, "r") as file:
                 if adapter_type is not None:
@@ -86,8 +80,6 @@ class MetadataManager:
     def is_valid(self) -> bool:
         """Check if all required keys are present in the metadata."""
         missing_keys = [key for key in self.required_keys if key not in self._metadata.get(equipment_key, {})]
-        if missing_keys:
-            logger.warning(f"Missing required keys in metadata: {missing_keys}")
         return not missing_keys
 
     def __getattr__(self, item: str) -> Any:

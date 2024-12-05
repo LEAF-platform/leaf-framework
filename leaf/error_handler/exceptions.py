@@ -1,7 +1,4 @@
-import logging
 from enum import Enum
-from leaf.modules.logger_modules.logger_utils import get_logger
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 
 class SeverityLevel(Enum):
@@ -25,7 +22,6 @@ class LEAFError(Exception):
     def upgrade_severity(self):
         upgr_sev = self._next_severity_level(self.severity)
         if upgr_sev != self.severity:
-            #logger.warning(f"Severity ({self}) - {self.severity} to {upgr_sev}")
             self._severity = upgr_sev
 
     def _next_severity_level(self, current_severity):

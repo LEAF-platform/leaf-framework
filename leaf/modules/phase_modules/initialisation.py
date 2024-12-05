@@ -11,7 +11,8 @@ class InitialisationPhase(ControlPhase):
     
     def __init__(self, 
                  output_module: OutputModule, 
-                 metadata_manager: MetadataManager) -> None:
+                 metadata_manager: MetadataManager,
+                 error_holder=None) -> None:
         """
         Initialise the InitialisationPhase with 
         the output adapter and metadata manager.
@@ -22,7 +23,8 @@ class InitialisationPhase(ControlPhase):
         """
         phase_term = metadata_manager.details
         super().__init__(output_module, phase_term, 
-                         metadata_manager)
+                         metadata_manager,
+                         error_holder=error_holder)
 
     def update(self, data: Optional[Any] = None):
         """

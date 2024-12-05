@@ -10,7 +10,7 @@ from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.exceptions import AdapterBuildError, InputError
 from leaf.metadata_manager.metadata import MetadataManager
-logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
 
 class FileWatcher(FileSystemEventHandler, EventWatcher):
     """
