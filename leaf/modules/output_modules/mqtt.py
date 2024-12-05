@@ -15,6 +15,8 @@ from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.output_modules.output_module import OutputModule
 
+import logging
+
 FIRST_RECONNECT_DELAY = 1
 RECONNECT_RATE = 2
 MAX_RECONNECT_COUNT = 12
