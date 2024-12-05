@@ -80,7 +80,8 @@ class MeasurePhase(PhaseModule):
             if isinstance(result,(set,list,tuple)):
                 chunks = [result[i:i + self._maximum_message_size] for 
                           i in range(0, len(result), self._maximum_message_size)]
-                for data in chunks:
+                for index, data in enumerate(chunks):
+                    logger.debug(f"Transmitting chunk {index} of {len(chunks)}")
                     self._transmit_message(exp_id,data)
                     time.sleep(0.1)
             else:
