@@ -28,6 +28,7 @@ test:
   before_script:
     - mosquitto -d # Start mosquitto
     - redis-server --daemonize yes # Start Redis
+    - poetry lock
     - poetry install
     # - python3 --version
     # - keydb-server --version
