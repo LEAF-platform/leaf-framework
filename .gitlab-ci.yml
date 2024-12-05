@@ -9,7 +9,7 @@ test:
   before_script:
     - mosquitto -d
     - redis-server --daemonize yes
-    - source venv/bin/activate
+    - source /venv/bin/activate
     - poetry lock
     - poetry install
     - poetry env info  # Debug Poetry environment
