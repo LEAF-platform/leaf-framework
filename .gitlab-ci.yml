@@ -11,7 +11,6 @@ test:
     - redis-server --daemonize yes
     - poetry lock
     - poetry install
-    - which pytest
     - poetry env info  # Debug Poetry environment
     - poetry show  # Check installed dependencies
   script:
