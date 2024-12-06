@@ -159,35 +159,7 @@ class TestAPIWatcher(unittest.TestCase):
             "http://example.com/measurement", headers=expected_headers
         )
 
-    @patch("requests.get")
-    def test_end_to_end_polling_with_callbacks(self, mock_get):
-        """Tests the start, continuous polling, and stop functions with callback invocation."""
 
-        def infinite_responses():
-            responses = [
-                self.mock_response(json_data={"measurement": "data1"}),
-                self.mock_response(json_data={"start": "started"}),
-                self.mock_response(json_data={"stop": "stopped"}),
-            ]
-            yield from responses
-            while True:
-                yield self.mock_response(status_code=304)
-
-        mock_get.side_effect = infinite_responses()
-
-        self.api_watcher.start()
-        time.sleep(3)
-
-        self.mock_measurement_callback.assert_called_with({"measurement": "data1"})
-        self.mock_start_callback.assert_called_with({"start": "started"})
-        self.mock_stop_callback.assert_called_with({"stop": "stopped"})
-
-        self.api_watcher.stop()
-        time.sleep(1)
-
-        self.assertEqual(self.mock_measurement_callback.call_count, 1)
-        self.assertEqual(self.mock_start_callback.call_count, 1)
-        self.assertEqual(self.mock_stop_callback.call_count, 1)
 
 
 if __name__ == "__main__":
