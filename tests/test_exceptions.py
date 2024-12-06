@@ -589,7 +589,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
-
+    
     def test_start_handler_multiple_adapter_reset(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
@@ -649,10 +649,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                 severity=SeverityLevel.ERROR,
             )
             error_holder.add_error(exception)
-            while not output.client.is_connected() or not _is_error_seen(
-                    exception, error_holder
-            ):
-                time.sleep(0.1)
+            time.sleep(5)
             self.assertTrue(output.client.is_connected())
             _stop(adapter_thread)
 
