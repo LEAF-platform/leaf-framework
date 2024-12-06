@@ -159,6 +159,9 @@ class TestDiscreteProcess(unittest.TestCase):
                                data=data)
 
     def test_discrete_process(self):
+        if os.path.isfile(self.text_watch_file):
+            os.remove(self.text_watch_file)
+            time.sleep(0.5)
         self.watcher.start()
         time.sleep(2)
         _run_change(_create_file, self.text_watch_file)

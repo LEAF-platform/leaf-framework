@@ -189,6 +189,9 @@ class TestControlPhase(unittest.TestCase):
         proxy_thread = Thread(target=self.watcher.start)
         proxy_thread.start()
         time.sleep(2)
+        if os.path.isfile(self.text_watch_file):
+            os.remove(self.text_watch_file)
+            time.sleep(0.5)
         _run_change(_create_file, self.text_watch_file)
         time.sleep(2)
         proxy_thread.join()

@@ -143,13 +143,6 @@ class EquipmentAdapter(ABC):
                             exc_info=excp)
             self._handle_exception(excp)
             return self.stop()
-
-        ins_id = self._metadata_manager.get_instance_id()
-        excp = exceptions.AdapterLogicError(f"{ins_id} is missing data.",
-                                            severity=exceptions.SeverityLevel.ERROR)
-        self._logger.error(f"Critical error, shutting down this adapter: {excp}",
-                        exc_info=excp)
-        self._handle_exception(excp)
         try:
             self._watcher.start()
             while not self._stop_event.is_set():

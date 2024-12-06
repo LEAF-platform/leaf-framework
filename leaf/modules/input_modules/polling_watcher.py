@@ -36,6 +36,8 @@ class PollingWatcher(EventWatcher):
         self.interval = interval
         self.running = False
         self._thread = None
+        self._start_callbacks = self._cast_callbacks(start_callbacks)
+        self._stop_callbacks = self._cast_callbacks(stop_callbacks)
 
     @abstractmethod
     def _fetch_data(self) -> Dict[str, Optional[dict[str, Any]]]:
@@ -60,11 +62,11 @@ class PollingWatcher(EventWatcher):
             logger.debug("Polling for data... is running")
             data = self._fetch_data()
             if data.get("measurement") is not None:
-                self._initiate_callbacks(self.measurement_callbacks, data["measurement"])
+                self._initiate_callbacks(self._measurement_callbacks, data["measurement"])
             if data.get("start") is not None:
-                self._initiate_callbacks(self.start_callbacks, data["start"])
+                self._initiate_callbacks(self._start_callbacks, data["start"])
             if data.get("stop") is not None:
-                self._initiate_callbacks(self.stop_callbacks, data["stop"])
+                self._initiate_callbacks(self._stop_callbacks, data["stop"])
             logger.debug(f"Polling for data... is sleeping for {self.interval} seconds")
             time.sleep(self.interval)
         logger.info("Polling stopped.")

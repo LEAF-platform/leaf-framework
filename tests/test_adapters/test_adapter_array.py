@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import sys
@@ -10,7 +9,7 @@ import yaml
 import tempfile
 import uuid
 
-from leaf.modules.logger_modules.logger_utils import get_logger
+
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -19,12 +18,6 @@ sys.path.insert(0, os.path.join("..", "..", ".."))
 from leaf.adapters.functional_adapters.biolector1.adapter import Biolector1Adapter
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
-
-logger = get_logger(__name__, log_file="global.log",
-                    error_log_file="global_error.log",
-                    log_level=logging.INFO)
-
-
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -84,7 +77,6 @@ class TestAdapterArray(unittest.TestCase):
         )
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
-        logging.debug(f"Broker: {broker} Port: {port} Username: {un}")
         self.output = MQTT(broker, port, username=un, password=pw)
 
         instance_data1 = {
@@ -201,7 +193,6 @@ class TestAdapterArray(unittest.TestCase):
             running_topic = adapter._metadata_manager.running()
             self.assertIn(stop_topic, self.mock_client.messages)
             self.assertTrue(len(self.mock_client.messages[stop_topic]) == 1)
-            logging.debug(self.mock_client.messages)
             timestamp_string = self.mock_client.messages[stop_topic][0]
             # Check if it is a valid timestamp
             self.assertTrue(datetime.strptime(timestamp_string, '%Y-%m-%d %H:%M:%S'), "The datetime should be valid")
@@ -236,47 +227,47 @@ class TestAdapterArray(unittest.TestCase):
         details_topics = []
         for adapter in self.adapter_array:
             details_topics.append(adapter._metadata_manager.details())
-        for adapter in self.adapter_array:
-            self._flush_topics(adapter)
 
-            details_topic = adapter._metadata_manager.details()
-            start_topic = adapter._metadata_manager.experiment.start()
-            stop_topic = adapter._metadata_manager.experiment.stop()
-            running_topic = adapter._metadata_manager.running()
-            logger.debug(f"Number of messages: {len(self.mock_client.messages.keys())}")
+        for adapter1 in self.adapter_array:
+            self._flush_topics(adapter1)
+
+            details_topic = adapter1._metadata_manager.details()
+            start_topic = adapter1._metadata_manager.experiment.start()
+            stop_topic = adapter1._metadata_manager.experiment.stop()
+            running_topic = adapter1._metadata_manager.running()
             self.assertTrue(len(self.mock_client.messages.keys()) == 2)
             self.assertIn(details_topic, self.mock_client.messages)
-            exp_tp = adapter._metadata_manager.experiment.measurement()
+            exp_tp = adapter1._metadata_manager.experiment.measurement()
             self.mock_client.subscribe(exp_tp)
             time.sleep(1)
-            _create_file(adapter)
+            _create_file(adapter1)
             self.assertTrue(len(self.mock_client.messages.keys()) == 4)
             self.assertIn(start_topic, self.mock_client.messages)
             self.assertIn(running_topic, self.mock_client.messages)
             self.assertEqual(len(self.mock_client.messages[start_topic]), 1)
             self.assertEqual(
                 self.mock_client.messages[start_topic][0]["experiment_id"],
-                adapter._interpreter.id,
+                adapter1._interpreter.id,
             )
             self.assertEqual(len(self.mock_client.messages[running_topic]), 1)
             self.assertTrue(self.mock_client.messages[running_topic][0] == "True")
             time.sleep(1)
-            _modify_file(adapter)
+            _modify_file(adapter1)
+            time.sleep(5)
             self.assertTrue(len(self.mock_client.messages.keys()) == 5)
-            time.sleep(1)
-            _delete_file(adapter)
-            time.sleep(1)
-            self.assertTrue(len(self.mock_client.messages.keys()) == 6)
+            _delete_file(adapter1)
+            time.sleep(5)
+            self.assertTrue(len(self.mock_client.messages.keys()) == 5)
             self.assertEqual(len(self.mock_client.messages[running_topic]), 2)
             self.assertTrue(self.mock_client.messages[running_topic][1] == "False")
             self.assertEqual(len(self.mock_client.messages[stop_topic]), 1)
             time.sleep(1)
-            self._flush_topics(adapter)
+            self._flush_topics(adapter1)
+            time.sleep(2)
 
             for k in list(self.mock_client.messages.keys()):
                 if k not in details_topics:
                     del self.mock_client.messages[k]
-
         self._stop_adapters(threads)
 
         self.mock_client.reset_messages()

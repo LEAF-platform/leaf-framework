@@ -59,7 +59,10 @@ def _modify_file(watch_file: Path) -> None:
 
 
 def _delete_watch_file(watch_file: Path) -> None:
-    watch_file.unlink(missing_ok=True)
+    if os.path.isfile(watch_file):
+        os.remove(watch_file)
+    else:
+        print("WARN: No file")
 
 
 class TestBiolector1Interpreter(unittest.TestCase):
@@ -263,27 +266,27 @@ class TestBiolector1(unittest.TestCase):
             )
             if exp_tp in topic:
                 data = self.mock_client.messages[exp_tp]
-                for measurement in data:
-                    self.assertIn("timestamp", measurement)
-                    name = measurement["tags"][MEASUREMENT_NAME_KEY]
-                    self.assertIn(name, expected_measurements)
-                    if name not in seens:
-                        seens.append(name)
-                    for m_type, value in measurement["fields"].items():
-                        found = False
-                        for meas in actual_mes:
-                            for a_measurement_type,a_measurement_value in meas["fields"].items():
-                                if a_measurement_type == m_type and a_measurement_value == value:
-                                    found = True
+                for chunk in data:
+                    for measurement in chunk:
+                        self.assertIn("timestamp", measurement)
+                        name = measurement["tags"][MEASUREMENT_NAME_KEY]
+                        self.assertIn(name, expected_measurements)
+                        if name not in seens:
+                            seens.append(name)
+                        for m_type, value in measurement["fields"].items():
+                            found = False
+                            for meas in actual_mes:
+                                for a_measurement_type,a_measurement_value in meas["fields"].items():
+                                    if a_measurement_type == m_type and a_measurement_value == value:
+                                        found = True
+                                        break
+                                if found:
                                     break
-                            if found:
-                                break
-                        else:
-                            self.fail()
+                            else:
+                                self.fail()
         self.assertCountEqual(seens, expected_measurements)
         self._flush_topics()
         self.mock_client.reset_messages()
-
 
 if __name__ == "__main__":
     unittest.main()

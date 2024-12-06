@@ -1,5 +1,6 @@
 import gzip
 import logging
+import sys
 import os
 import time
 import unittest
@@ -10,6 +11,10 @@ from typing import Union, IO, Any, List
 
 import dateparser
 import yaml
+
+sys.path.insert(0, os.path.join(".."))
+sys.path.insert(0, os.path.join("..", ".."))
+sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.adapters.functional_adapters.table_simulator.adapter import TableSimulatorAdapter
 from leaf.modules.logger_modules.logger_utils import get_logger

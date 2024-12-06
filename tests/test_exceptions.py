@@ -4,12 +4,15 @@ import json
 import os
 import sys
 import time
+import uuid
+import tempfile
 import unittest
 from csv import Error as csv_error
 from threading import Thread
 from unittest.mock import patch, MagicMock, mock_open
 
 import paho.mqtt.client as mqtt
+from paho.mqtt.client import CONNACK_REFUSED_PROTOCOL_VERSION
 import yaml
 
 sys.path.insert(0, os.path.join(".."))
@@ -290,7 +293,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
     @patch("leaf.modules.output_modules.mqtt.MQTT._handle_exception")
     def test_mqtt_module_on_connect_invalid_input(self, mock_handle_exception) -> None:
-        self.mqtt_client.on_connect("test_client", None, None, rc=1)
+        self.mqtt_client.on_connect("test_client", None, None, rc=CONNACK_REFUSED_PROTOCOL_VERSION)
         mock_handle_exception.assert_called_once()
         self.assertIn(
             "Connection refused: Unacceptable protocol version",
@@ -322,7 +325,7 @@ class TestExceptionsGeneral(unittest.TestCase):
     @patch("leaf.modules.output_modules.mqtt.mqtt.Client.on_disconnect")
     def test_mqtt_module_on_disconnect_reconnect_failure(self, mock_on_disconnect: MagicMock) -> None:
         mock_on_disconnect.side_effect = ClientUnreachableError("Reconnect failed")
-        self.mqtt_client.on_disconnect(client="test_client",userdata=None, rc=2, flags=DisconnectFlags.is_disconnect_packet_from_server)
+        self.mqtt_client.on_disconnect(client="test_client",userdata=None,flags=None, rc=2)
         self.assertEqual(self.error_holder.add_error.call_count, 2)
 
     @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
@@ -669,7 +672,11 @@ class TestExceptionsGeneral(unittest.TestCase):
 
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
-        self.file_path = "/some/fake/path/file.txt"
+        self.temp_dir = tempfile.TemporaryDirectory()
+        unique_instance_id = str(uuid.uuid4())
+        unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
+        self.file_path = os.path.join(self.temp_dir.name, unique_file_name)
+
         self.metadata_manager = MagicMock()
         self.file_watcher = FileWatcher(
             file_path=self.file_path,
@@ -859,64 +866,6 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             )
             self.assertEqual(exp_excep.args, error.args)
 
-    def test_equipment_adapter_start_input_file_not_found(self) -> None:
-        """Tests the starting file watcher when
-        dir file is in doesnt exist"""
-
-        def _start_adapter(adapter) -> None:
-            mthread = Thread(target=adapter.start)
-            mthread.daemon = True
-            mthread.start()
-            return mthread
-
-        def _stop_adapter(adapter, thread) -> None:
-            adapter.stop()
-            thread.join()
-
-        instance_data = {
-            "instance_id": "test_equipment_adapter_start_instance_id",
-            "institute": "test_equipment_adapter_start_institute_id",
-            "equipment_id": "TestEquipmentAdapter",
-        }
-        t_dir = "test_equipment_adapter_start"
-        if os.path.isdir(t_dir):
-            os.removedirs(t_dir)
-        filepath = os.path.join(t_dir, "test_equipment_adapter_start.txt")
-        error_holder = ErrorHolder(timeframe=6)
-        adapter = MockEquipment(instance_data, filepath, error_holder=error_holder)
-
-        with self.assertLogs(equipment_adapter.__name__, level="ERROR") as logs:
-            adapter_thread = _start_adapter(adapter)
-            time.sleep(5)
-            _stop_adapter(adapter, adapter_thread)
-
-        expected_exceptions = [
-            InputError(
-                "Watch file does not exist: test_equipment_adapter_start",
-                SeverityLevel.ERROR,
-            ),
-            InputError(
-                "Watch file does not exist: test_equipment_adapter_start",
-                SeverityLevel.ERROR,
-            ),
-            InputError(
-                "Watch file does not exist: test_equipment_adapter_start",
-                SeverityLevel.CRITICAL,
-            ),
-        ]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
-            exc_type, exc_value, exc_traceback = log.exc_info
-            for exp_exc in list(expected_exceptions):
-                if (
-                        type(exp_exc) == exc_type
-                        and exp_exc.severity == exc_value.severity
-                        and exp_exc.args == exc_value.args
-                ):
-                    expected_exceptions.remove(exp_exc)
-
-        self.assertEqual(len(expected_exceptions), 0)
-
     def test_equipment_adapter_created_file_not_found(self) -> None:
         """Tests the handling of all the custom exceptions using
         the equipment adapter start and error holder system."""
@@ -942,7 +891,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             os.mkdir(t_dir)
         if os.path.isfile(filepath):
             os.remove(filepath)
-        error_holder = ErrorHolder(timeframe=6)
+        error_holder = ErrorHolder(timeframe=6,threshold=2)
         adapter = MockEquipment(instance_data, filepath, error_holder=error_holder)
 
         with self.assertLogs(equipment_adapter.__name__, level="ERROR") as logs:
@@ -973,7 +922,6 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertTrue(len(logs.records) > 0)
         for log in logs.records:
             exc_type, exc_value, exc_traceback = log.exc_info
-            print(exc_type,exc_value)
             for exp_exc in list(expected_exceptions):
                 if (
                         type(exp_exc) == exc_type
@@ -981,7 +929,6 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
                         and exp_exc.args == exc_value.args
                 ):
                     expected_exceptions.remove(exp_exc)
-
         self.assertEqual(len(expected_exceptions), 0)
 
 

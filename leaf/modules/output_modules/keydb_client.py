@@ -1,5 +1,6 @@
 import logging
 import redis
+import json
 from typing import Optional, Any
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.error_handler.exceptions import ClientUnreachableError
@@ -96,6 +97,8 @@ class KEYDB(OutputModule):
             bool: True if the data was successfully transmitted, 
                   False if a fallback was used.
         """
+        if isinstance(data,dict):
+            data = json.dumps(data)
         if self._client is None:
             return self.fallback(topic, data)
         try:

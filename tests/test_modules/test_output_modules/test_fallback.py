@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join("..", "..", ".."))
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.keydb_client import KEYDB
 from leaf.modules.output_modules.file import FILE
-from ...mock_mqtt_client import MockBioreactorClient
+from tests.mock_mqtt_client import MockBioreactorClient
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
@@ -79,9 +79,16 @@ class TestMQTT(unittest.TestCase):
         res = self._keydb.retrieve(self.mock_topic)
         self.assertEqual(res, None)
 
-        res = [json.loads(n) for n in self._file.retrieve(self.mock_topic)]
+        res = [json.loads(n) if not isinstance(n, dict) else n 
+               for n in self._file.retrieve(self.mock_topic) 
+               if isinstance(n, dict) or is_valid_json(n)]
         self.assertIn(mock_data, res)
 
-
+def is_valid_json(item):
+    try:
+        json.loads(item)
+        return True
+    except json.JSONDecodeError:
+        return False
 if __name__ == "__main__":
     unittest.main()

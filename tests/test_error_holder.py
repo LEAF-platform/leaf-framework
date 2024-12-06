@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import LEAFError
 
 
 class TestErrorHolder(unittest.TestCase):
@@ -73,8 +74,8 @@ class TestErrorHolder(unittest.TestCase):
 
     def test_severity_upgrade_to_critical(self):
 
-        mock_error = MagicMock()
-        mock_error.severity = SeverityLevel.WARNING
+        mock_error = LEAFError("MOCK ERROR",severity=SeverityLevel.ERROR)
+        self.error_holder.add_error(mock_error)
 
         for _ in range(5):
             self.error_holder.add_error(mock_error)

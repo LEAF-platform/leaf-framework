@@ -23,6 +23,7 @@ from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 from leaf.metadata_manager.metadata import MetadataManager
 from tests.mock_mqtt_client import MockBioreactorClient
+from leaf.error_handler.error_holder import ErrorHolder
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -99,12 +100,14 @@ class MockEquipmentAdapter(EquipmentAdapter):
         watcher.add_initialise_callback(details_p.update)
         phase = [start_p, measure_p, stop_p]
         mock_process = [DiscreteProcess(phase)]
+        error_holder = ErrorHolder()
         super().__init__(
             instance_data,
             watcher,
             mock_process,
             MockBioreactorInterpreter(),
             metadata_manager,
+            error_holder=error_holder
         )
 
 
@@ -128,10 +131,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         unique_institute = "TestInstitute_" #+ unique_instance_id[:8]
 
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
-        self.text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
-
-        with open(self.text_watch_file, "w"):
-            pass
+        text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
 
         instance_data = {
             "instance_id": unique_instance_id,
@@ -140,7 +140,7 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockEquipmentAdapter(instance_data, self.text_watch_file)
+        self._adapter = MockEquipmentAdapter(instance_data, text_watch_file)
         self._adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
             "TestBioreactor_transmit_" + unique_instance_id
         )
@@ -166,8 +166,6 @@ class TestEquipmentAdapter(unittest.TestCase):
             self._adapter.stop()
         except Exception:
             pass
-        if os.path.isfile(self.text_watch_file):
-            os.remove(self.text_watch_file)
 
     def test_details(self):
         self.initialize_experiment()
@@ -182,12 +180,14 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_start(self):
         self.initialize_experiment()
+        text_watch_file = os.path.join(self._adapter._watcher._path,
+                                       self._adapter._watcher._file_name)
         if self.start_topic in self.mock_client.messages:
             del self.mock_client.messages[self.start_topic]
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
-        _create_file(self.text_watch_file)
+        _create_file(text_watch_file)
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
@@ -198,13 +198,15 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_stop(self):
         self.initialize_experiment()
+        text_watch_file = os.path.join(self._adapter._watcher._path,
+                                       self._adapter._watcher._file_name)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
-        _create_file(self.text_watch_file)
+        _create_file(text_watch_file)
         self.mock_client.reset_messages()
         time.sleep(2)
-        _delete_file(self.text_watch_file)
+        _delete_file(text_watch_file)
         time.sleep(2)
         self._adapter.stop()
         mthread.join()
@@ -219,6 +221,12 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_update(self):
         self.initialize_experiment()
+        text_watch_file = os.path.join(self._adapter._watcher._path,
+                                       self._adapter._watcher._file_name)
+        if os.path.isfile(text_watch_file):
+            os.remove(text_watch_file)
+        time.sleep(1)
+        
         exp_tp = self._adapter._metadata_manager.experiment.measurement(
             experiment_id=self._adapter._interpreter.id, measurement="unknown"
         )
@@ -226,11 +234,11 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         time.sleep(2)
-        _create_file(self.text_watch_file)
+        _create_file(text_watch_file)
         time.sleep(2)
-        _modify_file(self.text_watch_file)
+        _modify_file(text_watch_file)
         time.sleep(2)
-        _delete_file(self.text_watch_file)
+        _delete_file(text_watch_file)
         time.sleep(2)
         self._adapter.stop()
         mthread.join()

@@ -96,7 +96,7 @@ class Biolector1Interpreter(AbstractInterpreter):
             ValueError: If the sensor name is not found.
         """
         if name not in self._sensors:
-            self._handle_exception(InterpreterError(f'{name} not a valid filter code.'))
+            self._handle_exception(InterpreterError(f'{name} not a valid sensor code.'))
             return None
         return self._sensors[name]
 
@@ -214,7 +214,7 @@ class Biolector1Interpreter(AbstractInterpreter):
                                                      "experiment start",
                                                      severity=SeverityLevel.WARNING))
         
-        for row in data:            
+        for row in data:
             if len(row) == 0 or row[0] == "R":
                 continue
             if row[0] != reading:
@@ -241,13 +241,11 @@ class Biolector1Interpreter(AbstractInterpreter):
                 ip.add_tag(MEASUREMENT_NAME_KEY,name)
                 ip.add_field(measurement_term,value)
             else:
-                excp = InterpreterError(f'Cant identify measurement name')
-                self._handle_exception(excp)
                 value = amplitude
                 measurement_term = "unknown_measurement"
                 cur_measurement_term = measurement_term
                 index = 1
-                while cur_measurement_term not in ip.fields:
+                while cur_measurement_term in ip.fields:
                     cur_measurement_term = measurement_term + str(index)
                     index +=1
                 ip.add_field(cur_measurement_term,value)

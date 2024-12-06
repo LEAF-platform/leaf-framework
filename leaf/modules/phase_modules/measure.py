@@ -98,7 +98,6 @@ class MeasurePhase(PhaseModule):
         else:
             excp = AdapterLogicError(f"Unknown measurement data type: {type(result)}")
             self._handle_exception(excp)
-            return
         
         action = self._term_builder(experiment_id=experiment_id, 
                                     measurement=measurement)
