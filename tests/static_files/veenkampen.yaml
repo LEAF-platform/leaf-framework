@@ -14,5 +14,5 @@ EQUIPMENT_INSTANCES:
 
 OUTPUTS:
   - plugin: MQTT
-    broker: test.mosquitto.org
+    broker: localhost
     port: 1883
