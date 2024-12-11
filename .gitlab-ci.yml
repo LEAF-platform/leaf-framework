@@ -7,6 +7,8 @@ test:
   stage: test
   image: registry.gitlab.com/labequipmentadapterframework/leaf:runner
   before_script:
+    - git submodule sync
+    - git submodule update --init --recursive
     - mosquitto -d
     - redis-server --daemonize yes
     - source /venv/bin/activate
