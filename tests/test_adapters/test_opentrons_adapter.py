@@ -235,7 +235,8 @@ class TestOpentrons(unittest.TestCase):
 
         self.assertIn(self.running_topic, self.mock_client.messages)
         expected_run = "True"
-        self.assertEqual(self.mock_client.messages[self.running_topic][0], expected_run)
+        self.assertEqual(self.mock_client.messages[self.running_topic][0], 
+                         expected_run)
 
     def test_update(self) -> None:
         self._flush_topics()
