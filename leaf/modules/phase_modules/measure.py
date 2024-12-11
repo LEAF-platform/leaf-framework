@@ -6,7 +6,7 @@ from influxobject import InfluxPoint
 
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import AdapterLogicError
 
 class MeasurePhase(PhaseModule):

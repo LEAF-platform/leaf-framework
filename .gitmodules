@@ -1,0 +1,3 @@
+[submodule "leaf/leaf_register"]
+	path = leaf/leaf_register
+	url = git@gitlab.com:LabEquipmentAdapterFramework/leaf-register.git

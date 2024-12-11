@@ -7,7 +7,7 @@ from watchdog.events import FileSystemEvent
 
 from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.error_handler.exceptions import InputError
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 
 
 class CSVWatcher(FileWatcher):

@@ -19,7 +19,7 @@ import sys
 import inspect
 
 from leaf import register
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir

@@ -21,7 +21,7 @@ from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.error_handler.error_holder import ErrorHolder
 
