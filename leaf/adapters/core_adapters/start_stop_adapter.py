@@ -4,7 +4,7 @@ from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.adapters.equipment_adapter import EquipmentAdapter

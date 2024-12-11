@@ -7,7 +7,7 @@ from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
 from leaf.adapters.functional_adapters.table_simulator.interpreter import (
     TableSimulatorInterpreter,
 )
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.error_handler.error_holder import ErrorHolder
 

@@ -10,7 +10,7 @@ from leaf.modules.input_modules.http_watcher import HTTPWatcher, URLState
 
 import unittest
 from unittest.mock import patch, MagicMock
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from requests.models import Response
 
 

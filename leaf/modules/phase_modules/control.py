@@ -1,7 +1,7 @@
 from typing import Optional, Any
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 class ControlPhase(PhaseModule):
     """
     Handles control-related phases in a process. 

@@ -2,7 +2,7 @@ from abc import abstractmethod
 import threading, time, logging
 from typing import Optional, Callable, List, Dict, Any
 from leaf.modules.input_modules.event_watcher import EventWatcher
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 from typing import Any
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 
 
 class StartPhase(ControlPhase):
