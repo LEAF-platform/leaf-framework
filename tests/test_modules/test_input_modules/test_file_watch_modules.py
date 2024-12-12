@@ -89,7 +89,7 @@ class TestFileWatcher(unittest.TestCase):
             watcher.stop()
             self.assertEqual(message_count, num_create)
 
-    def test_file_watcher_deletion(self):
+    def test_file_watcher_deletion(self) -> None:
         with tempfile.TemporaryDirectory() as test_dir:
 
             def delete_file(filepath, interval, count):
@@ -107,7 +107,7 @@ class TestFileWatcher(unittest.TestCase):
 
             message_count = 0
 
-            def mock_callback(data):
+            def mock_callback(data) -> None:
                 nonlocal message_count
                 message_count += 1
 
