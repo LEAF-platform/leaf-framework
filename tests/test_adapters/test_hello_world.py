@@ -6,6 +6,7 @@ import unittest
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.output_modules.mqtt import MQTT
 
+
 logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 class TestHelloWorld(unittest.TestCase):
@@ -24,7 +25,6 @@ class TestHelloWorld(unittest.TestCase):
         }
 
         # Import the adapter
-        from hello_world.adapter import HelloWorldAdapter
-        adap = HelloWorldAdapter(output=self.output)
+        adap = HelloWorqldAdapter(instance_data=self.instance_data, output=self.output)
         adap.start()
         print("HelloWorldAdapter started successfully.")
