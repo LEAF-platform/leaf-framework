@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.input_modules.external_api_watcher import ExternalApiWatcher
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 
 
 class TestExternalApiWatcher(unittest.TestCase):
