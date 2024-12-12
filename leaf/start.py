@@ -6,29 +6,29 @@
 #
 ###################################
 
-import os
-import threading
-import time
-import logging
 import argparse
-from typing import Any
-
-import yaml
+import inspect
+import logging
+import os
 import signal
 import sys
-import inspect
+import threading
+import time
+from typing import Any, Type
+
+import yaml
 
 from leaf import register
-from leaf.metadata_manager.metadata import MetadataManager
-
-from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.logger_modules.logger_utils import set_log_dir
-
+from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler.exceptions import SeverityLevel
+from leaf.metadata_manager.metadata import MetadataManager
+from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.logger_modules.logger_utils import set_log_dir
+from leaf.modules.output_modules.mqtt import MQTT
 
 ##################################
 #
@@ -49,7 +49,7 @@ adapters: list[Any] = []
 #
 ###################################
 
-def parse_args() -> argparse.Namespace:
+def parse_args(args=None) -> argparse.Namespace:
     """Parses commandline arguments."""
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
@@ -72,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--guidisable", action="store_false", help="Whether or not to disable the GUI."
     )
-    return parser.parse_args()
+    return parser.parse_args(args=args)
 
 
 def signal_handler(signal_received, frame) -> None:
@@ -109,7 +109,7 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 
-def _get_existing_ids(output_module, metadata_manager, time_to_sleep=2):
+def _get_existing_ids(output_module: MQTT, metadata_manager: MetadataManager, time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = metadata_manager.details()
     logging.debug(f"Setting up subscription to {topic}")
@@ -125,7 +125,7 @@ def _get_existing_ids(output_module, metadata_manager, time_to_sleep=2):
     return ids
 
 
-def _get_output_module(config, error_holder):
+def _get_output_module(config, error_holder: ErrorHolder) -> Any:
     """Finds, initialises and connects all desired output 
         adapters defined within the config"""
     outputs = config["OUTPUTS"]
@@ -163,7 +163,7 @@ def _get_output_module(config, error_holder):
     return None
 
 
-def _process_instance(instance, output):
+def _process_instance(instance: dict[str, Any], output: MQTT) -> EquipmentAdapter:
     """Finds and initialises an adapter from the config."""
     equipment_code = instance["adapter"]
     instance_data = instance["data"]
@@ -204,7 +204,7 @@ def _process_instance(instance, output):
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
 
-def _run_simulation_in_thread(adapter, filename, interval):
+def _run_simulation_in_thread(adapter, filename: str, interval: int) -> threading.Thread:
     """Run the adapter's simulate function in a separate thread."""
     logger.info(f"Running simulation: {adapter}")
 
@@ -220,7 +220,7 @@ def _run_simulation_in_thread(adapter, filename, interval):
     return thread
 
 
-def handle_exception(exc_type, exc_value, exc_traceback):
+def handle_exception(exc_type: Type[BaseException], exc_value, exc_traceback) -> None:
     """Handle uncaught exceptions."""
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -229,7 +229,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     stop_all_adapters()
 
 
-def run_adapters(equipment_instances, output, error_handler):
+def run_adapters(equipment_instances, output, error_handler) -> None:
     """Function to find and run a set of adapters defined within the config."""
     adapter_threads = []
     max_error_retries = 3
@@ -367,10 +367,10 @@ sys.excepthook = handle_exception
 #        FUNCTION: Main
 #
 ###################################
-def main():
+def main(args=None) -> None:
     """Main function as a wrapper for all steps."""
     logging.info("Starting the proxy.")
-    args = parse_args()
+    args = parse_args(args)
 
     if args.config is None:
         logging.error("No configuration file provided (See the documentation for more details).")
