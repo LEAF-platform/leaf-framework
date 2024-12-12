@@ -1,5 +1,5 @@
 from typing import Optional, Callable, List
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 from abc import ABC
 from abc import abstractmethod
 

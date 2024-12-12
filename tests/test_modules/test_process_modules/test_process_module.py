@@ -18,7 +18,7 @@ from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.continous_module import ContinousProcess
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from tests.mock_mqtt_client import MockBioreactorClient
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))

@@ -1,7 +1,7 @@
 import requests, logging
 from typing import Optional, Callable, List, Dict
 from leaf.modules.input_modules.polling_watcher import PollingWatcher
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 
 logger = logging.getLogger(__name__)
 

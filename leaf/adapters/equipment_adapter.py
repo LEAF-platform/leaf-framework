@@ -4,7 +4,7 @@ import time
 from threading import Event
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Any
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler import exceptions
 from leaf.modules.logger_modules.logger_utils import get_logger

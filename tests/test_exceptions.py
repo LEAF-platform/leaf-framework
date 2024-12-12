@@ -34,7 +34,7 @@ from leaf.start import _get_output_module
 from leaf.start import run_adapters
 from leaf.start import stop_all_adapters
 from leaf import start
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel

@@ -19,7 +19,7 @@ from typing import Any, Type
 import yaml
 
 from leaf import register
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir

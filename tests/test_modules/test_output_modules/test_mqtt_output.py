@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join("..","..",".."))
 
 from leaf.modules.output_modules.mqtt import MQTT, logger
 from tests.mock_mqtt_client import MockBioreactorClient
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))

@@ -10,7 +10,7 @@ from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.measurement_modules.measurement_module import MeasurementModule
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.modules.process_modules.process_module import ProcessModule
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 
 
 class MockEventWatcherModule(EventWatcher):

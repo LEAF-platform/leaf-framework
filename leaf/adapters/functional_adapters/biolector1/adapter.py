@@ -8,7 +8,7 @@ from leaf.adapters.functional_adapters.biolector1.interpreter import (
     Biolector1Interpreter,
 )
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
-from leaf.leaf_register.metadata import MetadataManager
+from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import AdapterLogicError, SeverityLevel
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
