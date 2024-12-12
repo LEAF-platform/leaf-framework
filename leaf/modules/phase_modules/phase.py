@@ -1,6 +1,6 @@
 from typing import Optional, Callable, Any
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 

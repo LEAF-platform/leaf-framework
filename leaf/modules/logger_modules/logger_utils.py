@@ -51,7 +51,7 @@ def get_logger(name: str, log_file: Optional[str] = None,
     return logger
 
 
-def set_log_dir(directory):
+def set_log_dir(directory: str) -> None:
     global log_dir
     os.makedirs(directory, exist_ok=True)
     log_dir = directory

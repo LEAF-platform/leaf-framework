@@ -1,10 +1,10 @@
 import json
+import logging
 import time
 from socket import error as socket_error
 from socket import gaierror
 from typing import Literal, Union, Any
 
-from leaf import start
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
 
@@ -14,8 +14,6 @@ from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.output_modules.output_module import OutputModule
-
-import logging
 
 FIRST_RECONNECT_DELAY = 1
 RECONNECT_RATE = 2

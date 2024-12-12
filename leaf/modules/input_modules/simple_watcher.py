@@ -1,6 +1,6 @@
 from typing import List, Callable
 
-from leaf.metadata_manager.metadata import MetadataManager
+from leaf.leaf_register.metadata import MetadataManager
 from leaf.modules.input_modules.polling_watcher import PollingWatcher
 
 

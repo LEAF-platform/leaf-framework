@@ -15,6 +15,7 @@ import logging
 from typing import List, Any
 from importlib.metadata import entry_points
 
+from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.error_handler.exceptions import AdapterBuildError
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -27,7 +28,7 @@ equipment_adapter_dirs = [
 equipment_key = "equipment_id"
 output_adapter_dir = os.path.join(root_dir, "modules", "output_modules")
 
-def load_adapters():
+def load_adapters() -> dict[str, EquipmentAdapter]:
     """
     Loads and returns the equipment adapters from the installed packages.
     """
@@ -41,7 +42,7 @@ def load_adapters():
     return adapters
 
 
-def get_equipment_adapter(code: str):
+def get_equipment_adapter(code: str) -> EquipmentAdapter:
     """
     Searches for and returns the equipment adapter class corresponding to the given equipment code.
 
@@ -60,7 +61,7 @@ def get_equipment_adapter(code: str):
     """
     # First search for the adapter in the pip installed adapters
     # Dynamc loading of adapters
-    available_adapters: List[Any] = load_adapters()
+    available_adapters: List[EquipmentAdapter] = load_adapters()
 
     for adapter_dir in equipment_adapter_dirs:
         if code in available_adapters:

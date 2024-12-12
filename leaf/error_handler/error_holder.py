@@ -29,7 +29,7 @@ class ErrorHolder:
             threshold (int): Number of occurrences of the same 
                              error needed to trigger severity escalation.
         """
-        self._errors: List[Dict[str, Any]] = []
+        self._errors: List[Dict[str, bool]] = []
         self.lock = threading.Lock()
         self._adapter_id = adapter_id
         self.timeframe = timeframe
