@@ -38,12 +38,6 @@ pytest = "^8.3.4"
 coverage = "^7.6.8"
 leaf-hello-world = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"}
 
-
-[[tool.poetry.source]]
-name = "gitlab"
-url = "https://gitlab.com"
-priority = "primary"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
