@@ -32,6 +32,7 @@ from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.modules.output_modules.mqtt import MQTT
+from leaf.adapters.equipment_adapter import EquipmentAdapter
 
 ##################################
 #
