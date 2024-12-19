@@ -85,30 +85,49 @@ class KEYDB(OutputModule):
 
     def transmit(self, topic: str, data: Optional[Any] = None) -> bool:
         """
-        Transmit data to the KeyDB server by setting 
-        the value for a given key.
+        Transmit data to the KeyDB server by appending it to the existing
+        value for the given key. The value for each key is always stored
+        as a list, even if it contains only one element.
 
         Args:
-            topic (str): The key name under which the 
-                         data will be stored.
-            data (Optional[Any]): The data to store in KeyDB.
+            topic (str): The key name under which the data will be stored.
+            data (Optional[Any]): The data to append to the list in KeyDB.
 
         Returns:
             bool: True if the data was successfully transmitted, 
-                  False if a fallback was used.
+                False if a fallback was used.
         """
-        if isinstance(data,dict):
+        if data is None:
+            logging.warning("No data provided to transmit.")
+            return False
+        
+        if isinstance(data, dict):
             data = json.dumps(data)
+        
         if self._client is None:
             return self.fallback(topic, data)
+        
         try:
-            self._client.set(topic, data)
-            logging.info(f"Transmit data to key '{topic}' in KeyDB.")
+            current_value = self._client.get(topic)
+            if current_value:
+                current_list = json.loads(current_value.decode('utf-8'))
+                if not isinstance(current_list, list):
+                    logging.error(f"Unexpected value format for key '{topic}'. Overwriting.")
+                    current_list = []
+                current_list.append(data)
+            else:
+                current_list = [data]
+            
+            self._client.set(topic, json.dumps(current_list))
+            logging.info(f"Appended data to key '{topic}' in KeyDB.")
             return True
         except redis.RedisError as e:
             self._handle_redis_error(e)
             return self.fallback(topic, data)
 
+    def is_connected(self):
+        return self._client is not None
+    
     def disconnect(self) -> None:
         """
         Disconnect from the KeyDB server by 
@@ -141,3 +160,66 @@ class KEYDB(OutputModule):
         except redis.RedisError as e:
             self._handle_redis_error(e)
             return None
+        
+
+    def pop(self, key: Optional[str] = None) -> Optional[tuple[str, Any]]:
+        """
+        Retrieve and remove a record from KeyDB. 
+        If a specific key is provided, retrieve and remove all values under 
+        that key. If no key is provided, retrieve and remove one element from 
+        a random key's list. The key is removed when the last element is taken.
+
+        Args:
+            key (Optional[str]): The key of the record to retrieve and remove. 
+                                If None, a random record is retrieved and removed.
+
+        Returns:
+            Optional[tuple[str, Any]]: A tuple of the key and the retrieved value,
+                                    or None if the key does not exist or the 
+                                    database is empty.
+        """
+        if self._client is None:
+            logging.warning("Attempted to pop from a disconnected KeyDB client.")
+            return None
+
+        try:
+            # If a specific key is provided
+            if key is not None:
+                result = self._client.get(key)
+                if result:
+                    self._client.delete(key)
+                    return key, json.loads(result.decode('utf-8'))
+                return None
+
+            # If no key is provided, retrieve a random key
+            random_key = self._client.randomkey()
+            if not random_key:
+                logging.info("No keys available in KeyDB.")
+                return None
+
+            random_key = random_key.decode('utf-8')
+            result = self._client.get(random_key)
+
+            if not result:
+                return None
+
+            # Decode and process the list
+            result = json.loads(result.decode('utf-8'))
+            if isinstance(result, list):
+                popped_value = result.pop(0)
+                if result:
+                    # Update the list back in KeyDB if not empty
+                    self._client.set(random_key, json.dumps(result))
+                else:
+                    # Delete the key if the list is now empty
+                    self._client.delete(random_key)
+                return random_key, popped_value
+
+            # Unexpected value type
+            logging.error(f"Unexpected value type for key '{random_key}'. Deleting key.")
+            self._client.delete(random_key)
+            return None
+        except redis.RedisError as e:
+            self._handle_redis_error(e)
+            return None
+

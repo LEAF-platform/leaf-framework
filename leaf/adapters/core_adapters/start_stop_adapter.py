@@ -15,7 +15,8 @@ class StartStopAdapter(EquipmentAdapter):
                  output: OutputModule,interpreter:AbstractInterpreter,
                  maximum_message_size: Optional[int] = 1,
                  error_holder: Optional[ErrorHolder] = None,
-                 metadata_manager:MetadataManager=None):
+                 metadata_manager:MetadataManager=None,
+                 experiment_timeout:int=None):
     
         start_p = StartPhase(output, metadata_manager)
         stop_p = StopPhase(output, metadata_manager)
@@ -37,4 +38,5 @@ class StartStopAdapter(EquipmentAdapter):
 
         super().__init__(instance_data,watcher,process,interpreter,
                          metadata_manager=metadata_manager,
-                         error_holder=error_holder)
+                         error_holder=error_holder,
+                         experiment_timeout=experiment_timeout)

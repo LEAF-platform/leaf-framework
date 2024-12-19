@@ -83,7 +83,8 @@ class EquipmentAdapter(ABC):
                  process_adapters: Union[ProcessModule, List[ProcessModule]], 
                  interpreter: AbstractInterpreter, 
                  metadata_manager: Optional[MetadataManager] = None, 
-                 error_holder: Optional[ErrorHolder] = None):
+                 error_holder: Optional[ErrorHolder] = None,
+                 experiment_timeout:int=None):
         """
         Initialize the EquipmentAdapter instance.
         
@@ -128,6 +129,7 @@ class EquipmentAdapter(ABC):
             error_log_file=f"{ins_id}_error.log",
             log_level=logging.INFO
         )
+        self._experiment_timeout = experiment_timeout
 
     def start(self) -> None:
         """
@@ -203,7 +205,7 @@ class EquipmentAdapter(ABC):
                     elif error.severity == exceptions.SeverityLevel.INFO:
                         self._logger.info(
                             f"Information error, no action needed: {error}", exc_info=error)
-
+                
         except KeyboardInterrupt:
             self._logger.info("User keyboard input stopping adapter.")
             self._stop_event.set()

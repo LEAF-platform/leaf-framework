@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from abc import ABC
-
+import time
 from leaf.error_handler.exceptions import AdapterLogicError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import LEAFError
@@ -34,7 +34,7 @@ class OutputModule(ABC):
             raise AdapterLogicError("Output fallback argument must be an OutputModule.")
         self._fallback = fallback
         self._error_holder = error_holder
-        self._enabled = True
+        self._enabled = None
 
     @abstractmethod
     def transmit(self, topic: str, data: str) -> None:
@@ -46,6 +46,22 @@ class OutputModule(ABC):
                    data should be transmitted.
             data: The data to be transmitted.
         """
+        pass
+
+    @abstractmethod
+    def pop(self, key = None):
+        pass
+
+    @abstractmethod
+    def connect(self):
+        pass
+
+    @abstractmethod
+    def disconnect(self):
+        pass
+    
+    @abstractmethod
+    def is_connected(self):
         pass
     
     def fallback(self, topic:str , data:str) -> None:
@@ -65,13 +81,19 @@ class OutputModule(ABC):
             self._handle_exception(ClientUnreachableError(f'Cant store data, no output mechanisms available'))
             return False
 
+    def is_enabled(self):
+        return self._enabled is None
+    
+    def get_disabled_time(self):
+        return self._enabled
+    
     def enable(self):
         '''
         Reenables an output transmitting.
         Only needs to be called if the disable 
         function has been called previously.
         '''
-        self._enabled = True
+        self._enabled = None
 
     def disable(self):
         '''
@@ -79,7 +101,16 @@ class OutputModule(ABC):
         This will be used to disable output modules which arent 
         working for whatever reason to stop them locking the system.
         '''
-        self._enabled = False
+        self._enabled = time.time()
+    
+    def pop_all_messages(self):
+        while True:
+            message = self.pop()
+            if message is None:
+                break
+            yield message
+        if self._fallback is not None:
+            yield from self._fallback.pop_all_messages()
 
     def _handle_exception(self,exception:LEAFError):
         '''
@@ -90,12 +121,3 @@ class OutputModule(ABC):
             self._error_holder.add_error(exception)
         else:
             raise exception
-        
-
-    @abstractmethod
-    def connect(self):
-        pass
-
-    @abstractmethod
-    def disconnect(self):
-        pass
