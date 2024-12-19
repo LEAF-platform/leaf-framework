@@ -30,11 +30,10 @@ from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 
+from leaf.utility.running_utilities import handle_disabled_modules
 ##################################
 #
 #            VARIABLES
@@ -47,7 +46,7 @@ logger = get_logger(__name__, log_file="global.log",
                     error_log_file="global_error.log",
                     log_level=logging.INFO)
 adapters: list[Any] = []
-
+output_disable_time = 5 # Seconds
 ##################################
 #
 #            FUNCTIONS
@@ -184,7 +183,7 @@ def _process_instance(instance: dict[str, Any], output: MQTT) -> EquipmentAdapte
     adapter_params = inspect.signature(adapter).parameters
     adapter_param_names = set(adapter_params.keys())
     fixed_params = {"instance_data", "output", "error_holder"}
-    optional_params = {"maximum_message_size"}
+    optional_params = {"maximum_message_size","experiment_timeout"}
     required_params = {
         name
         for name, param in adapter_params.items()
@@ -343,6 +342,7 @@ def run_adapters(equipment_instances, output, error_handler) -> None:
                             output.disconnect()
                             time.sleep(cooldown_period_warning)
                             output.connect()
+                            time.sleep()
                     else:
                         logger.warning(f"Warning encountered: {error}", 
                                        exc_info=error)
@@ -350,6 +350,10 @@ def run_adapters(equipment_instances, output, error_handler) -> None:
                 elif error.severity == SeverityLevel.INFO:
                     logger.info(f"Information error, no action: {error}",
                                 exc_info=error)
+
+            handle_disabled_modules(output,output_disable_time)
+                
+
 
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt received. Shutting down.")

@@ -81,7 +81,8 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 
 
 class MockEquipmentAdapter(EquipmentAdapter):
-    def __init__(self, instance_data, fp):
+    def __init__(self, instance_data, fp,
+                 experiment_timeout=None):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
@@ -107,8 +108,8 @@ class MockEquipmentAdapter(EquipmentAdapter):
             mock_process,
             MockBioreactorInterpreter(),
             metadata_manager,
-            error_holder=error_holder
-        )
+            error_holder=error_holder,
+            experiment_timeout=experiment_timeout)
 
 
 # Note the tests haven't been updated here since the rework.
@@ -263,7 +264,26 @@ class TestEquipmentAdapter(unittest.TestCase):
             dest.write(content)
         time.sleep(2)
         adapter.stop()
-        mthread.join()  
+        mthread.join()
+    
+    def test_experiment_timeout(self):
+        instance_data = {"instance_id" : "test_experiment_timeout_instance",
+                        "institute" : "test_experiment_timeout_ins",
+                        "equipment_id" : "test_experiment_timeout_equip"}
+        temp_dir = tempfile.TemporaryDirectory()
+        test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_experiment_timeout.txt")
+
+        exp_timeout = 1
+        adapter = MockEquipmentAdapter(instance_data,
+                                 test_exp_tw_watch_file,
+                                 experiment_timeout=exp_timeout)
+        
+        mthread = Thread(target=adapter.start)
+        mthread.start()
+        _create_file(test_exp_tw_watch_file)
+        time.sleep(3)
+        adapter.stop()
+        mthread.join()
 
 if __name__ == "__main__":
     unittest.main()

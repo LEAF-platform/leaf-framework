@@ -103,7 +103,7 @@ class MQTT(OutputModule):
         """
         Connects to the MQTT broker and sets a thread looping. 
         """
-        if not self._enabled:
+        if not self.is_enabled:
             logger.warning(f'{self.__class__.__name__} - connect called with module disabled.')
             return
         try:
@@ -139,7 +139,7 @@ class MQTT(OutputModule):
             data: The message payload to be transmitted.
             retain: Whether to retain the message on the broker.
         """
-        if not self._enabled:
+        if not self.is_enabled:
             logger.warning(f'{self.__class__.__name__} - transmit called with module disabled.')
             return False
 
@@ -175,7 +175,7 @@ class MQTT(OutputModule):
         Args:
             topic: The topic to clear retained messages for.
         """
-        if not self._enabled:
+        if not self.is_enabled:
             logger.warning(f'{self.__class__.__name__} - flush called with module disabled.')
             return
         try:
@@ -232,7 +232,8 @@ class MQTT(OutputModule):
         leaf_error = LEAFError("Failed to connect", SeverityLevel.CRITICAL)
         self._handle_exception(leaf_error)
 
-    def on_disconnect(self, client: mqtt.Client, userdata: Any, flags: mqtt.DisconnectFlags, rc, properties= None) -> None:
+    def on_disconnect(self, client: mqtt.Client, userdata: Any, 
+                      flags: mqtt.DisconnectFlags, rc, properties= None) -> None:
         """
         Callback for when the client disconnects from the broker.
 
@@ -269,6 +270,9 @@ class MQTT(OutputModule):
         """
         logger.debug(f'{paho_log_level} : {message}')
 
+    def is_connected(self):
+        return self.client.is_connected()
+    
     def on_message(self, client: mqtt.Client, userdata: str, 
                    msg: mqtt.MQTTMessage) -> None:
         """
@@ -338,6 +342,8 @@ class MQTT(OutputModule):
             self.connect()
         return super().disable()
     
+    def pop(self, key = None):
+        return None
 
     def _handle_return_code(self, return_code):
         if return_code == mqtt.MQTT_ERR_SUCCESS:

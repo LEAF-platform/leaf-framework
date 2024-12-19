@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from typing import Any
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.error_handler.error_holder import ErrorHolder
@@ -90,7 +91,70 @@ class FILE(OutputModule):
         except (OSError, IOError) as e:
             self._handle_file_error(e)
             return None
-        
+    
+    def pop(self, key: str = None) -> tuple[str, Any] | None:
+        """
+        Retrieve and remove a record from the file. 
+        If a specific key is provided, retrieve and remove all values under that key.
+        If no key is provided, retrieve and remove one element from a random key's list.
+        The key is removed when the last element is taken.
+
+        Args:
+            key (Optional[str]): The key of the record to retrieve and remove. 
+                                If None, a random record is retrieved and removed.
+
+        Returns:
+            Optional[tuple[str, Any]]: A tuple of the key and the retrieved value,
+                                    or None if the key does not exist or the 
+                                    file is empty.
+        """
+        try:
+            if not os.path.exists(self.filename):
+                return None
+
+            with open(self.filename, 'r') as f:
+                try:
+                    file_data = json.load(f)
+                except json.JSONDecodeError as e:
+                    self._handle_file_error(e)
+                    return None
+
+            if key is not None:
+                if key in file_data:
+                    values = file_data.pop(key)
+                    with open(self.filename, 'w') as f:
+                        json.dump(file_data, f, indent=4)
+                    return key, values
+                else:
+                    return None
+
+            if not file_data:
+                return None
+
+            random_key = random.choice(list(file_data.keys()))
+            values = file_data[random_key]
+
+            if isinstance(values, list):
+                popped_value = values.pop(0)
+                if values:
+                    file_data[random_key] = values
+                else:
+                    file_data.pop(random_key)
+            else:
+                popped_value = values
+                file_data.pop(random_key)
+
+            with open(self.filename, 'w') as f:
+                json.dump(file_data, f, indent=4)
+            return random_key, popped_value
+
+        except (OSError, IOError, json.JSONDecodeError) as e:
+            self._handle_file_error(e)
+            return None
+    
+    def is_connected(self):
+        return True
+    
     def connect(self):
         pass
         
