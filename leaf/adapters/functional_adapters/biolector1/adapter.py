@@ -22,8 +22,10 @@ class Biolector1Adapter(StartStopAdapter):
     """
 
     def __init__(self,instance_data: dict,output: OutputModule,
-        write_file: Optional[str] = None,maximum_message_size: Optional[int] = 1,
-        error_holder: Optional[ErrorHolder] = None):
+        write_file: Optional[str] = None,
+        maximum_message_size: Optional[int] = 1,
+        error_holder: Optional[ErrorHolder] = None,
+        experiment_timeout:int=None):
         """
         Initialise Biolector1Adapter, setting up phases, process adapters, and metadata.
 
@@ -40,7 +42,8 @@ class Biolector1Adapter(StartStopAdapter):
         super().__init__(instance_data,watcher,output,interpreter,
                          maximum_message_size=maximum_message_size,
                          error_holder=error_holder,
-                         metadata_manager=metadata_manager)
+                         metadata_manager=metadata_manager,
+                         experiment_timeout=experiment_timeout)
         self._write_file: Optional[str] = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
 

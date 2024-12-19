@@ -14,7 +14,7 @@ from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.keydb_client import KEYDB
 from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
-
+from leaf_register.metadata import MetadataManager
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
@@ -33,7 +33,7 @@ except KeyError:
 db_host = "localhost"
 
 
-class TestMQTT(unittest.TestCase):
+class TestFallbacks(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_topic = "test_fallback/"
         
@@ -84,6 +84,85 @@ class TestMQTT(unittest.TestCase):
                if isinstance(n, dict) or is_valid_json(n)]
         self.assertIn(mock_data, res)
 
+    def test_pop_all_messages(self):
+        self._keydb.connect()
+        institute = "test_pop_all_messages_institute"
+        equipment_id = "test_pop_all_messages_equipment_id"
+        instance_id = "test_pop_all_messages_instance_id"
+        experiment_id = "test_pop_all_messages_experiment_id"
+        measurement_id = "test_pop_all_messages_measurement_id"
+
+        manager = MetadataManager()
+        manager._metadata["equipment"] = {}
+        manager._metadata["equipment"]["institute"] = institute
+        manager._metadata["equipment"]["equipment_id"] = equipment_id
+        manager._metadata["equipment"]["instance_id"] = instance_id
+
+        inp_messages = {manager.experiment.measurement(experiment_id=experiment_id,
+                                                   measurement=measurement_id) : ["A","B","C"],
+                        manager.experiment.start() : ["D","E","F"]}
+        for topic,messages in inp_messages.items():
+            for message in messages:
+                self._keydb.transmit(topic,message)
+                time.sleep(0.1)
+        
+        messages = list(self._module.pop_all_messages())
+        self.assertTrue(len(messages) > 0)
+        for topic,message in messages:
+            self.assertIn(topic,inp_messages)
+            self.assertIn(message,inp_messages[topic])
+        self.assertIsNone(self._keydb.pop())
+
+        for topic,messages in inp_messages.items():
+            for message in messages:
+                self._file.transmit(topic,message)
+                time.sleep(0.1)
+        
+        messages = list(self._module.pop_all_messages())
+        self.assertTrue(len(messages) > 0)
+        for topic,message in messages:
+            self.assertIn(topic,inp_messages)
+            self.assertIn(message,inp_messages[topic])
+        self.assertIsNone(self._file.pop())
+
+    def test_pop_all_messages_multi_output(self):
+        self._keydb.connect()
+        institute = "test_pop_all_messages_institute"
+        equipment_id = "test_pop_all_messages_equipment_id"
+        instance_id = "test_pop_all_messages_instance_id"
+        experiment_id = "test_pop_all_messages_experiment_id"
+        measurement_id = "test_pop_all_messages_measurement_id"
+
+        manager = MetadataManager()
+        manager._metadata["equipment"] = {}
+        manager._metadata["equipment"]["institute"] = institute
+        manager._metadata["equipment"]["equipment_id"] = equipment_id
+        manager._metadata["equipment"]["instance_id"] = instance_id
+
+        keydb_messages = {manager.experiment.measurement(experiment_id=experiment_id,
+                                                         measurement=measurement_id) : ["A","B","C"],
+                                                         manager.experiment.start() : ["D","E","F"]}
+        file_messages = {manager.experiment.measurement(experiment_id=experiment_id,
+                                                         measurement=measurement_id) : ["G","H","I"],
+                                                         manager.experiment.start() : ["j","K","L"]}
+        for topic,messages in keydb_messages.items():
+            for message in messages:
+                self._keydb.transmit(topic,message)
+                time.sleep(0.1)
+        for topic,messages in file_messages.items():
+            for message in messages:
+                self._file.transmit(topic,message)
+                time.sleep(0.1)
+        
+        messages = list(self._module.pop_all_messages())
+        for topic,message in messages:
+            print(topic,message)
+            self.assertTrue(topic in keydb_messages or topic in file_messages)
+            self.assertTrue(message in keydb_messages[topic] or message in file_messages[topic])
+
+        self.assertIsNone(self._file.pop())
+        self.assertIsNone(self._keydb.pop())
+        
 def is_valid_json(item):
     try:
         json.loads(item)
