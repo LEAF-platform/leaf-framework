@@ -223,7 +223,8 @@ class EquipmentAdapter(ABC):
                 Some quick ideas:
                     1. Use the interpreter and add is_experiment_running or something.
                     2. 
-                '''                
+                '''
+                '''
                 if self._experiment_timeout is not None:
                     # If experiment is running. (HOW)
                     if True:
@@ -231,6 +232,7 @@ class EquipmentAdapter(ABC):
                         # and now > the experiment timeout (HOW)
                         if last_measurement > self._experiment_timeout:
                             pass # Send a stop message.
+                '''
 
         except KeyboardInterrupt:
             self._logger.info("User keyboard input stopping adapter.")
