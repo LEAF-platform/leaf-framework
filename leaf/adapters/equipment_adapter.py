@@ -97,30 +97,37 @@ class EquipmentAdapter(ABC):
                               (defaults to new MetadataManager if None).
             error_holder (Optional[ErrorHolder]): Optional error holder instance.
         """
+        # Processes
         if not isinstance(process_adapters, (list, tuple, set)):
             process_adapters = [process_adapters]
-
         self._processes: List[ProcessModule] = process_adapters
+        
 
+        # Interpreter
+        self._interpreter: AbstractInterpreter = interpreter
         [p.set_interpreter(interpreter) for p in self._processes]
 
-        self._interpreter: AbstractInterpreter = interpreter
+        # Watcher
         self._watcher: EventWatcher = watcher
-        self._stop_event: Event = Event()
-
+        [watcher.add_callback(p.process_input) for p in self._processes]
+        
+        # Metadata
         if metadata_manager is None:
             self._metadata_manager: MetadataManager = MetadataManager()
         else:
             self._metadata_manager = metadata_manager
-
         self._metadata_manager.load_from_file(metadata_fn)
         self._metadata_manager.add_equipment_data(instance_data)
+        [p.set_metadata_manager(self._metadata_manager) 
+         for p in self._processes]
 
+        # ErrorHolder
         self._error_holder: Optional[ErrorHolder] = error_holder
         interpreter.set_error_holder(error_holder)
         watcher.set_error_holder(error_holder)
         [p.set_error_holder(error_holder) for p in self._processes]
 
+        # Logger
         ins_id = self._metadata_manager.get_instance_id()
         unique_logger_name = f"{__name__}.{ins_id}"
         self._logger = get_logger(
@@ -129,6 +136,9 @@ class EquipmentAdapter(ABC):
             error_log_file=f"{ins_id}_error.log",
             log_level=logging.INFO
         )
+
+        # Misc
+        self._stop_event: Event = Event()
         self._experiment_timeout = experiment_timeout
 
     def start(self) -> None:
@@ -206,6 +216,24 @@ class EquipmentAdapter(ABC):
                         self._logger.info(
                             f"Information error, no action needed: {error}", exc_info=error)
                 
+                '''
+                The big issue here is that the adapters themselves dont really
+                have any knowledge of the experiment status...
+                We really need to figure out how to introduce some context.
+                Some quick ideas:
+                    1. Use the interpreter and add is_experiment_running or something.
+                    2. 
+                '''
+                '''
+                if self._experiment_timeout is not None:
+                    # If experiment is running. (HOW)
+                    if True:
+                        # If the difference between the last measurement 
+                        # and now > the experiment timeout (HOW)
+                        if last_measurement > self._experiment_timeout:
+                            pass # Send a stop message.
+                '''
+
         except KeyboardInterrupt:
             self._logger.info("User keyboard input stopping adapter.")
             self._stop_event.set()
@@ -225,11 +253,7 @@ class EquipmentAdapter(ABC):
         """
         # Could do with a rework.
         for process in self._processes:
-            for phase in process._phases:
-                phase._output.flush(self._metadata_manager.details())
-                phase._output.flush(self._metadata_manager.running())
-                phase._output.flush(self._metadata_manager.experiment.start())
-                phase._output.flush(self._metadata_manager.experiment.stop())
+            process.stop()
         self._stop_event.set()
         if self._watcher.is_running():
             self._watcher.stop()
@@ -240,11 +264,11 @@ class EquipmentAdapter(ABC):
         # Initially designed as each phase 
         # could have different outputs but that 
         # isnt a thing anymore.
+        # Could even for ease be if last_output == current_output -> Skip
         for process in self._processes:
-            for phase in process._phases:
-                error_topic = self._metadata_manager.error()
-                phase._output.transmit(error_topic,str(error))
-                return
+            error_topic = self._metadata_manager.error()
+            process._output.transmit(error_topic,str(error))
+            return
 
     def _handle_exception(self, exception: Exception) -> None:
         if self._error_holder is not None:

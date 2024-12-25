@@ -1,9 +1,10 @@
 import requests, logging
 from typing import Optional, Callable, List, Dict
 from leaf.modules.input_modules.polling_watcher import PollingWatcher
+from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf_register.metadata import MetadataManager
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
 
 class URLState:
     """
@@ -59,18 +60,10 @@ class HTTPWatcher(PollingWatcher):
     start, and stop conditions.
     """
     def __init__(
-        self,
-        metadata_manager: MetadataManager,
-        measurement_url: str,
-        start_url: Optional[str] = None,
-        stop_url: Optional[str] = None,
-        interval: int = 60,
-        initialise_callbacks: Optional[List[Callable]] = None,
-        start_callbacks: Optional[List[Callable]] = None,
-        measurement_callbacks: Optional[List[Callable]] = None,
-        stop_callbacks: Optional[List[Callable]] = None,
-        headers: Optional[dict] = None,
-    ) -> None:
+        self,metadata_manager: MetadataManager,measurement_url: str,
+        start_url: Optional[str] = None, stop_url: Optional[str] = None,
+        interval: int = 60, headers: Optional[dict] = None, 
+        callbacks = None, error_holder=None) -> None:
         """
         Initialize APIWatcher.
 
@@ -86,16 +79,9 @@ class HTTPWatcher(PollingWatcher):
             stop_callbacks: Callbacks for stop events.
             headers: Custom headers for API requests.
         """
-        super().__init__(
-            metadata_manager,
-            interval,
-            initialise_callbacks=initialise_callbacks,
-            measurement_callbacks=measurement_callbacks,
-            start_callbacks=start_callbacks,
-            stop_callbacks=stop_callbacks,
-        )
+        super().__init__(interval,metadata_manager,callbacks=callbacks,
+                         error_holder=error_holder)
 
-        
         self.url_states = {"measurement": URLState("measurement")}
         self.urls = {"measurement": measurement_url}
 

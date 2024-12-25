@@ -86,21 +86,13 @@ class MockEquipmentAdapter(EquipmentAdapter):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
-        start_p = ControlPhase(
-            output, metadata_manager.experiment.start, metadata_manager
-        )
-        stop_p = ControlPhase(
-            output, metadata_manager.experiment.stop, metadata_manager
-        )
-        measure_p = MeasurePhase(output, metadata_manager)
-        details_p = ControlPhase(output, metadata_manager.details, metadata_manager)
+        start_p = ControlPhase(metadata_manager.experiment.start)
+        stop_p = ControlPhase(metadata_manager.experiment.stop)
+        measure_p = MeasurePhase()
+        details_p = ControlPhase(metadata_manager.details)
 
-        watcher.add_start_callback(start_p.update)
-        watcher.add_measurement_callback(measure_p.update)
-        watcher.add_stop_callback(stop_p.update)
-        watcher.add_initialise_callback(details_p.update)
-        phase = [start_p, measure_p, stop_p]
-        mock_process = [DiscreteProcess(phase)]
+        phase = [start_p, measure_p, stop_p,details_p]
+        mock_process = [DiscreteProcess(output,phase)]
         error_holder = ErrorHolder()
         super().__init__(
             instance_data,
@@ -112,7 +104,6 @@ class MockEquipmentAdapter(EquipmentAdapter):
             experiment_timeout=experiment_timeout)
 
 
-# Note the tests haven't been updated here since the rework.
 class TestEquipmentAdapter(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()

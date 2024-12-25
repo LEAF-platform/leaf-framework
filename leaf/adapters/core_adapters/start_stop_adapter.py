@@ -18,23 +18,14 @@ class StartStopAdapter(EquipmentAdapter):
                  metadata_manager:MetadataManager=None,
                  experiment_timeout:int=None):
     
-        start_p = StartPhase(output, metadata_manager)
-        stop_p = StopPhase(output, metadata_manager)
-        measure_p = MeasurePhase(output, metadata_manager, 
+        start_p = StartPhase(metadata_manager)
+        stop_p = StopPhase(metadata_manager)
+        measure_p = MeasurePhase(metadata_manager, 
                                  maximum_message_size=maximum_message_size)
-        details_p = InitialisationPhase(output, metadata_manager)
+        details_p = InitialisationPhase(metadata_manager)
 
-        # Trigger start phase when experiment starts
-        watcher.add_start_callback(start_p.update)  
-        # Trigger measure phase when measurement is taken.
-        watcher.add_measurement_callback(measure_p.update)
-        # Trigger stop phase when experiment stops.
-        watcher.add_stop_callback(stop_p.update)
-        # Trigger initialization phase when adapter starts.
-        watcher.add_initialise_callback(details_p.update)
-
-        phase = [start_p, measure_p, stop_p]
-        process = [DiscreteProcess(phase)]
+        phase = [start_p, measure_p, stop_p,details_p]
+        process = [DiscreteProcess(output,phase)]
 
         super().__init__(instance_data,watcher,process,interpreter,
                          metadata_manager=metadata_manager,

@@ -1,26 +1,17 @@
+import logging
 from leaf.modules.input_modules.event_watcher import EventWatcher
+from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf_register.metadata import MetadataManager
+logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
 
 class DBWatcher(EventWatcher):
-    def __init__(self, file_path, start_callback=None,
-                 measurement_callback=None, stop_callback=None):
+    def __init__(self, metadata_manager: MetadataManager, 
+                 callbacks = None, error_holder=None):
         raise NotImplementedError()
-        super().__init__(instance_manifest)
-
-    @property
-    def start_callback(self):
-        return self._start_callback
-
-    @start_callback.setter
-    def start_callback(self, callback):
-        self._start_callback = callback
-
-    @property
-    def stop_callback(self):
-        return self._stop_callback
-
-    @stop_callback.setter
-    def stop_callback(self, callback):
-        self._stop_callback = callback
+        term_map = {}
+        super(FileWatcher, self).__init__(term_map,metadata_manager,
+                                          callbacks=callbacks,
+                                          error_holder=error_holder)
         
     def start(self):
         raise NotImplementedError()
