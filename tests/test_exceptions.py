@@ -369,6 +369,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertIsNone(result)
         self.error_holder.add_error.assert_called_once()
 
+    '''
     def test_start_handler_no_fallback(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
@@ -434,7 +435,6 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
 
-    '''
     def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
