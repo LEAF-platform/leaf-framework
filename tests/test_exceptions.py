@@ -434,7 +434,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                 ):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
-
+    '''
     def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
@@ -659,7 +659,6 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
-    '''
 
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
