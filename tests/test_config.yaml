@@ -27,8 +27,6 @@ EQUIPMENT_INSTANCES:
 OUTPUTS:
   - plugin: MQTT
     broker: localhost
-    username: mcrowther
-    password: Radeon12300
     port: 1883
     fallback: KEYDB
 
