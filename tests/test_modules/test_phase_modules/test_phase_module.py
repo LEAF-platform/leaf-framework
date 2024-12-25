@@ -135,7 +135,7 @@ class TestControlPhase(unittest.TestCase):
 
     def test_control_phase(self) -> None:
         res = self._module.update()
-        self.assertEqual(res,self._metadata_manager.experiment.start())
+        self.assertEqual(res,[(self._metadata_manager.experiment.start(),None)])
     
 
 
