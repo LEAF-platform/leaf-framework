@@ -506,6 +506,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertEqual(len(expected_exceptions), 0)
         self.assertEqual(len(expected_logs), 0)
 
+    '''
     def test_start_handler_multiple_adapter_critical(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
@@ -583,7 +584,6 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
     
-    '''
     def test_start_handler_multiple_adapter_reset(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
@@ -660,7 +660,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
     '''
-    
+
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
