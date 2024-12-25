@@ -369,7 +369,6 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertIsNone(result)
         self.error_holder.add_error.assert_called_once()
 
-    '''
     def test_start_handler_no_fallback(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
@@ -405,7 +404,7 @@ class TestExceptionsGeneral(unittest.TestCase):
             return mthread
 
         def _stop(thread) -> None:
-            stop_all_adapters()
+            #stop_all_adapters()
             thread.join()
 
         with self.assertLogs(start.__name__, level="WARNING") as logs:
@@ -434,10 +433,10 @@ class TestExceptionsGeneral(unittest.TestCase):
                 ):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
-    '''
+
     def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
-        write_dir = "test"
+        write_dir = f"test"+uuid.uuid4()
         if not os.path.isdir(write_dir):
             os.mkdir(write_dir)
         write_file = os.path.join(write_dir, "tmp1.csv")
@@ -473,7 +472,7 @@ class TestExceptionsGeneral(unittest.TestCase):
             return mthread
 
         def _stop(thread) -> None:
-            stop_all_adapters()
+            #stop_all_adapters()
             thread.join()
 
         with self.assertLogs(start.__name__, level="WARNING") as logs:
@@ -509,7 +508,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
     def test_start_handler_multiple_adapter_critical(self) -> None:
         error_holder = ErrorHolder(threshold=5)
-        write_dir = "test"
+        write_dir = f"test"+uuid.uuid4()
         if not os.path.isdir(write_dir):
             os.mkdir(write_dir)
         write_file1 = os.path.join(write_dir, "tmp1.csv")
@@ -555,7 +554,7 @@ class TestExceptionsGeneral(unittest.TestCase):
             return mthread
 
         def _stop(thread) -> None:
-            stop_all_adapters()
+            #stop_all_adapters()
             thread.join()
 
         with self.assertLogs(start.__name__, level="ERROR") as logs:
@@ -586,7 +585,7 @@ class TestExceptionsGeneral(unittest.TestCase):
     
     def test_start_handler_multiple_adapter_reset(self) -> None:
         error_holder = ErrorHolder(threshold=5)
-        write_dir = "test"
+        write_dir = f"test"+uuid.uuid4()
         if not os.path.isdir(write_dir):
             os.mkdir(write_dir)
         write_file1 = os.path.join(write_dir, "tmp1.csv")
