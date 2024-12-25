@@ -5,8 +5,6 @@ from typing import Optional, Any
 from influxobject import InfluxPoint
 
 from leaf.modules.phase_modules.phase import PhaseModule
-from leaf.modules.output_modules.output_module import OutputModule
-from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import AdapterLogicError
 
 class MeasurePhase(PhaseModule):
@@ -15,9 +13,7 @@ class MeasurePhase(PhaseModule):
     It transmits measurement data.
     """
 
-    def __init__(self, 
-                 output_adapter: OutputModule, 
-                 metadata_manager: MetadataManager, 
+    def __init__(self, metadata_manager = None, 
                  maximum_message_size: Optional[int] = 1,
                  error_holder=None) -> None:
         """
@@ -33,8 +29,13 @@ class MeasurePhase(PhaseModule):
             maximum_message_size (bool): The maximum number of measurements 
                                           in a single message.
         """
-        term_builder = metadata_manager.experiment.measurement
-        super().__init__(output_adapter, term_builder, metadata_manager,
+        if metadata_manager is not None:
+            term_builder = metadata_manager.experiment.measurement
+        else:
+            term_builder = "metadata_manager.experiment.measurement"
+            
+        super().__init__(term_builder, 
+                         metadata_manager=metadata_manager,
                          error_holder=error_holder)
         self._maximum_message_size: int = maximum_message_size
 
@@ -51,7 +52,7 @@ class MeasurePhase(PhaseModule):
         if data is None:
             excp = AdapterLogicError("Measurement system activated without any data")
             self._handle_exception(excp)
-            return
+            return None
 
         if self._interpreter is not None:
             # Check if attributes are set
@@ -73,20 +74,33 @@ class MeasurePhase(PhaseModule):
                     "provided as measurement data."
                 )
                 self._handle_exception(excp)
-                return
+                return None
             if isinstance(result,(set,list,tuple)):
                 chunks = [result[i:i + self._maximum_message_size] for 
                           i in range(0, len(result), self._maximum_message_size)]
+                messages = []
                 for chunk in chunks:
-                    self._transmit_message(exp_id,chunk)
+                    messages.append(self._form_message(exp_id,chunk))
                     time.sleep(0.1)
+                return messages
             else:
-                self._transmit_message(exp_id,result)
+                return [self._form_message(exp_id,result)]
         else:
-            super().update(data, **kwargs)
+            if "experiment_id" in kwargs:
+                experiment_id= kwargs["experiment_id"]
+            else:
+                experiment_id="unknown"
+            if "measurement" in kwargs:
+                measurement= kwargs["measurement"]
+            else:
+                measurement="unknown"
+
+            action = self._term_builder(experiment_id=experiment_id, 
+                                        measurement=measurement)
+            return [(action,data)]
 
 
-    def _transmit_message(self,experiment_id,result):
+    def _form_message(self,experiment_id,result):
         measurement = "unknown"
         if isinstance(result,dict):
             measurement = result["measurement"]
@@ -94,13 +108,14 @@ class MeasurePhase(PhaseModule):
             result = result.to_json()
             measurement = result["measurement"]
         elif isinstance(result,list):
-            result = [l.to_json() if isinstance(l, InfluxPoint) else l for l in result]
+            result = [l.to_json() if isinstance(l, InfluxPoint) 
+                      else l for l in result]
         else:
             excp = AdapterLogicError(f"Unknown measurement data type: {type(result)}")
             self._handle_exception(excp)
         
         action = self._term_builder(experiment_id=experiment_id, 
                                     measurement=measurement)
-        return self._output.transmit(action, result)
+        return (action, result)
     
         

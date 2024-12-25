@@ -1,5 +1,4 @@
 from typing import Optional, Callable, Any
-from leaf.modules.output_modules.output_module import OutputModule
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.adapters.equipment_adapter import AbstractInterpreter
@@ -13,10 +12,8 @@ class PhaseModule:
     processes, each with discrete phases (start, measurement, stop).
     """
     
-    def __init__(self, 
-                 output_adapter: OutputModule, 
-                 term_builder: Callable[..., str], 
-                 metadata_manager: MetadataManager, 
+    def __init__(self,term_builder: Callable[..., str],
+                 metadata_manager: Optional[MetadataManager] = None,
                  interpreter: Optional[AbstractInterpreter] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -35,13 +32,17 @@ class PhaseModule:
             error_holder (Optional[ErrorHolder]): Optional, an error
                           holder to manage phase errors.
         """
-        super().__init__()
-        self._output = output_adapter
         self._interpreter = interpreter
         self._term_builder = term_builder
         self._metadata_manager = metadata_manager
         self._error_holder = error_holder
 
+    def get_term(self):
+        return self._term_builder()
+    
+    def is_activated(self,topic):
+        return topic == self._term_builder
+    
     def set_interpreter(self, interpreter: AbstractInterpreter) -> None:
         """
         Set or update the interpreter for the phase.
@@ -52,21 +53,15 @@ class PhaseModule:
         """
         self._interpreter = interpreter
 
-    def update(self, data: Optional[Any] = None, retain: bool = False,
-               **kwargs: Any) -> None:
+    def update(self,data=None,**kwargs: Any) -> None:
         """
-        Trigger the update action for the phase, transmitting data
-        via the OutputAdapter. This function may be used as a
-        callback within the larger system.
+        Builds the topic that is specifically bound to this phase.
 
         Args:
-            data (Optional[Any]): Optional data to be transmitted.
-            retain (bool): Whether to retain the transmitted data.
             **kwargs (Any): Additional arguments to build the action
                             term.
         """
-        action = self._term_builder(**kwargs)
-        self._output.transmit(action, data, retain=retain)
+        return [(self._term_builder(**kwargs),data)]
 
     def set_error_holder(self, error_holder: ErrorHolder) -> None:
         """
@@ -79,6 +74,11 @@ class PhaseModule:
         """
         self._error_holder = error_holder
 
+    def set_metadata_manager(self,manager):
+        self._metadata_manager = manager
+        if isinstance(self._term_builder,str):
+            self._term_builder = eval(f'self._{self._term_builder}')
+        
     def _handle_exception(self, exception: Exception) -> None:
         """
         Handle exceptions by passing them to the error holder or

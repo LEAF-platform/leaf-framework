@@ -8,7 +8,8 @@ class ContinousProcess(ProcessModule):
     phase that remains active throughout the process.
     """
     
-    def __init__(self, phase) -> None:
+    def __init__(self,output, phase,metadata_manager=None,
+                 error_holder=None):
         """
         Initialise the ContinousProcess with a single phase.
 
@@ -18,7 +19,9 @@ class ContinousProcess(ProcessModule):
         Raises:
             ValueError: If more than one phase is provided.
         """
-        super().__init__([phase])
         if isinstance(phase, (list, tuple, set)):
             raise AdapterBuildError(f'Continous process may only have one phase.')
+        super().__init__(output,[phase],metadata_manager=metadata_manager,
+                         error_holder=error_holder)
+
         

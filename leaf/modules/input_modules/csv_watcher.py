@@ -16,14 +16,9 @@ class CSVWatcher(FileWatcher):
     files. It reads the file content and passes it as a list of rows
     to the callbacks.
     """
-
-    def __init__(self, 
-                 file_path: str, 
-                 metadata_manager: MetadataManager, 
-                 start_callbacks: Optional[List[Callable]] = None,
-                 measurement_callbacks: Optional[List[Callable]] = None, 
-                 stop_callbacks: Optional[List[Callable]] = None, 
-                 delimiter: str = ";") -> None:
+    def __init__(self, file_path: str, metadata_manager: MetadataManager, 
+                 callbacks = None, error_holder=None,
+                 delimiter: str = ";"):
         """
         Initialise CSVWatcher.
 
@@ -41,8 +36,9 @@ class CSVWatcher(FileWatcher):
             delimiter (str): The delimiter used in the CSV file 
                              (default is ";").
         """
-        super().__init__(file_path, metadata_manager, start_callbacks,
-                         measurement_callbacks, stop_callbacks)
+        super().__init__(file_path, metadata_manager,
+                         callbacks=callbacks,
+                         error_holder=error_holder)
         self._delimiter = delimiter
 
     def on_created(self, event: FileSystemEvent) -> None:
@@ -59,11 +55,11 @@ class CSVWatcher(FileWatcher):
                 return
             self._last_created = time.time()
             with open(fp, "r", encoding="latin-1") as file:
-                reader = list(csv.reader(file, delimiter=self._delimiter))
+                data = list(csv.reader(file, delimiter=self._delimiter))
         except Exception as e:
             self._file_event_exception(e, "creation")
         
-        self._initiate_callbacks(self._start_callbacks, reader)
+        return self._dispatch_callback(self.on_created,data)
 
     def on_modified(self, event: FileSystemEvent) -> None:
         """
@@ -80,24 +76,11 @@ class CSVWatcher(FileWatcher):
             if not self._is_last_modified():
                 return
             with open(fp, 'r', encoding='latin-1') as file:
-                reader = list(csv.reader(file, delimiter=self._delimiter))
+                data = list(csv.reader(file, delimiter=self._delimiter))
         except Exception as e:
             self._file_event_exception(e, "modification")
 
-        self._initiate_callbacks(self._measurement_callbacks, reader)
-
-    def on_deleted(self, event: FileSystemEvent) -> None:
-        """
-        Triggered when the CSV file is deleted.
-        Triggers stop callbacks.
-
-        Args:
-            event (FileSystemEvent): File system event.
-        """
-        if event.src_path.endswith(self._file_name):
-            if len(self._stop_callbacks) > 0:
-                data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self._initiate_callbacks(self._stop_callbacks, data)
+        return self._dispatch_callback(self.on_modified,data)
 
     def _file_event_exception(self, error: Exception, event_type: str) -> None:
         """

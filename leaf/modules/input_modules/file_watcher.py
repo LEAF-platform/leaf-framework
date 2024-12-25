@@ -5,11 +5,12 @@ import logging
 import errno
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from typing import Optional, List, Callable
+from typing import Optional
 from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.exceptions import AdapterBuildError, InputError
 from leaf_register.metadata import MetadataManager
+
 logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
 
 class FileWatcher(FileSystemEventHandler, EventWatcher):
@@ -22,13 +23,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
     Ensures callbacks are executed only once within a 
     specified debounce period.
     """
-
-    def __init__(self, 
-                 file_path: str, 
-                 metadata_manager: MetadataManager, 
-                 start_callbacks: Optional[List[Callable]] = None, 
-                 measurement_callbacks: Optional[List[Callable]] = None, 
-                 stop_callbacks: Optional[List[Callable]] = None):
+    def __init__(self, file_path: str, metadata_manager: MetadataManager, 
+                 callbacks = None, error_holder=None):
         """
         Initialise the FileWatcher with the specified 
         file path and callbacks.
@@ -48,8 +44,12 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Raises:
             AdapterBuildError: If the file path is invalid.
         """
-        super(FileWatcher, self).__init__(metadata_manager, 
-                                          measurement_callbacks=measurement_callbacks)
+        term_map = {self.on_created : metadata_manager.experiment.start,
+                    self.on_modified : metadata_manager.experiment.measurement,
+                    self.on_deleted : metadata_manager.experiment.stop}
+        super(FileWatcher, self).__init__(term_map,metadata_manager,
+                                          callbacks=callbacks,
+                                          error_holder=error_holder)
         logger.debug(f"Initialising FileWatcher with file path {file_path}")
         
         try:
@@ -65,40 +65,10 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         self._observing = False
         self._observer.schedule(self, self._path, recursive=False)
         
-        # Callbacks for events
-        self._start_callbacks = self._cast_callbacks(start_callbacks)
-        self._stop_callbacks = self._cast_callbacks(stop_callbacks)
-        
         # Debounce control attributes
         self._last_modified: Optional[float] = None
         self._last_created: Optional[float] = None
         self._debounce_delay: float = 0.75
-
-    @property
-    def start_callbacks(self) -> List[Callable]:
-        """List[Callable]: Callbacks triggered on file creation."""
-        return self._start_callbacks
-
-    def add_start_callback(self, callback: Callable) -> None:
-        """Add a new callback to be triggered on file creation."""
-        self._start_callbacks.append(callback)
-
-    def remove_start_callback(self, callback: Callable) -> None:
-        """Remove a callback from the start callbacks list."""
-        self._start_callbacks.remove(callback)
-
-    @property
-    def stop_callbacks(self) -> List[Callable]:
-        """List[Callable]: Callbacks triggered on file deletion."""
-        return self._stop_callbacks
-
-    def add_stop_callback(self, callback: Callable) -> None:
-        """Add a new callback to be triggered on file deletion."""
-        self._stop_callbacks.append(callback)
-
-    def remove_stop_callback(self, callback: Callable) -> None:
-        """Remove a callback from the stop callbacks list."""
-        self._stop_callbacks.remove(callback)
 
     def start(self) -> None:
         """
@@ -163,7 +133,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 data = file.read()
         except Exception as e:
             self._file_event_exception(e, "creation")
-        self._initiate_callbacks(self._start_callbacks, data)
+        return self._dispatch_callback(self.on_created,data)
 
     def on_modified(self, event) -> None:
         """
@@ -184,8 +154,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 data = file.read()
         except Exception as e:
             self._file_event_exception(e, "modification")
-        self._initiate_callbacks(self._measurement_callbacks, data)
+        return self._dispatch_callback(self.on_modified,data)
 
+                
     def on_deleted(self, event) -> None:
         """
         Handle file deletion events by triggering the stop callbacks.
@@ -194,9 +165,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             event: The event object from watchdog indicating a file deletion.
         """
         if event.src_path.endswith(self._file_name):
-            if len(self._stop_callbacks) > 0:
-                data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self._initiate_callbacks(self._stop_callbacks, data)
+            data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return self._dispatch_callback(self.on_deleted,data)
 
     def _get_filepath(self, event) -> Optional[str]:
         """
