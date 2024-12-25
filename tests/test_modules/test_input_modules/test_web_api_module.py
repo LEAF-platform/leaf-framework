@@ -52,7 +52,7 @@ class TestURLState(unittest.TestCase):
 
 class TestAPIWatcher(unittest.TestCase):
     def setUp(self):
-        metadata_manager = MagicMock(spec=MetadataManager)
+        metadata_manager = MetadataManager()
 
         self.mock_measurement_callback = MagicMock()
         self.mock_start_callback = MagicMock()
@@ -63,10 +63,7 @@ class TestAPIWatcher(unittest.TestCase):
             start_url="http://example.com/start",
             stop_url="http://example.com/stop",
             interval=60,
-            headers={"Authorisation": "Bearer test-token"},
-            measurement_callbacks=[self.mock_measurement_callback],
-            start_callbacks=[self.mock_start_callback],
-            stop_callbacks=[self.mock_stop_callback],
+            headers={"Authorisation": "Bearer test-token"}
         )
 
     def mock_response(

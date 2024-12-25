@@ -11,12 +11,12 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.modules.input_modules.file_watcher import FileWatcher
+from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf_register.metadata import MetadataManager
 
 
-class TestFileWatcher(unittest.TestCase):
-    def test_file_watcher_details(self):
+class TestCSVWatcher(unittest.TestCase):
+    def test_csv_watcher_details(self):
         with tempfile.TemporaryDirectory() as test_dir:
             topics = {}
             def mock_callback(topic,data):
@@ -26,23 +26,23 @@ class TestFileWatcher(unittest.TestCase):
                     topics[topic] = []
                 topics[topic].append(data)
 
-            text_watch_file = os.path.join(test_dir, "test_file_watcher_change.txt")
+            text_watch_file = os.path.join(test_dir, "test_csv_watcher_change.txt")
             if not os.path.isfile(text_watch_file):
                 with open(text_watch_file, "w"):
                     pass
 
             metadata = MetadataManager()
             metadata._metadata["equipment"] = {}
-            metadata._metadata["equipment"]["institute"] = "test_file_watcher_details"
-            metadata._metadata["equipment"]["equipment_id"] = "test_file_watcher_details"
-            metadata._metadata["equipment"]["instance_id"] = "test_file_watcher_details"
-            watcher = FileWatcher(text_watch_file,metadata,
+            metadata._metadata["equipment"]["institute"] = "test_csv_watcher_details"
+            metadata._metadata["equipment"]["equipment_id"] = "test_csv_watcher_details"
+            metadata._metadata["equipment"]["instance_id"] = "test_csv_watcher_details"
+            watcher = CSVWatcher(text_watch_file,metadata,
                                   callbacks=[mock_callback])
             watcher.start()
             watcher.stop()
             self.assertEqual(topics[metadata.details()][0],metadata.get_equipment_data())
 
-    def test_file_watcher_change(self):
+    def test_csv_watcher_change(self):
         with tempfile.TemporaryDirectory() as test_dir:
             def mod_file(filename, interval, count):
                 for _ in range(count):
@@ -60,7 +60,7 @@ class TestFileWatcher(unittest.TestCase):
                     topics[topic] = []
                 topics[topic].append(data)
 
-            text_watch_file = os.path.join(test_dir, "test_file_watcher_change.txt")
+            text_watch_file = os.path.join(test_dir, "test_csv_watcher_change.txt")
             if not os.path.isfile(text_watch_file):
                 with open(text_watch_file, "w"):
                     pass
@@ -68,7 +68,7 @@ class TestFileWatcher(unittest.TestCase):
             num_mod = 3
             interval = 2
             metadata = MetadataManager()
-            watcher = FileWatcher(text_watch_file,metadata,
+            watcher = CSVWatcher(text_watch_file,metadata,
                                   callbacks=[mock_callback])
             watcher.start()
             mthread = Thread(target=mod_file, args=(text_watch_file, 
@@ -79,7 +79,7 @@ class TestFileWatcher(unittest.TestCase):
             watcher.stop()
             self.assertEqual(len(topics[metadata.experiment.measurement()]), num_mod)
 
-    def test_file_watcher_creation(self):
+    def test_csv_watcher_creation(self):
         with tempfile.TemporaryDirectory() as test_dir:
 
             def create_file(filepath, interval, count):
@@ -103,9 +103,9 @@ class TestFileWatcher(unittest.TestCase):
                 topics[topic].append(data)
 
             creation_file = os.path.join(test_dir, 
-                                         "test_file_watcher_creation.csv")
+                                         "test_csv_watcher_creation.csv")
             metadata = MetadataManager()
-            watcher = FileWatcher(creation_file,metadata,
+            watcher = CSVWatcher(creation_file,metadata,
                                   callbacks=[mock_callback])
             num_create = 3
             interval = 2
@@ -120,7 +120,7 @@ class TestFileWatcher(unittest.TestCase):
             self.assertEqual(len(topics[metadata.experiment.start()]), 
                              num_create)
 
-    def test_file_watcher_deletion(self) -> None:
+    def test_csv_watcher_deletion(self) -> None:
         with tempfile.TemporaryDirectory() as test_dir:
 
             def delete_file(filepath, interval, count):
@@ -144,16 +144,16 @@ class TestFileWatcher(unittest.TestCase):
                     topics[topic] = []
                 topics[topic].append(data)
 
-            deletion_file = os.path.join(test_dir, "test_file_watcher_deletion.csv")
+            deletion_file = os.path.join(test_dir, 
+                                         "test_csv_watcher_deletion.csv")
             metadata = MetadataManager()
-            watcher = FileWatcher(deletion_file,metadata,
+            watcher = CSVWatcher(deletion_file,metadata,
                                   callbacks=[mock_callback])
             num_create = 3
-            interval = 2
+            interval = 1
             watcher.start()
-            mthread = Thread(
-                target=delete_file, args=(deletion_file, interval, num_create)
-            )
+            mthread = Thread(target=delete_file, 
+                             args=(deletion_file, interval, num_create))
             mthread.start()
             mthread.join()
             time.sleep(1)

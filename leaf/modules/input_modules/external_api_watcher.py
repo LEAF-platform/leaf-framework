@@ -1,9 +1,10 @@
 from typing import Callable, Dict, Optional, List
 import logging
 from leaf.modules.input_modules.polling_watcher import PollingWatcher
+from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf_register.metadata import MetadataManager
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
 
 
 class APIState:
@@ -38,20 +39,12 @@ class ExternalApiWatcher(PollingWatcher):
     Polls external APIs at specified intervals, using different
     data-fetching functions for measurement, start, and stop conditions.
     Only triggers callbacks when new data is detected.
-    """
-
-    def __init__(
-        self,
-        metadata_manager: MetadataManager,
-        measurement_fetcher: Callable[[], Optional[dict]],
-        start_fetcher: Optional[Callable[[], Optional[dict]]] = None,
-        stop_fetcher: Optional[Callable[[], Optional[dict]]] = None,
-        interval: int = 60,
-        initialise_callbacks: Optional[List[Callable]] = None,
-        measurement_callbacks: Optional[List[Callable]] = None,
-        start_callbacks: Optional[List[Callable]] = None,
-        stop_callbacks: Optional[List[Callable]] = None,
-    ) -> None:
+    """        
+    def __init__(self,metadata_manager: MetadataManager,
+                 measurement_fetcher: Callable[[], Optional[dict]],
+                 start_fetcher: Optional[Callable[[], Optional[dict]]] = None,
+                 stop_fetcher: Optional[Callable[[], Optional[dict]]] = None,
+                 interval: int = 60,callbacks = None, error_holder=None) -> None:
         """
         Initialise ExternalApiWatcher.
 
@@ -61,27 +54,18 @@ class ExternalApiWatcher(PollingWatcher):
             start_fetcher: Optional function to fetch start event data.
             stop_fetcher: Optional function to fetch stop event data.
             interval: Polling interval in seconds.
-            initialise_callbacks: Callbacks for initialisation events.
-            measurement_callbacks: Callbacks for measurement events.
-            start_callbacks: Callbacks for start events.
-            stop_callbacks: Callbacks for stop events.
         """
-        super().__init__(
-            metadata_manager,
-            interval,
-            initialise_callbacks=initialise_callbacks,
-            measurement_callbacks=measurement_callbacks,
-            start_callbacks=start_callbacks,
-            stop_callbacks=stop_callbacks,
-        )
-
+        print(type(metadata_manager))
+        super().__init__(interval,metadata_manager,callbacks=callbacks,
+                         error_holder=error_holder)
         self.fetchers = {
             "measurement": measurement_fetcher,
             "start": start_fetcher,
             "stop": stop_fetcher,
         }
         self.api_states = {
-            key: APIState(key) for key in self.fetchers.keys() if self.fetchers[key]
+            key: APIState(key) for key in 
+            self.fetchers.keys() if self.fetchers[key]
         }
 
     def _fetch_data(self) -> Dict[str, Optional[dict]]:
