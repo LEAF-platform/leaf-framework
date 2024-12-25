@@ -13,13 +13,12 @@ from leaf_register.metadata import MetadataManager
 
 class TestExternalApiWatcher(unittest.TestCase):
     def setUp(self):
-        self.metadata_manager = Mock(spec=MetadataManager)
+        self.metadata_manager = MetadataManager()
         self.measurement_fetcher = Mock()
         self.start_fetcher = Mock(return_value=None)
         self.stop_fetcher = Mock(return_value=None)
 
-        self.watcher = ExternalApiWatcher(
-            metadata_manager=self.metadata_manager,
+        self.watcher = ExternalApiWatcher(self.metadata_manager,
             measurement_fetcher=self.measurement_fetcher,
             start_fetcher=self.start_fetcher,
             stop_fetcher=self.stop_fetcher,

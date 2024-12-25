@@ -10,7 +10,8 @@ class DiscreteProcess(ProcessModule):
     anyway but are collections for I/O actions.
     """
     
-    def __init__(self, phases: Any):
+    def __init__(self,output, phases, metadata_manager=None,
+                 error_holder=None):
         """
         Initialise the DiscreteProcess with multiple phases.
 
@@ -22,9 +23,11 @@ class DiscreteProcess(ProcessModule):
             ValueError: If only one phase is provided. 
                         Use ContinousProcess instead.
         """
-        super().__init__(phases)
         if not isinstance(phases, (list, tuple, set)) or len(phases) <= 1:
             raise AdapterBuildError(f'''Discrete process should have 
                              more than one phase. Use continous 
                              process instead.''')
+        super().__init__(output,phases,metadata_manager=metadata_manager,
+                         error_holder=error_holder)
+
         

@@ -1,7 +1,6 @@
 from typing import Any
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf_register.metadata import MetadataManager
 
 
 class StartPhase(ControlPhase):
@@ -11,8 +10,7 @@ class StartPhase(ControlPhase):
     ControlPhase.
     """
     
-    def __init__(self, output_adapter: OutputModule, 
-                 metadata_manager: MetadataManager,
+    def __init__(self,metadata_manager: None,
                  error_holder=None) -> None:
         """
         Initialize the StartPhase with the output adapter and metadata
@@ -25,7 +23,7 @@ class StartPhase(ControlPhase):
                           associated with the phase.
         """
         term_builder = metadata_manager.experiment.start
-        super().__init__(output_adapter, term_builder, metadata_manager,
+        super().__init__(term_builder, metadata_manager=metadata_manager,
                          error_holder=error_holder)
 
     def update(self, data: Any) -> None:
@@ -36,12 +34,11 @@ class StartPhase(ControlPhase):
         Args:
             data (Any): Data to be transmitted.
         """
-        running_action = self._metadata_manager.running()
-        self._output.transmit(running_action, True, retain=True)
-        stop_action = self._metadata_manager.experiment.stop()
-        self._output.transmit(stop_action, None, retain=True)
-        
         if self._interpreter is not None:
             data = self._interpreter.metadata(data)
+        data = super().update(data)
+        data += [(self._metadata_manager.running(),True)]
+        data += [(self._metadata_manager.experiment.stop(),None)] 
+        return data
         
-        super().update(data)
+

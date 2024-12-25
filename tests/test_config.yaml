@@ -5,7 +5,7 @@ EQUIPMENT_INSTANCES:
         instance_id: biolector_devonshire10
         institute: NCL
       requirements:
-        write_file: tmp.csv
+        write_file: test1/tmp.csv
       simulation:
         filename: tests/static_files/biolector1_full.csv
         interval: 60
@@ -15,18 +15,20 @@ EQUIPMENT_INSTANCES:
         instance_id: biolector_manchester4
         institute: MAN
       requirements:
-        write_file: tmp2.csv
+        write_file: test2/tmp2.csv
   - equipment:
       adapter: BioLector1
       data:
         instance_id: biolector_london22
         institute: LDN
       requirements:
-        write_file: tmp3.csv
+        write_file: test3/tmp3.csv
 
 OUTPUTS:
   - plugin: MQTT
     broker: localhost
+    username: mcrowther
+    password: Radeon12300
     port: 1883
     fallback: KEYDB
 

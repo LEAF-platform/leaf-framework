@@ -1,4 +1,3 @@
-from typing import Optional, Callable, List
 from leaf_register.metadata import MetadataManager
 from abc import ABC
 from abc import abstractmethod
@@ -10,30 +9,26 @@ class EventWatcher(ABC):
     provides measurements by writing to a file or any other 
     observable event. 
     """
-    def __init__(self, metadata_manager: MetadataManager, 
-                 initialise_callbacks: Optional[list[Callable]] = None,
-                 measurement_callbacks: Optional[list[Callable]] = None,
-                 error_holder=None) -> None:
+    def __init__(self, term_map, metadata_manager: MetadataManager, 
+                 callbacks = None, error_holder=None) -> None:
         """
         Initialise the EventWatcher instance.
 
         Args:
             metadata_manager: An instance of MetadataManager 
                               to manage equipment data.
-            initialise_callbacks: An optional list of callback 
-                                  functions to be executed 
-                                  during the initialisation 
-                                  of the adapter.
-            measurement_callbacks: An optional list of callback 
-                                    functions to be executed when 
-                                    a measurement event occurs.
         """
-        
-        self._initialise_callbacks = self._cast_callbacks(initialise_callbacks)
-        self._measurement_callbacks = self._cast_callbacks(measurement_callbacks)        
         self._metadata_manager = metadata_manager
         self._error_holder = error_holder
         self._running = False
+        if callbacks is None:
+            self._callbacks = []
+        else:
+            self._callbacks = callbacks
+        
+        if self.start not in term_map:
+            term_map[self.start] = self._metadata_manager.details
+        self._term_map = term_map
 
     @abstractmethod
     def start(self) -> None:
@@ -41,91 +36,32 @@ class EventWatcher(ABC):
         Start the EventWatcher and trigger the initialise callbacks.
         """
         equipment_data = self._metadata_manager.get_equipment_data()
-        for callback in self.initialise_callbacks:
-            callback(equipment_data)
         self._running = True
+        return self._dispatch_callback(self.start,equipment_data)
 
+    def add_callback(self,callback):
+        self._callbacks.append(callback)
+        
     def stop(self):
         self._running = False
     
     def is_running(self):
         return self._running
     
-    @property
-    def initialise_callbacks(self) -> list[Callable]:
-        """
-        Return the initialisation callbacks.
-        
-        Returns:
-            A list of callable functions for initialisation.
-        """
-        return self._initialise_callbacks
-
-    def add_initialise_callback(self, callback: Callable) -> None:
-        """
-        Add a callback function to the initialise callbacks.
-
-        Args:
-            callback: The callback function to be added.
-        """
-        self._initialise_callbacks.append(callback)
-
-    def remove_initialise_callback(self, callback: Callable) -> None:
-        """
-        Remove a initialise callback function.
-
-        Args:
-            callback: The callback function to be removed.
-        """
-        self._initialise_callbacks.remove(callback)
-
-    @property
-    def measurement_callbacks(self) -> list[Callable]:
-        """
-        Return the measurement callbacks.
-        
-        Returns:
-            A list of callable functions for measurements.
-        """
-        return self._measurement_callbacks
-
-    def add_measurement_callback(self, callback: Callable) -> None:
-        """
-        Add a callback function to the measurement callbacks.
-
-        Args:
-            callback: The callback function to be added.
-        """
-        self._measurement_callbacks.append(callback)
-
-    def remove_measurement_callback(self, callback: Callable) -> None:
-        """
-        Remove a measurement callback.
-
-        Args:
-            callback: The callback function to be removed.
-        """
-        self._measurement_callbacks.remove(callback)
-
     def set_error_holder(self,error_holder):
         self._error_holder = error_holder
-
-    def _cast_callbacks(self, callbacks: Optional[Callable]) -> List[Callable]:
-        """Ensure the callbacks are cast into a list."""
-        if callbacks is None:
-            return []
-        elif not isinstance(callbacks, (list, set, tuple)):
-            return [callbacks]
-        return list(callbacks)
-
-    def _initiate_callbacks(self, callbacks: List[Callable], 
-                            data: dict = None) -> None:
-        """Trigger all the registered callbacks."""
-        for callback in callbacks:
-            callback(data)
 
     def _handle_exception(self,exception):
         if self._error_holder is not None:
             self._error_holder.add_error(exception)
         else:
             raise exception
+
+    def _dispatch_callback(self,function,data):
+        if function not in self._term_map:
+            # TODO
+            excp = "STUB"
+            self._handle_exception(excp)
+            return 
+        for cb in self._callbacks:
+            cb(self._term_map[function],data)

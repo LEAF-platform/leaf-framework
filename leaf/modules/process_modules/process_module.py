@@ -7,7 +7,9 @@ class ProcessModule:
     under one process for better organisation and execution.
     """
     
-    def __init__(self, phases,error_holder=None):
+    def __init__(self,output, phases, 
+                 metadata_manager=None,
+                 error_holder=None):
         """
         Initialise the ProcessModule with a collection of phases.
 
@@ -18,9 +20,23 @@ class ProcessModule:
         super().__init__()
         if not isinstance(phases, (list, set, tuple)):
             phases = [phases]
+        self._output = output
         self._phases = phases
         self._error_holder=error_holder
-            
+        self._metadata_manager = metadata_manager
+
+    def stop(self):
+        for phase in self._phases:
+            term = phase.get_term()
+            if self._metadata_manager.is_complete_topic(term):
+                self._output.flush(term)
+
+    def process_input(self,topic,data):
+        for phase in self._phases:
+            if phase.is_activated(topic):
+                for topic,data in phase.update(data):
+                    self._output.transmit(topic,data)
+
     def set_interpreter(self, interpreter):
         """
         Set or update the interpreter for 
@@ -38,4 +54,7 @@ class ProcessModule:
         for p in self._phases:
             p.set_error_holder(error_holder)
 
+    def set_metadata_manager(self,manager):
+        self._metadata_manager = manager
+        [p.set_metadata_manager(manager) for p in self._phases]
 
