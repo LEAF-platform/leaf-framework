@@ -242,7 +242,7 @@ class TestExceptionsInit(unittest.TestCase):
         self.assertRaises(AdapterBuildError, _init_disc_proc)
 
 
-'''
+
 class TestExceptionsGeneral(unittest.TestCase):
     def setUp(self) -> None:
         self.error_holder = MagicMock()
@@ -583,6 +583,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
     
+    '''
     def test_start_handler_multiple_adapter_reset(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
@@ -658,8 +659,8 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
-'''
-
+    '''
+    
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
