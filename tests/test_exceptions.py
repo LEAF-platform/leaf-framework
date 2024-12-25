@@ -91,21 +91,13 @@ class MockEquipment(EquipmentAdapter):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
-        start_p = ControlPhase(
-            output, metadata_manager.experiment.start, metadata_manager
-        )
-        stop_p = ControlPhase(
-            output, metadata_manager.experiment.stop, metadata_manager
-        )
-        measure_p = MeasurePhase(output, metadata_manager)
-        details_p = ControlPhase(output, metadata_manager.details, metadata_manager)
+        start_p = ControlPhase(metadata_manager.experiment.start, metadata_manager)
+        stop_p = ControlPhase(metadata_manager.experiment.stop, metadata_manager)
+        measure_p = MeasurePhase(metadata_manager)
+        details_p = ControlPhase(metadata_manager.details, metadata_manager)
 
-        watcher.add_start_callback(start_p.update)
-        watcher.add_measurement_callback(measure_p.update)
-        watcher.add_stop_callback(stop_p.update)
-        watcher.add_initialise_callback(details_p.update)
-        phase = [start_p, measure_p, stop_p]
-        mock_process = [DiscreteProcess(phase)]
+        phase = [start_p, measure_p, stop_p,details_p]
+        mock_process = [DiscreteProcess(output,phase)]
 
         super().__init__(
             instance_data,
@@ -236,15 +228,15 @@ class TestExceptionsInit(unittest.TestCase):
         stop_p = ControlPhase(
             output, metadata_manager.experiment.stop, metadata_manager
         )
-        measure_p = MeasurePhase(output, metadata_manager)
+        measure_p = MeasurePhase(metadata_manager)
 
         phase = [start_p, measure_p, stop_p]
 
         def _init_cont_proc() -> None:
-            ContinousProcess(phase)
+            ContinousProcess(output,phase)
 
         def _init_disc_proc() -> None:
-            DiscreteProcess([phase[0]])
+            DiscreteProcess(output,[phase[0]])
 
         self.assertRaises(AdapterBuildError, _init_cont_proc)
         self.assertRaises(AdapterBuildError, _init_disc_proc)
@@ -377,7 +369,6 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.error_holder.add_error.assert_called_once()
 
     def test_start_handler_no_fallback(self) -> None:
-        return
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
             broker,
@@ -443,7 +434,6 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertEqual(len(expected_exceptions), 0)
 
     def test_start_handler_no_connection(self) -> None:
-        return
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
         if not os.path.isdir(write_dir):
@@ -516,7 +506,6 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertEqual(len(expected_logs), 0)
 
     def test_start_handler_multiple_adapter_critical(self) -> None:
-        return
         error_holder = ErrorHolder(threshold=5)
         write_dir = "test"
         if not os.path.isdir(write_dir):
@@ -641,7 +630,7 @@ class TestExceptionsGeneral(unittest.TestCase):
             return mthread
 
         def _stop(thread) -> None:
-            stop_all_adapters()
+            #stop_all_adapters()
             thread.join()
 
         with self.assertLogs(start.__name__, level="ERROR") as logs:
@@ -655,7 +644,6 @@ class TestExceptionsGeneral(unittest.TestCase):
             time.sleep(5)
             self.assertTrue(output.client.is_connected())
             _stop(adapter_thread)
-
         expected_exceptions = [exception]
         self.assertTrue(len(logs.records) > 0)
         for log in logs.records:
@@ -680,11 +668,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.metadata_manager = MagicMock()
         self.file_watcher = FileWatcher(
             file_path=self.file_path,
-            metadata_manager=self.metadata_manager,
-            start_callbacks=[MagicMock()],
-            measurement_callbacks=[MagicMock()],
-            stop_callbacks=[MagicMock()],
-        )
+            metadata_manager=self.metadata_manager)
 
     @patch("leaf.modules.input_modules.file_watcher.Observer.start")
     def test_file_watcher_start_os_error(self, mock_observer_start) -> None:
