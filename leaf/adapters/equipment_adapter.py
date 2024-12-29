@@ -97,20 +97,20 @@ class EquipmentAdapter(ABC):
                               (defaults to new MetadataManager if None).
             error_holder (Optional[ErrorHolder]): Optional error holder instance.
         """
+        # ErrorHolder
+        self._error_holder: Optional[ErrorHolder] = error_holder
+
         # Processes
         if not isinstance(process_adapters, (list, tuple, set)):
             process_adapters = [process_adapters]
         self._processes: List[ProcessModule] = process_adapters
-        
+        [p.set_error_holder(error_holder) for p in self._processes]
 
         # Interpreter
         self._interpreter: AbstractInterpreter = interpreter
         [p.set_interpreter(interpreter) for p in self._processes]
+        interpreter.set_error_holder(error_holder)
 
-        # Watcher
-        self._watcher: EventWatcher = watcher
-        [watcher.add_callback(p.process_input) for p in self._processes]
-        
         # Metadata
         if metadata_manager is None:
             self._metadata_manager: MetadataManager = MetadataManager()
@@ -118,15 +118,15 @@ class EquipmentAdapter(ABC):
             self._metadata_manager = metadata_manager
         self._metadata_manager.load_from_file(metadata_fn)
         self._metadata_manager.add_equipment_data(instance_data)
-        [p.set_metadata_manager(self._metadata_manager) 
-         for p in self._processes]
 
-        # ErrorHolder
-        self._error_holder: Optional[ErrorHolder] = error_holder
-        interpreter.set_error_holder(error_holder)
+        # Watcher
+        self._watcher: EventWatcher = watcher
+        for p in self._processes:
+            self._watcher.add_callback(p.process_input)
+            p.set_metadata_manager(self._metadata_manager) 
         watcher.set_error_holder(error_holder)
-        [p.set_error_holder(error_holder) for p in self._processes]
-
+        self._validate_processes(self._watcher,self._processes)
+        
         # Logger
         ins_id = self._metadata_manager.get_instance_id()
         unique_logger_name = f"{__name__}.{ins_id}"
@@ -134,12 +134,21 @@ class EquipmentAdapter(ABC):
             name=unique_logger_name,
             log_file=f"{ins_id}.log",
             error_log_file=f"{ins_id}_error.log",
-            log_level=logging.INFO
-        )
+            log_level=logging.INFO)
 
         # Misc
         self._stop_event: Event = Event()
         self._experiment_timeout = experiment_timeout
+
+    def _validate_processes(self,watcher,processes):
+        watcher_terms = watcher.get_terms()
+        for process in processes:
+            if not process.has_valid_terms(watcher_terms):
+                error_str = ("Current phases in process "
+                             "don't handle all potential inputs.")
+                excp = exceptions.AdapterBuildError(error_str,severity=exceptions.SeverityLevel.WARNING)
+                self._handle_exception(excp)
+
 
     def start(self) -> None:
         """
@@ -212,6 +221,8 @@ class EquipmentAdapter(ABC):
                         elif isinstance(error, exceptions.InterpreterError):
                             # Interpreter errors typically indicate data or implementation issues
                             pass
+                        else:
+                            self._logger.info(f"Warning error: {error}", exc_info=error)
                     elif error.severity == exceptions.SeverityLevel.INFO:
                         self._logger.info(
                             f"Information error, no action needed: {error}", exc_info=error)
