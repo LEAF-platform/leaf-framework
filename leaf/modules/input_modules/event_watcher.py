@@ -51,6 +51,9 @@ class EventWatcher(ABC):
     def set_error_holder(self,error_holder):
         self._error_holder = error_holder
 
+    def get_terms(self):
+        return [f() if callable(f) else f for f in self._term_map.values()]
+     
     def _handle_exception(self,exception):
         if self._error_holder is not None:
             self._error_holder.add_error(exception)

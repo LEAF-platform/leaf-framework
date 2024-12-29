@@ -58,3 +58,8 @@ class ProcessModule:
         self._metadata_manager = manager
         [p.set_metadata_manager(manager) for p in self._phases]
 
+    def has_valid_terms(self,terms):
+        phase_terms = {phase.get_term() for phase in self._phases}
+        return all(term in phase_terms for term in terms)
+
+
