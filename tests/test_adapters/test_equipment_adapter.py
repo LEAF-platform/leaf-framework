@@ -24,6 +24,7 @@ from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf_register.metadata import MetadataManager
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import AdapterBuildError
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -275,6 +276,36 @@ class TestEquipmentAdapter(unittest.TestCase):
         time.sleep(3)
         adapter.stop()
         mthread.join()
+
+    def test_process_input_validation(self):
+        instance_data = {"instance_id" : "test_process_input_validation_instance",
+                        "institute" : "test_process_input_validation_ins",
+                        "equipment_id" : "test_process_input_validation_equip"}
+        temp_dir = tempfile.TemporaryDirectory()
+        test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_process_input_validation.txt")
+
+        try:
+            adapter = MockEquipmentAdapter(instance_data,
+                                    test_exp_tw_watch_file)
+        except AdapterBuildError as e:
+            self.fail(f"Unexpected exception raised: {e}")
+
+        with self.assertRaises(AdapterBuildError):
+            metadata_manager = MetadataManager()
+            watcher = FileWatcher(test_exp_tw_watch_file, metadata_manager)
+            output = MQTT(broker, port, username=un, password=pw, clientid=None)
+            start_p = ControlPhase(metadata_manager.experiment.start)
+            stop_p = ControlPhase(metadata_manager.experiment.stop)
+            details_p = ControlPhase(metadata_manager.details)
+
+            phase = [start_p, stop_p,details_p]
+            mock_process = [DiscreteProcess(output,phase)]
+            adapter = EquipmentAdapter(instance_data,watcher,mock_process,
+                                       MockBioreactorInterpreter(),
+                                       metadata_manager=metadata_manager)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

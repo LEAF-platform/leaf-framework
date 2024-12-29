@@ -78,7 +78,7 @@ class PhaseModule:
         self._metadata_manager = manager
         if isinstance(self._term_builder,str):
             self._term_builder = eval(f'self._{self._term_builder}')
-        
+                    
     def _handle_exception(self, exception: Exception) -> None:
         """
         Handle exceptions by passing them to the error holder or
