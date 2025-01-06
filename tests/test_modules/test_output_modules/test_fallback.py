@@ -53,6 +53,7 @@ class TestFallbacks(unittest.TestCase):
         time.sleep(2)
 
     def test_fallback_keydb(self) -> None:
+        res = self._keydb.pop(self.mock_topic)
         mock_data = {"test_fallback": "test_fallback"}
         self._module.client.loop_stop()
         self._module.client.on_disconnect = None
@@ -62,8 +63,9 @@ class TestFallbacks(unittest.TestCase):
         self._module.transmit(self.mock_topic, mock_data)
         time.sleep(1)
         self.assertNotIn(self.mock_topic, self._mock_client.messages)
-        res = json.loads(self._keydb.retrieve(self.mock_topic))
-        self.assertEqual(res, mock_data)
+        res = list(self._keydb.pop(self.mock_topic))
+        self.assertEqual(self.mock_topic,res[0])
+        self.assertEqual(mock_data,json.loads(res[1][0]))
 
     def test_fallback_file(self) -> None:
         mock_data = {"test_fallback": "test_fallback"}
@@ -156,7 +158,6 @@ class TestFallbacks(unittest.TestCase):
         
         messages = list(self._module.pop_all_messages())
         for topic,message in messages:
-            print(topic,message)
             self.assertTrue(topic in keydb_messages or topic in file_messages)
             self.assertTrue(message in keydb_messages[topic] or message in file_messages[topic])
 

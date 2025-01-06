@@ -15,50 +15,66 @@ from leaf.modules.output_modules.output_module import OutputModule
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "device.json")
-        
+
+
 class Biolector1Adapter(StartStopAdapter):
     """
     Adapter class for Biolector1, a discrete bioreactor with microwell plates.
+
+    Handles the initialization of phases, process adapters, metadata,
+    and simulation functionality for the Biolector1 device.
     """
 
-    def __init__(self,instance_data: dict,output: OutputModule,
+    def __init__(
+        self,
+        instance_data: dict,
+        output: OutputModule,
         write_file: Optional[str] = None,
         maximum_message_size: Optional[int] = 1,
         error_holder: Optional[ErrorHolder] = None,
-        experiment_timeout:int=None):
+        experiment_timeout: Optional[int] = None,
+    ):
         """
-        Initialise Biolector1Adapter, setting up phases, process adapters, and metadata.
+        Initialize the Biolector1Adapter, setting up required modules and metadata.
 
         Args:
-            instance_data: Data specific to this bioreactor instance.
-            output: The OutputModule responsible for handling and transmitting data.
-            write_file: The file that the CSVWatcher will watch and the biolector machine writes to.
-            maximum_message_size: Sets the maximum number of messages send in a single payload.
+            instance_data (dict): Data specific to this bioreactor instance.
+            output (OutputModule): The output module responsible for handling and transmitting data.
+            write_file (Optional[str]): Path to the file that the CSVWatcher will monitor.
+            maximum_message_size (Optional[int]): Maximum number of messages sent in a single payload.
+            error_holder (Optional[ErrorHolder]): Error holder for managing adapter-related errors.
+            experiment_timeout (Optional[int]): Optional timeout for experiments in seconds.
         """
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file, metadata_manager)
-
         interpreter = Biolector1Interpreter(error_holder=error_holder)
-        super().__init__(instance_data,watcher,output,interpreter,
-                         maximum_message_size=maximum_message_size,
-                         error_holder=error_holder,
-                         metadata_manager=metadata_manager,
-                         experiment_timeout=experiment_timeout)
+
+        super().__init__(
+            instance_data,
+            watcher,
+            output,
+            interpreter,
+            maximum_message_size=maximum_message_size,
+            error_holder=error_holder,
+            metadata_manager=metadata_manager,
+            experiment_timeout=experiment_timeout,
+        )
         self._write_file: Optional[str] = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)
 
-    def simulate(self, filepath: str, wait: Optional[int] = None, 
-                 delay: Optional[int] = None) -> None:
+    def simulate(
+        self, filepath: str, wait: Optional[int] = None, delay: Optional[int] = None
+    ) -> None:
         """
-        Simulate/Mock an experiment within the Biolector using existing data.
+        Simulate or mock an experiment within the Biolector1 device using existing data.
 
         Args:
-            filepath: Path to the CSV file that provides input data.
-            wait: Time (in seconds) to wait between measurements
-            delay: Optional delay (in seconds) before starting the simulation.
+            filepath (str): Path to the CSV file that provides input data for simulation.
+            wait (Optional[int]): Time (in seconds) to wait between measurements. Defaults to 10 seconds.
+            delay (Optional[int]): Optional delay (in seconds) before starting the simulation.
 
         Raises:
-            ValueError: If the write file already exists, to prevent overwriting.
+            AdapterLogicError: If the write file already exists, preventing potential overwriting.
         """
         if wait is None:
             wait = 10

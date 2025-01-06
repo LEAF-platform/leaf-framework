@@ -1,65 +1,106 @@
+from typing import Any, Optional
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.modules.phase_modules.phase import PhaseModule
+from leaf_register.metadata import MetadataManager
+from leaf.error_handler.error_holder import ErrorHolder
+
+
 class ProcessModule:
     """
-    A container for managing and running a specific process 
-    within an EquipmentAdapter. A ProcessModule may consist 
-    of multiple PhaseModules, each controlling a particular 
-    phase of the process and enables grouping multiple phases
-    under one process for better organisation and execution.
+    A container for managing and running a specific process
+    within an EquipmentAdapter. A ProcessModule may consist
+    of multiple PhaseModules, each controlling a particular
+    phase of the process and enabling grouping multiple phases
+    under one process for better organization and execution.
     """
-    
-    def __init__(self,output, phases, 
-                 metadata_manager=None,
-                 error_holder=None):
+
+    def __init__(
+        self,
+        output: OutputModule,
+        phases: list[PhaseModule],
+        metadata_manager: Optional[MetadataManager] = None,
+        error_holder: Optional[ErrorHolder] = None,
+    ):
         """
         Initialise the ProcessModule with a collection of phases.
 
         Args:
-            phases: A list of PhaseModules that represent 
-            different phases of the process.
+            output (OutputModule): The output mechanism for transmitting data.
+            phases (list[PhaseModule]): A list of PhaseModules that represent
+                          different phases of the process.
+            metadata_manager (Optional[MetadataManager]): An optional manager for process metadata.
+            error_holder (Optional[ErrorHolder]): An optional error holder for managing process errors.
         """
         super().__init__()
         if not isinstance(phases, (list, set, tuple)):
             phases = [phases]
         self._output = output
         self._phases = phases
-        self._error_holder=error_holder
+        self._error_holder = error_holder
         self._metadata_manager = metadata_manager
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stop all phases by flushing their respective terms if they are complete.
+        """
         for phase in self._phases:
             term = phase.get_term()
             if self._metadata_manager.is_complete_topic(term):
                 self._output.flush(term)
 
-    def process_input(self,topic,data):
-        for phase in self._phases:
-            if phase.is_activated(topic):
-                for topic,data in phase.update(data):
-                    self._output.transmit(topic,data)
-
-    def set_interpreter(self, interpreter):
+    def process_input(self, topic: str, data: dict) -> None:
         """
-        Set or update the interpreter for 
-        all phases within the process.
+        Process input data by passing it to the appropriate phase.
 
         Args:
-            interpreter: The interpreter to 
-            be set for each PhaseModule.
+            topic (str): The topic to activate a specific phase.
+            data (dict): The data to be processed by the phase.
+        """
+        for phase in self._phases:
+            if phase.is_activated(topic):
+                for topic, data in phase.update(data):
+                    self._output.transmit(topic, data)
+
+    def set_interpreter(self, interpreter: 'AbstractInterpreter') -> None:
+        """
+        Set or update the interpreter for all phases within the process.
+
+        Args:
+            interpreter (AbstractInterpreter): The interpreter to be set for each PhaseModule.
         """
         for p in self._phases:
             p.set_interpreter(interpreter)
 
-    def set_error_holder(self, error_holder):
+    def set_error_holder(self, error_holder: ErrorHolder) -> None:
+        """
+        Set or update the error holder for managing process errors.
+
+        Args:
+            error_holder (ErrorHolder): The error holder to be set for the process and phases.
+        """
         self._error_holder = error_holder
         for p in self._phases:
             p.set_error_holder(error_holder)
 
-    def set_metadata_manager(self,manager):
+    def set_metadata_manager(self, manager: MetadataManager) -> None:
+        """
+        Set or update the metadata manager for the process and its phases.
+
+        Args:
+            manager (MetadataManager): The metadata manager to be set.
+        """
         self._metadata_manager = manager
         [p.set_metadata_manager(manager) for p in self._phases]
 
-    def has_valid_terms(self,terms):
+    def has_valid_terms(self, terms: list[str]) -> bool:
+        """
+        Check if the given terms are valid for the phases in this process.
+
+        Args:
+            terms (list[str]): A collection of terms to validate.
+
+        Returns:
+            bool: True if all terms are valid for the phases, False otherwise.
+        """
         phase_terms = {phase.get_term() for phase in self._phases}
         return all(term in phase_terms for term in terms)
-
-

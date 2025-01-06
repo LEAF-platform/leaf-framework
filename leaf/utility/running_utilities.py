@@ -2,6 +2,10 @@ import threading
 import time
 
 def handle_disabled_modules(output,timeout):
+    '''
+    Attemps to restart the output module when disabled.
+    If if can restart, then all stored messages are outputed.
+    '''
     if (not output.is_enabled() and 
         time.time() - output.get_disabled_time() > timeout):
         output.enable()
@@ -21,5 +25,11 @@ def handle_disabled_modules(output,timeout):
         thread.start()
 
 def output_messages(output_module):
+    '''
+    Transmits any messages stored locally in the output modules.
+    This is used when the MQTT client isnt able to transmit messages
+    and messages have built up in fallback. 
+    Then when the mqtt module can transmit, this function is used.
+    '''
     for topic,message in output_module.pop_all_messages():
         output_module.transmit(topic,message)

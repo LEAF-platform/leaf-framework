@@ -1,53 +1,52 @@
-
-from datetime import datetime
 import time
 import csv
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Any
 from watchdog.events import FileSystemEvent
 
 from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.error_handler.exceptions import InputError
+from leaf.error_handler.error_holder import ErrorHolder
 from leaf_register.metadata import MetadataManager
 
 
 class CSVWatcher(FileWatcher):
     """
-    CSVWatcher is a specialised version of FileWatcher that monitors CSV
-    files. It reads the file content and passes it as a list of rows
-    to the callbacks.
+    A specialised version of FileWatcher for monitoring CSV files.
+    Reads the file content and dispatches it as a 
+    list of rows to the specified callbacks.
     """
-    def __init__(self, file_path: str, metadata_manager: MetadataManager, 
-                 callbacks = None, error_holder=None,
-                 delimiter: str = ";"):
+    def __init__(self, file_path: str, metadata_manager: MetadataManager,
+                 callbacks: Optional[List[Callable]] = None, 
+                 error_holder: Optional[ErrorHolder] = None, 
+                 delimiter: str = ";") -> None:
         """
-        Initialise CSVWatcher.
+        Initialise the CSVWatcher.
 
         Args:
-            file_path (str): Path to the CSV file being monitored.
-            metadata_manager (MetadataManager): Manager responsible 
-                             for equipment metadata.
-            start_callbacks (Optional[List[Callable]]): List of callbacks 
-                            to be triggered when the CSV file is created.
-            measurement_callbacks (Optional[List[Callable]]): List of 
-                                  callbacks to be triggered when the 
-                                  CSV file is modified.
-            stop_callbacks (Optional[List[Callable]]): List of callbacks 
-                            to be triggered when the CSV file is deleted.
-            delimiter (str): The delimiter used in the CSV file 
-                             (default is ";").
+            file_path (str): Path to the CSV file to monitor.
+            metadata_manager (MetadataManager): Metadata manager for 
+                            equipment data.
+            callbacks (Optional[List[Callable]]): Callbacks triggered 
+                            on file events.
+            error_holder (Optional[Any]): Optional error holder for 
+                            capturing exceptions.
+            delimiter (str): Delimiter used in the CSV file 
+                            (default is ";").
         """
-        super().__init__(file_path, metadata_manager,
-                         callbacks=callbacks,
+        super().__init__(file_path, metadata_manager, 
+                         callbacks=callbacks, 
                          error_holder=error_holder)
-        self._delimiter = delimiter
+        self._delimiter: str = delimiter
 
     def on_created(self, event: FileSystemEvent) -> None:
         """
-        Triggered on CSV file creation. Reads content and passes it 
-        to start callbacks as a list of rows.
+        Handle CSV file creation events.
+        Reads the file content and passes it to the start 
+        callbacks as a list of rows.
 
         Args:
-            event (FileSystemEvent): File system event.
+            event (FileSystemEvent): Event object representing 
+                                     file creation.
         """
         try:
             fp = self._get_filepath(event)
@@ -58,16 +57,18 @@ class CSVWatcher(FileWatcher):
                 data = list(csv.reader(file, delimiter=self._delimiter))
         except Exception as e:
             self._file_event_exception(e, "creation")
-        
-        return self._dispatch_callback(self.on_created,data)
+
+        self._dispatch_callback(self.on_created, data)
 
     def on_modified(self, event: FileSystemEvent) -> None:
         """
-        Triggered on CSV file modification. Reads modified content and 
-        passes it to measurement callbacks as a list of rows.
+        Handle CSV file modification events.
+        Reads the updated file content and passes it 
+        to measurement callbacks as a list of rows.
 
         Args:
-            event (FileSystemEvent): File system event.
+            event (FileSystemEvent): Event object representing 
+                                    file modification.
         """
         try:
             fp = self._get_filepath(event)
@@ -80,22 +81,27 @@ class CSVWatcher(FileWatcher):
         except Exception as e:
             self._file_event_exception(e, "modification")
 
-        return self._dispatch_callback(self.on_modified,data)
+        self._dispatch_callback(self.on_modified, data)
 
-    def _file_event_exception(self, error: Exception, event_type: str) -> None:
+    def _file_event_exception(self, error: Exception, 
+                              event_type: str) -> None:
         """
-        Extends file-related exception 
-        handling with CSV-specific errors.
-        
+        Handle exceptions specific to file events for CSVWatcher.
+
         Args:
-            error (Exception): The exception to handle.
-            event_type (str): Type of the event
+            error (Exception): The exception encountered during 
+                                file handling.
+            event_type (str): The type of event during which the error 
+                                occurred (e.g., creation, modification).
 
         Raises:
-            InputError: Custom error encapsulating the specific issue.
+            InputError: Custom error with detailed context 
+                        about the failure.
         """
         if isinstance(error, csv.Error):
             message = f"CSV parsing error in file {self._file_name} during {event_type} event: {error}"
             self._handle_exception(InputError(message))
         else:
             super()._file_event_exception(error, event_type)
+
+

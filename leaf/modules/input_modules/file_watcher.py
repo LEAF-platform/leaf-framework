@@ -3,80 +3,76 @@ import time
 from datetime import datetime
 import logging
 import errno
+from typing import Optional, List, Callable
+
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from typing import Optional
+from watchdog.events import FileSystemEvent
+
 from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.error_handler.exceptions import AdapterBuildError, InputError
+from leaf.error_handler.error_holder import ErrorHolder
 from leaf_register.metadata import MetadataManager
 
-logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="input_module.log", 
+                    log_level=logging.DEBUG)
 
 class FileWatcher(FileSystemEventHandler, EventWatcher):
     """
-    Watches a specified file for creation, modification, 
-    and deletion events, triggering callbacks based on events.
-    
-    Uses the `watchdog` library to monitor the file system and manage 
-    file event handling with debounce and error management. 
-    Ensures callbacks are executed only once within a 
-    specified debounce period.
+    Monitors a specific file for creation, 
+    modification, and deletion events.
+    Utilises the `watchdog` library for event monitoring and 
+    triggers callbacks for each event type.
     """
-    def __init__(self, file_path: str, metadata_manager: MetadataManager, 
-                 callbacks = None, error_holder=None):
+    def __init__(self, file_path: str, metadata_manager: MetadataManager,
+                 callbacks: Optional[List[Callable]] = None, 
+                 error_holder: Optional[ErrorHolder] = None) -> None:
         """
-        Initialise the FileWatcher with the specified 
-        file path and callbacks.
+        Initialise FileWatcher.
 
         Args:
-            file_path (str): Path to the file being watched.
-            metadata_manager (MetadataManager): The metadata manager 
-                                                for managing metadata 
-                                                associated with the 
-                                                watched file.
-            start_callbacks (Optional[List[Callable]]): Callbacks 
-                            triggered on file creation events.
-            measurement_callbacks (Optional[List[Callable]]): Callbacks 
-                                  triggered on file modification events.
-            stop_callbacks (Optional[List[Callable]]): Callbacks triggered
-                            on file deletion events.
+            file_path (str): Path to the file to monitor.
+            metadata_manager (MetadataManager): Metadata manager for 
+                                                associated data.
+            callbacks (Optional[List[Callable]]): Callbacks for file 
+                                                  events.
+            error_holder (Optional[Any]): Optional error holder for 
+                                          capturing exceptions.
+
         Raises:
-            AdapterBuildError: If the file path is invalid.
+            AdapterBuildError: Raised if the provided file path 
+                                is invalid.
         """
-        term_map = {self.on_created : metadata_manager.experiment.start,
-                    self.on_modified : metadata_manager.experiment.measurement,
-                    self.on_deleted : metadata_manager.experiment.stop}
-        super(FileWatcher, self).__init__(term_map,metadata_manager,
-                                          callbacks=callbacks,
-                                          error_holder=error_holder)
+        term_map = {
+            self.on_created: metadata_manager.experiment.start,
+            self.on_modified: metadata_manager.experiment.measurement,
+            self.on_deleted: metadata_manager.experiment.stop
+        }
+        super().__init__(term_map, metadata_manager, callbacks=callbacks, 
+                         error_holder=error_holder)
         logger.debug(f"Initialising FileWatcher with file path {file_path}")
-        
+
         try:
             self._path, self._file_name = os.path.split(file_path)
         except TypeError:
             raise AdapterBuildError(f'{file_path} is not a valid path for FileWatcher.')
-        
+
         if self._path == "":
             self._path = "."
 
-        # Observer attributes
         self._observer = Observer()
         self._observing = False
         self._observer.schedule(self, self._path, recursive=False)
-        
-        # Debounce control attributes
-        self._last_modified: Optional[float] = None
-        self._last_created: Optional[float] = None
-        self._debounce_delay: float = 0.75
+
+        self._last_modified = None
+        self._last_created = None
+        self._debounce_delay = 0.75
 
     def start(self) -> None:
         """
-        Begin observing the specified file path for events. 
-        
-        Starts the observer and ensures only one observer is running 
-        at a time. Handles and logs any errors encountered during 
-        the start process.
+        Begin observing the file path for events.
+        Ensures a single observer instance is active.
         """
         if not self._observing:
             os.makedirs(self._path, exist_ok=True)
@@ -102,9 +98,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
     def stop(self) -> None:
         """
         Stop observing the file for events.
-        
-        Stops and joins the observer thread, 
-        marking the watcher as inactive.
+        Terminates the observer thread safely.
         """
         if self._observing:
             self._observer.stop()
@@ -115,13 +109,13 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         else:
             logger.warning("FileWatcher is not running.")
 
-    def on_created(self, event) -> None:
+    def on_created(self, event: FileSystemEvent) -> None:
         """
-        Reads the conent of new files when triggered and start callbacks.
+        Handle file creation events and trigger start callbacks.
 
         Args:
-            event: The event object from watchdog 
-                   indicating a file creation.
+            event (FileSystemEvent): Event object indicating 
+                                     a file creation.
         """
         data = {}
         try:
@@ -130,55 +124,54 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 return
             self._last_created = time.time()
             with open(fp, 'r') as file:
-                data = file.read()
+                data = {"content": file.read()}
         except Exception as e:
             self._file_event_exception(e, "creation")
-        return self._dispatch_callback(self.on_created,data)
+        self._dispatch_callback(self.on_created, data)
 
-    def on_modified(self, event) -> None:
+    def on_modified(self, event: FileSystemEvent) -> None:
         """
-        Handle file modification events and measurement callbacks. 
-        Uses debounce to avoid multiple triggers in quick succession.
-        
+        Handle file modification events and trigger measurement callbacks.
+
         Args:
-            event: The event object from watchdog 
-                   indicating a file modification.
+            event (FileSystemEvent): Event object indicating a file modification.
         """
         try:
-            fp = self._get_filepath(event)
+            fp: Optional[str] = self._get_filepath(event)
             if fp is None:
                 return
             if not self._is_last_modified():
                 return
             with open(fp, 'r') as file:
-                data = file.read()
+                data = {"content": file.read()}
         except Exception as e:
             self._file_event_exception(e, "modification")
-        return self._dispatch_callback(self.on_modified,data)
+        self._dispatch_callback(self.on_modified, data)
 
-                
-    def on_deleted(self, event) -> None:
+    def on_deleted(self, event: FileSystemEvent) -> None:
         """
-        Handle file deletion events by triggering the stop callbacks.
+        Handle file deletion events and trigger stop callbacks.
 
         Args:
-            event: The event object from watchdog indicating a file deletion.
+            event (FileSystemEvent): Event object indicating a 
+                                     file deletion.
         """
         if event.src_path.endswith(self._file_name):
             data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            return self._dispatch_callback(self.on_deleted,data)
+            self._dispatch_callback(self.on_deleted, data)
 
-    def _get_filepath(self, event) -> Optional[str]:
+    def _get_filepath(self, event: FileSystemEvent) -> Optional[str]:
         """
-        Get the full file path for the event if 
-        it matches the watched file.
+        Retrieve the full file path for the event 
+        if it matches the watched file.
 
         Args:
-            event: The event object containing file information.
-        
+            event (FileSystemEvent): Event object containing 
+                                     file information.
+
         Returns:
-            Optional[str]: The full file path if it matches the 
-                           watched file, otherwise None.
+            Optional[str]: Full file path if it matches the watched 
+                           file, otherwise None.
         """
         if event.src_path.endswith(self._file_name):
             return os.path.join(self._path, self._file_name)
@@ -186,29 +179,30 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
 
     def _is_last_modified(self) -> bool:
         """
-        Check if the file modification event is outside the 
-        debounce delay.
-        
+        Determine if the file modification is outside the debounce delay.
+
         Returns:
-            bool: True if the event is outside the debounce period, 
-                  False otherwise.
+            bool: True if the modification event is outside the 
+                  debounce period, False otherwise.
         """
         ct = time.time()
-        if self._last_created and (ct - self._last_created) <= self._debounce_delay:
+        if (self._last_created and 
+            (ct - self._last_created) <= self._debounce_delay):
             return False
-        if self._last_modified is None or (ct - self._last_modified) > self._debounce_delay:
+        if (self._last_modified is None or 
+            (ct - self._last_modified) > self._debounce_delay):
             self._last_modified = ct
         return True
 
-    def _file_event_exception(self, error: Exception, event_type: str) -> None:
+    def _file_event_exception(self, error: Exception, 
+                              event_type: str) -> None:
         """
-        Log an appropriate error message and create an 
-        InputError based on the event type and exception type.
-        
+        Log and handle exceptions during file events.
+
         Args:
-            error (Exception): The exception encountered during the event.
-            event_type (str): The type of event ('creation', 
-                              'modification', 'deletion').
+            error (Exception): Exception encountered during 
+                                event handling.
+            event_type (str): Type of event that triggered the exception.
         """
         file_name = self._file_name
         if isinstance(error, FileNotFoundError):
@@ -225,13 +219,13 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
 
     def _create_input_error(self, e: OSError) -> InputError:
         """
-        Map OSError codes to custom InputError messages.
+        Map OS errors to custom InputError messages.
 
         Args:
-            e (OSError): The operating system error encountered.
-        
+            e (OSError): Operating system error encountered.
+
         Returns:
-            InputError: Custom error message based on the OSError code.
+            InputError: Custom error based on the OS error code.
         """
         if e.errno == errno.EACCES:
             return InputError(f'Permission denied: Unable to access {self._path}')
@@ -240,3 +234,4 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         elif e.errno == errno.ENOENT:
             return InputError(f'Watch file does not exist: {self._path}')
         return InputError(f'Unexpected OS error: {e}')
+

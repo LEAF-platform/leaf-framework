@@ -113,7 +113,9 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 
-def _get_existing_ids(output_module: MQTT, metadata_manager: MetadataManager, time_to_sleep: int = 5) -> list[str]:
+def _get_existing_ids(output_module: MQTT, 
+                      metadata_manager: MetadataManager, 
+                      time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = metadata_manager.details()
     logging.debug(f"Setting up subscription to {topic}")
@@ -155,8 +157,7 @@ def _get_output_module(config, error_holder: ErrorHolder) -> Any:
                 )
         try:
             output_obj = register.get_output_adapter(code)(
-                fallback=fallback, error_holder=error_holder, **out_data["data"]
-            )
+                fallback=fallback, error_holder=error_holder, **out_data["data"])
         except TypeError as ex:
             raise AdapterBuildError(f"code missing params ({ex.args})")
         output_objects[code]["output"] = output_obj
@@ -167,7 +168,8 @@ def _get_output_module(config, error_holder: ErrorHolder) -> Any:
     return None
 
 
-def _process_instance(instance: dict[str, Any], output: MQTT) -> EquipmentAdapter:
+def _process_instance(instance: dict[str, Any], 
+                      output: MQTT) -> EquipmentAdapter:
     """Finds and initialises an adapter from the config."""
     equipment_code = instance["adapter"]
     instance_data = instance["data"]
@@ -187,7 +189,8 @@ def _process_instance(instance: dict[str, Any], output: MQTT) -> EquipmentAdapte
     required_params = {
         name
         for name, param in adapter_params.items()
-        if name not in fixed_params and param.default == inspect.Parameter.empty
+        if name not in fixed_params and 
+        param.default == inspect.Parameter.empty
     }
     provided_keys = set(requirements.keys())
     missing_keys = required_params - provided_keys
@@ -203,12 +206,14 @@ def _process_instance(instance: dict[str, Any], output: MQTT) -> EquipmentAdapte
         )
     try:
         error_holder = ErrorHolder(instance_id)
-        return adapter(instance_data, output, error_holder=error_holder, **requirements)
+        return adapter(instance_data, output, 
+                       error_holder=error_holder, **requirements)
     except ValueError as ex:
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
 
-def _run_simulation_in_thread(adapter, filename: str, interval: int) -> threading.Thread:
+def _run_simulation_in_thread(adapter, filename: str, 
+                              interval: int) -> threading.Thread:
     """Run the adapter's simulate function in a separate thread."""
     logger.info(f"Running simulation: {adapter}")
 
@@ -224,12 +229,14 @@ def _run_simulation_in_thread(adapter, filename: str, interval: int) -> threadin
     return thread
 
 
-def handle_exception(exc_type: Type[BaseException], exc_value, exc_traceback) -> None:
+def handle_exception(exc_type: Type[BaseException], exc_value, 
+                     exc_traceback) -> None:
     """Handle uncaught exceptions."""
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, 
+                                                  exc_traceback))
     stop_all_adapters()
 
 
@@ -342,7 +349,6 @@ def run_adapters(equipment_instances, output, error_handler) -> None:
                             output.disconnect()
                             time.sleep(cooldown_period_warning)
                             output.connect()
-                            time.sleep()
                     else:
                         logger.warning(f"Warning encountered: {error}", 
                                        exc_info=error)

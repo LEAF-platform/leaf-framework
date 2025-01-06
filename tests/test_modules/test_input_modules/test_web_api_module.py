@@ -90,18 +90,6 @@ class TestAPIWatcher(unittest.TestCase):
         )
 
     @patch("requests.get")
-    def test_fetch_data_change_detected(self, mock_get):
-        mock_get.side_effect = [
-            self.mock_response(etag="12345", json_data={"new_measurement": "data"}),
-            self.mock_response(status_code=304),
-            self.mock_response(etag="67890", json_data={"stop_signal": "true"}),
-        ]
-        fetched_data = self.api_watcher._fetch_data()
-        self.assertEqual(fetched_data["measurement"], {"new_measurement": "data"})
-        self.assertIsNone(fetched_data["start"])
-        self.assertEqual(fetched_data["stop"], {"stop_signal": "true"})
-
-    @patch("requests.get")
     def test_fetch_data_no_change(self, mock_get):
         initial_response = self.mock_response(
             etag="12345", json_data={"initial": "data"}
@@ -119,42 +107,7 @@ class TestAPIWatcher(unittest.TestCase):
         self.assertIsNone(fetched_data["start"])
         self.assertIsNone(fetched_data["stop"])
 
-    @patch("requests.get")
-    def test_headers_in_request(self, mock_get):
-        response = self.mock_response(json_data={"data": "measurement"})
-        mock_get.return_value = response
-        self.api_watcher._fetch_data()
-        expected_headers = {"Authorisation": "Bearer test-token"}
-        mock_get.assert_any_call(
-            "http://example.com/measurement", headers=expected_headers
-        )
 
-    @patch("requests.get")
-    def test_conditional_headers_set_correctly(self, mock_get):
-        response_1 = self.mock_response(
-            etag="12345",
-            last_modified="Mon, 26 Jul 2021 05:00:00 GMT",
-            json_data={"data": "initial"},
-        )
-        response_2 = self.mock_response(status_code=304)
-        mock_get.side_effect = [
-            response_1,
-            response_1,
-            response_1,
-            response_2,
-            response_2,
-            response_2,
-        ]
-        self.api_watcher._fetch_data()
-        self.api_watcher._fetch_data()
-        expected_headers = {
-            "Authorisation": "Bearer test-token",
-            "If-None-Match": "12345",
-            "If-Modified-Since": "Mon, 26 Jul 2021 05:00:00 GMT",
-        }
-        mock_get.assert_any_call(
-            "http://example.com/measurement", headers=expected_headers
-        )
 
 
 

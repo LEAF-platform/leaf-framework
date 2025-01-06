@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from typing import Any
+from typing import Any, Optional
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
@@ -9,14 +9,15 @@ from leaf.error_handler.exceptions import SeverityLevel
 
 
 class FILE(OutputModule):
-    def __init__(self, filename: str, fallback: str | None = None, 
-                 error_holder: ErrorHolder = None) -> None:
+    def __init__(self, filename: str, fallback: Optional[str] = None, 
+                 error_holder: Optional[ErrorHolder] = None) -> None:
         super().__init__(fallback=fallback, error_holder=error_holder)
         self.filename = filename
 
     def _handle_file_error(self, error) -> None:
         """
-        Handles file-related exceptions consistently with a structured error message.
+        Handles file-related exceptions consistently 
+        with a structured error message.
         """
         if isinstance(error, FileNotFoundError):
             message = f"File not found '{self.filename}'"
@@ -152,12 +153,24 @@ class FILE(OutputModule):
             self._handle_file_error(e)
             return None
     
-    def is_connected(self):
+    def is_connected(self) -> bool:
+        """
+        Check if the FILE module is always connected.
+
+        Returns:
+            bool: Always returns True.
+        """
         return True
     
-    def connect(self):
+    def connect(self) -> None:
+        """
+        Connect method for FILE module (no-op as files are always accessible).
+        """
         pass
         
-    def disconnect(self):
+    def disconnect(self) -> None:
+        """
+        Disconnect method for FILE module (no-op as files are always accessible).
+        """
         pass
 

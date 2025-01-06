@@ -6,6 +6,9 @@ from influxobject import InfluxPoint
 
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf.error_handler.exceptions import AdapterLogicError
+from leaf_register.metadata import MetadataManager
+from leaf.error_handler.error_holder import ErrorHolder
+
 
 class MeasurePhase(PhaseModule):
     """
@@ -13,41 +16,41 @@ class MeasurePhase(PhaseModule):
     It transmits measurement data.
     """
 
-    def __init__(self, metadata_manager = None, 
-                 maximum_message_size: Optional[int] = 1,
-                 error_holder=None) -> None:
+    def __init__(
+        self,
+        metadata_manager: Optional[MetadataManager] = None,
+        maximum_message_size: Optional[int] = 1,
+        error_holder: Optional[ErrorHolder] = None,
+    ) -> None:
         """
-        Initialise the MeasurePhase with the output adapter,
-        metadata manager, and optional maximum_message_size transmission 
-        setting.
+        Initialize the MeasurePhase with metadata manager and optional maximum_message_size setting.
 
         Args:
-            output_adapter (OutputModule): The OutputModule used 
-                           to transmit data.
-            metadata_manager (MetadataManager): Manages metadata 
-                             associated with the phase.
-            maximum_message_size (bool): The maximum number of measurements 
-                                          in a single message.
+            metadata_manager (Optional[MetadataManager]): Manages metadata associated with the phase.
+            maximum_message_size (Optional[int]): The maximum number of measurements in a single message.
+            error_holder (Optional[ErrorHolder]): Optional, an error holder to manage phase errors.
         """
-        if metadata_manager is not None:
-            term_builder = metadata_manager.experiment.measurement
-        else:
-            term_builder = "metadata_manager.experiment.measurement"
-            
-        super().__init__(term_builder, 
-                         metadata_manager=metadata_manager,
-                         error_holder=error_holder)
+        term_builder = (
+            metadata_manager.experiment.measurement
+            if metadata_manager is not None
+            else "metadata_manager.experiment.measurement"
+        )
+
+        super().__init__(
+            term_builder, metadata_manager=metadata_manager, 
+            error_holder=error_holder)
         self._maximum_message_size: int = maximum_message_size
 
-    def update(self, data: Optional[Any] = None, **kwargs: Any) -> None:
+    def update(self, data: Optional[Any] = None, **kwargs: Any) -> Optional[list]:
         """
-        Called by the InputModule, uses interpreter to get the new
-        measurements and transmits the data using the OutputModule.
+        Called to process new measurements and transmit the data.
 
         Args:
-            data (Optional[Any]): Optional data to be transmitted.
-            **kwargs (Any): Additional arguments used to build the 
-                     action term.
+            data (Optional[Any]): Data to be transmitted.
+            **kwargs (Any): Additional arguments used to build the action term.
+
+        Returns:
+            Optional[list]: A list of messages or None if an error occurs.
         """
         if data is None:
             excp = AdapterLogicError("Measurement system activated without any data")
@@ -55,15 +58,12 @@ class MeasurePhase(PhaseModule):
             return None
 
         if self._interpreter is not None:
-            # Check if attributes are set
-            if getattr(self._interpreter, 'id', None) is None:
+            if getattr(self._interpreter, "id", None) is None:
                 self._interpreter.id = "invalid_id"
             exp_id = self._interpreter.id
             if exp_id is None:
                 excp = AdapterLogicError(
-                    "Trying to transmit "
-                    "measurements outside of "
-                    "experiment (No experiment id)"
+                    "Trying to transmit measurements outside of experiment (No experiment id)"
                 )
                 self._handle_exception(excp)
 
@@ -75,47 +75,51 @@ class MeasurePhase(PhaseModule):
                 )
                 self._handle_exception(excp)
                 return None
-            if isinstance(result,(set,list,tuple)):
-                chunks = [result[i:i + self._maximum_message_size] for 
-                          i in range(0, len(result), self._maximum_message_size)]
+            if isinstance(result, (set, list, tuple)):
+                chunks = [
+                    result[i : i + self._maximum_message_size]
+                    for i in range(0, len(result), self._maximum_message_size)
+                ]
                 messages = []
                 for chunk in chunks:
-                    messages.append(self._form_message(exp_id,chunk))
+                    messages.append(self._form_message(exp_id, chunk))
                     time.sleep(0.1)
                 return messages
             else:
-                return [self._form_message(exp_id,result)]
+                return [self._form_message(exp_id, result)]
         else:
-            if "experiment_id" in kwargs:
-                experiment_id= kwargs["experiment_id"]
-            else:
-                experiment_id="unknown"
-            if "measurement" in kwargs:
-                measurement= kwargs["measurement"]
-            else:
-                measurement="unknown"
+            experiment_id = kwargs.get("experiment_id", "unknown")
+            measurement = kwargs.get("measurement", "unknown")
 
-            action = self._term_builder(experiment_id=experiment_id, 
-                                        measurement=measurement)
-            return [(action,data)]
+            action = self._term_builder(
+                experiment_id=experiment_id, measurement=measurement
+            )
+            return [(action, data)]
 
+    def _form_message(self, experiment_id: str, result: Any) -> tuple:
+        """
+        Formulate a message with the experiment ID and result.
 
-    def _form_message(self,experiment_id,result):
+        Args:
+            experiment_id (str): The ID of the experiment.
+            result (Any): The measurement result data.
+
+        Returns:
+            tuple: A tuple containing the action and result.
+        """
         measurement = "unknown"
-        if isinstance(result,dict):
-            measurement = result["measurement"]
-        elif isinstance(result,InfluxPoint):
+        if isinstance(result, dict):
+            measurement = result.get("measurement", "unknown")
+        elif isinstance(result, InfluxPoint):
             result = result.to_json()
-            measurement = result["measurement"]
-        elif isinstance(result,list):
-            result = [l.to_json() if isinstance(l, InfluxPoint) 
-                      else l for l in result]
+            measurement = result.get("measurement", "unknown")
+        elif isinstance(result, list):
+            result = [l.to_json() if isinstance(l, InfluxPoint) else l for l in result]
         else:
             excp = AdapterLogicError(f"Unknown measurement data type: {type(result)}")
             self._handle_exception(excp)
-        
-        action = self._term_builder(experiment_id=experiment_id, 
-                                    measurement=measurement)
+
+        action = self._term_builder(
+            experiment_id=experiment_id, measurement=measurement
+        )
         return (action, result)
-    
-        
