@@ -3,6 +3,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Optional, List, Callable, Any
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import AdapterLogicError
 
 class EventWatcher(ABC):
     """
@@ -112,7 +113,7 @@ class EventWatcher(ABC):
             data (Any): Data to pass to the callbacks.
         """
         if function not in self._term_map:
-            excp = "Function not mapped to terms."
+            excp = AdapterLogicError("Function not mapped to terms.")
             self._handle_exception(excp)
             return
         for cb in self._callbacks:
