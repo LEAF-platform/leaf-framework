@@ -33,7 +33,7 @@ class PollingWatcher(EventWatcher):
         term_map = {
             self.start_message: metadata_manager.experiment.start,
             self.stop_message: metadata_manager.experiment.stop,
-            self.stop_message: metadata_manager.experiment.measurement
+            self.measurement_message: metadata_manager.experiment.measurement
         }
 
         super().__init__(term_map, metadata_manager, callbacks=callbacks,
@@ -44,13 +44,13 @@ class PollingWatcher(EventWatcher):
         self._thread = None
 
     def start_message(self,data):
-        return self._dispatch_callback(self.start,data)
+        return self._dispatch_callback(self.start_message,data)
     
     def stop_message(self,data):
-        return self._dispatch_callback(self.stop,data)
+        return self._dispatch_callback(self.stop_message,data)
     
     def measurement_message(self,data):
-        return self._dispatch_callback(self.measurement,data)
+        return self._dispatch_callback(self.measurement_message,data)
     
     @abstractmethod
     def _fetch_data(self) -> Dict[str, Optional[dict]]:
