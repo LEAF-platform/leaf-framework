@@ -29,8 +29,6 @@ OUTPUTS:
     broker: localhost
     port: 1883
     fallback: KEYDB
-    username: mcrowther
-    password: Radeon12300
 
   - plugin: KEYDB
     host: localhost
