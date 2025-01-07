@@ -25,7 +25,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
     Utilises the `watchdog` library for event monitoring and 
     triggers callbacks for each event type.
     """
-    def __init__(self, file_path: str, metadata_manager: MetadataManager,
+    def __init__(self, path: str, metadata_manager: MetadataManager,
                  callbacks: Optional[List[Callable]] = None, 
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -51,15 +51,19 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         }
         super().__init__(term_map, metadata_manager, callbacks=callbacks, 
                          error_holder=error_holder)
-        logger.debug(f"Initialising FileWatcher with file path {file_path}")
+        logger.debug(f"Initialising FileWatcher with file path {path}")
 
-        try:
-            self._path, self._file_name = os.path.split(file_path)
-        except TypeError:
-            raise AdapterBuildError(f'{file_path} is not a valid path for FileWatcher.')
+        if os.path.isdir(path):
+            self._path = path
+            self._file_name = None
+        else:
+            try:
+                self._path, self._file_name = os.path.split(path)
+                if self._path == "":
+                    self._path = "."
+            except TypeError:
+                raise AdapterBuildError(f'{path} is not a valid path for FileWatcher.')
 
-        if self._path == "":
-            self._path = "."
 
         self._observer = Observer()
         self._observing = False
@@ -124,7 +128,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 return
             self._last_created = time.time()
             with open(fp, 'r') as file:
-                data = {"content": file.read()}
+                data = file.read()
         except Exception as e:
             self._file_event_exception(e, "creation")
         self._dispatch_callback(self.on_created, data)
@@ -143,7 +147,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             if not self._is_last_modified():
                 return
             with open(fp, 'r') as file:
-                data = {"content": file.read()}
+                data = file.read()
         except Exception as e:
             self._file_event_exception(e, "modification")
         self._dispatch_callback(self.on_modified, data)
@@ -173,7 +177,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             Optional[str]: Full file path if it matches the watched 
                            file, otherwise None.
         """
-        if event.src_path.endswith(self._file_name):
+        if self._file_name is None:
+            return event.src_path
+        elif event.src_path.endswith(self._file_name):
             return os.path.join(self._path, self._file_name)
         return None
 
