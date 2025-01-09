@@ -25,6 +25,7 @@ from leaf_register.metadata import MetadataManager
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
+from leaf.error_handler.exceptions import HardwareStalledError
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -75,7 +76,7 @@ class MockBioreactorInterpreter(AbstractInterpreter):
         return data
 
     def measurement(self, data):
-        return data
+        return super().measurement(data)
 
     def simulate(self):
         return
@@ -114,7 +115,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.temp_dir.cleanup()
         self.mock_client.reset_messages()
 
-    def initialize_experiment(self):
+    def initialize_experiment(self,**kwargs):
         """
         Helper function to initialize a unique MockEquipmentAdapter
         instance with unique file paths and instance data.
@@ -133,7 +134,7 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockEquipmentAdapter(instance_data, text_watch_file)
+        self._adapter = MockEquipmentAdapter(instance_data, text_watch_file,**kwargs)
         self._adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
             "TestBioreactor_transmit_" + unique_instance_id
         )
@@ -259,23 +260,79 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread.join()
     
     def test_experiment_timeout(self):
-        instance_data = {"instance_id" : "test_experiment_timeout_instance",
-                        "institute" : "test_experiment_timeout_ins",
-                        "equipment_id" : "test_experiment_timeout_equip"}
-        temp_dir = tempfile.TemporaryDirectory()
-        test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_experiment_timeout.txt")
-
         exp_timeout = 1
-        adapter = MockEquipmentAdapter(instance_data,
-                                 test_exp_tw_watch_file,
-                                 experiment_timeout=exp_timeout)
+        unique_instance_id = str(uuid.uuid4())
+        unique_institute = "TestInstitute_"  # + unique_instance_id[:8]
+
+        unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
+        text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
+
+        instance_data = {
+            "instance_id": unique_instance_id,
+            "institute": unique_institute,
+        }
+
+        mock_client = MockBioreactorClient(broker, port, username=un, password=pw,
+                                           remove_flush=True)
+
+        _adapter = MockEquipmentAdapter(instance_data, text_watch_file, experiment_timeout=exp_timeout)
+        _adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
+            "TestBioreactor_transmit_" + unique_instance_id
+        )
+
+        details_topic = _adapter._metadata_manager.details()
+        start_topic = _adapter._metadata_manager.experiment.start()
+        stop_topic = _adapter._metadata_manager.experiment.stop()
+
+        mock_client.flush(details_topic)
+        mock_client.flush(start_topic)
+        mock_client.flush(stop_topic)
+        time.sleep(2)
+        mock_client.subscribe(start_topic)
+        time.sleep(0.1)
+        mock_client.subscribe(stop_topic)
+        time.sleep(0.1)
+        mock_client.subscribe(details_topic)
+        time.sleep(2)
+
+        if os.path.isfile(text_watch_file):
+            os.remove(text_watch_file)
+            time.sleep()
+
+        mthread = Thread(target=_adapter.start)
+        unique_logger_name = f"leaf.adapters.equipment_adapter.{_adapter._metadata_manager.get_instance_id()}"
+        expected_exceptions = [HardwareStalledError("Experiment timeout between measurements")]
+        with self.assertLogs(unique_logger_name, level="WARNING") as logs:
+            mthread.start()
+
+            _create_file(text_watch_file)
+
+            timeout = 15  # seconds
+            start_time = time.time()
+
+            while expected_exceptions and (time.time() - start_time < timeout):
+                for log in logs.records:
+
+                    exc_type, exc_value, exc_traceback = log.exc_info
+                    for exp_exc in list(expected_exceptions):
+                        if (
+                            type(exp_exc) == exc_type
+                            and exp_exc.severity == exc_value.severity
+                            and exp_exc.args == exc_value.args
+                        ):
+                            expected_exceptions.remove(exp_exc)
+                time.sleep(0.1)
+            self.assertEqual(list(mock_client.messages.keys()), [_adapter._metadata_manager.details()])
+            _adapter.stop()
+            mthread.join()
+            if len(expected_exceptions) > 0:
+                self.fail("Test timed out waiting for expected exceptions.")
+
+
+        mock_client.reset_messages()
+        self.assertIsNone(_adapter._interpreter.get_last_measurement_time())
         
-        mthread = Thread(target=adapter.start)
-        mthread.start()
-        _create_file(test_exp_tw_watch_file)
-        time.sleep(3)
-        adapter.stop()
-        mthread.join()
+
 
     def test_process_input_validation(self):
         instance_data = {"instance_id" : "test_process_input_validation_instance",
@@ -303,8 +360,6 @@ class TestEquipmentAdapter(unittest.TestCase):
             adapter = EquipmentAdapter(instance_data,watcher,mock_process,
                                        MockBioreactorInterpreter(),
                                        metadata_manager=metadata_manager)
-
-
 
 
 if __name__ == "__main__":

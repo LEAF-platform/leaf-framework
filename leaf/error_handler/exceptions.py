@@ -45,6 +45,11 @@ class LEAFError(Exception):
     
     def __str__(self) -> str:
         return f'{self._message} - {self.__class__.__name__} - {self.severity}'
+    
+    def __eq__(self, value):
+        if not isinstance(value,LEAFError):
+            return False
+        return self._message == self._message and self.severity == self.severity
 
 class InputError(LEAFError):
     """

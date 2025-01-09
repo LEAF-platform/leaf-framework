@@ -1,3 +1,4 @@
+import time
 from typing import Any, Optional
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.modules.phase_modules.phase import PhaseModule
@@ -47,6 +48,7 @@ class ProcessModule:
             term = phase.get_term()
             if self._metadata_manager.is_complete_topic(term):
                 self._output.flush(term)
+                time.sleep(0.1)
 
     def process_input(self, topic: str, data: dict) -> None:
         """
