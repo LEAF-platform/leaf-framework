@@ -677,7 +677,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
 
         self.metadata_manager = MagicMock()
         self.file_watcher = FileWatcher(
-            file_path=self.file_path,
+            self.file_path,
             metadata_manager=self.metadata_manager)
 
     @patch("leaf.modules.input_modules.file_watcher.Observer.start")
@@ -713,8 +713,8 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
     @patch("builtins.open", new_callable=mock_open)
     def test_csv_watcher_on_created_parse_error(self, mock_open_file) -> None:
         # Setup CSVWatcher and simulate csv.Error during file reading
-        csv_watcher = CSVWatcher(
-            file_path=self.file_path, metadata_manager=self.metadata_manager
+        csv_watcher = CSVWatcher(self.file_path, 
+                                 metadata_manager=self.metadata_manager
         )
         mock_open_file.side_effect = csv_error("CSV parsing failed")
         mock_event = MagicMock()

@@ -5,7 +5,7 @@ import yaml
 import time
 import json
 import tempfile
-
+from uuid import uuid4
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -35,7 +35,7 @@ db_host = "localhost"
 
 class TestFallbacks(unittest.TestCase):
     def setUp(self) -> None:
-        self.mock_topic = "test_fallback/"
+        mock_topic = "test_fallback/"
         
         # Create a unique temporary directory for each test to ensure isolation
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -49,25 +49,32 @@ class TestFallbacks(unittest.TestCase):
         self._mock_client = MockBioreactorClient(broker, port,
                                                  username=un, 
                                                  password=pw)
-        self._mock_client.subscribe(self.mock_topic)
+        self._mock_client.subscribe(mock_topic)
         time.sleep(2)
 
     def test_fallback_keydb(self) -> None:
-        res = self._keydb.pop(self.mock_topic)
+        mock_topic = f"test_fallback/{uuid4()}"
+        self._mock_client.subscribe(mock_topic)
+        time.sleep(2)
+
+        res = self._keydb.pop(mock_topic)
         mock_data = {"test_fallback": "test_fallback"}
         self._module.client.loop_stop()
         self._module.client.on_disconnect = None
         self._module.client.loop_start()
         self._module.client.disconnect()
         time.sleep(1)
-        self._module.transmit(self.mock_topic, mock_data)
+        self._module.transmit(mock_topic, mock_data)
         time.sleep(1)
-        self.assertNotIn(self.mock_topic, self._mock_client.messages)
-        res = list(self._keydb.pop(self.mock_topic))
-        self.assertEqual(self.mock_topic,res[0])
+        self.assertNotIn(mock_topic, self._mock_client.messages)
+        res = list(self._keydb.pop(mock_topic))
+        self.assertEqual(mock_topic,res[0])
         self.assertEqual(mock_data,json.loads(res[1][0]))
 
     def test_fallback_file(self) -> None:
+        mock_topic = f"test_fallback/{uuid4()}"
+        self._mock_client.subscribe(mock_topic)
+        time.sleep(2)
         mock_data = {"test_fallback": "test_fallback"}
         self._module.client.loop_stop()
         self._module.client.on_disconnect = None
@@ -75,18 +82,21 @@ class TestFallbacks(unittest.TestCase):
         self._module.client.disconnect()
         self._keydb.disconnect()
         time.sleep(1)
-        self._module.transmit(self.mock_topic, mock_data)
+        self._module.transmit(mock_topic, mock_data)
         time.sleep(1)
-        self.assertNotIn(self.mock_topic, self._mock_client.messages)
-        res = self._keydb.retrieve(self.mock_topic)
+        self.assertNotIn(mock_topic, self._mock_client.messages)
+        res = self._keydb.retrieve(mock_topic)
         self.assertEqual(res, None)
 
         res = [json.loads(n) if not isinstance(n, dict) else n 
-               for n in self._file.retrieve(self.mock_topic) 
+               for n in self._file.retrieve(mock_topic) 
                if isinstance(n, dict) or is_valid_json(n)]
         self.assertIn(mock_data, res)
 
     def test_pop_all_messages(self):
+        mock_topic = f"test_fallback/{uuid4()}"
+        self._mock_client.subscribe(mock_topic)
+        time.sleep(2)
         self._keydb.connect()
         institute = "test_pop_all_messages_institute"
         equipment_id = "test_pop_all_messages_equipment_id"
@@ -128,6 +138,10 @@ class TestFallbacks(unittest.TestCase):
         self.assertIsNone(self._file.pop())
 
     def test_pop_all_messages_multi_output(self):
+        mock_topic = f"test_fallback/{uuid4()}"
+        self._mock_client.subscribe(mock_topic)
+        time.sleep(2)
+
         self._keydb.connect()
         institute = "test_pop_all_messages_institute"
         equipment_id = "test_pop_all_messages_equipment_id"

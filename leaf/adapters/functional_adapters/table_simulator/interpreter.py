@@ -25,6 +25,7 @@ class TableSimulatorInterpreter(AbstractInterpreter):
     
     def measurement(
         self, data: list[str]) -> InfluxPoint:
+        data = super().measurement(data)
         matrix = [
             x[0].split(self._sep) for x in data if isinstance(x, list) and len(x) > 0
         ]

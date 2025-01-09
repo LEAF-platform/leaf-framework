@@ -199,6 +199,7 @@ class Biolector1Interpreter(AbstractInterpreter):
         Returns:
             A dictionary update containing transformed measurement data.
         """
+        data = super().measurement(data)
         if data[-1][0] == "READING":
             return None
         data = data[::-1]

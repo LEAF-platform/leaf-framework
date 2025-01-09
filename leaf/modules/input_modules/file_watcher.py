@@ -53,16 +53,16 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                          error_holder=error_holder)
         logger.debug(f"Initialising FileWatcher with file path {path}")
 
-        if os.path.isdir(path):
-            self._path = path
-            self._file_name = None
-        else:
-            try:
+        try:
+            if os.path.isdir(path):
+                self._path = path
+                self._file_name = None
+            else:
                 self._path, self._file_name = os.path.split(path)
                 if self._path == "":
                     self._path = "."
-            except TypeError:
-                raise AdapterBuildError(f'{path} is not a valid path for FileWatcher.')
+        except TypeError:
+            raise AdapterBuildError(f'{path} is not a valid path for FileWatcher.')
 
 
         self._observer = Observer()
