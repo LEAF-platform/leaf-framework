@@ -266,20 +266,28 @@ class TestEquipmentAdapter(unittest.TestCase):
                                        self._adapter._watcher._file_name)
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
+        
         mthread = Thread(target=self._adapter.start)
-        mthread.start()
-        _create_file(text_watch_file)
-        time.sleep(10)
-        self._adapter.stop()
-        mthread.join()
-        expected_exception = HardwareStalledError("Experiment timeout between measurements")
+        unique_logger_name = f"leaf.adapters.equipment_adapter.{self._adapter._metadata_manager.get_instance_id()}"
 
-        self.assertTrue(len(self._adapter._error_holder._errors) > 0)
-        for e in self._adapter._error_holder._errors:
-            if e["error"] == expected_exception:
-                break
-        else:
-            self.fail()
+        with self.assertLogs(unique_logger_name, level="WARNING") as logs:
+            mthread.start()
+            _create_file(text_watch_file)
+            time.sleep(10)
+            self._adapter.stop()
+            mthread.join()
+        expected_exceptions = [HardwareStalledError("Experiment timeout between measurements")]
+        
+        self.assertTrue(len(logs) > 0)
+        for log in logs.records:
+            exc_type, exc_value, exc_traceback = log.exc_info
+            for exp_exc in list(expected_exceptions):
+                if (
+                        type(exp_exc) == exc_type
+                        and exp_exc.severity == exc_value.severity
+                        and exp_exc.args == exc_value.args
+                ):
+                    expected_exceptions.remove(exp_exc)
         self.assertIsNone(self._adapter._interpreter.get_last_measurement_time())
         self.assertEqual(list(self.mock_client.messages.keys()),[self._adapter._metadata_manager.details()])
 
