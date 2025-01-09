@@ -40,8 +40,8 @@ class StopPhase(ControlPhase):
             list: A list of tuples containing the action terms and data.
         """
         # Leaving unused until stop experiment metadata is agreed upon.
-        # if self._interpreter is not None:
-        #    data = self._interpreter.metadata(data)
+        if self._interpreter is not None:
+            data = self._interpreter.experiment_stop(data)
         data = super().update(data)
         data += [(self._metadata_manager.running(), False)]
         data += [(self._metadata_manager.experiment.start(), None)]
