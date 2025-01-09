@@ -36,6 +36,8 @@ class AbstractInterpreter(ABC):
         self.EXPERIMENT_ID_KEY: str = "experiment_id"
         self.MEASUREMENT_HEADING_KEY: str = "measurement_types"
         self._error_holder: Optional[ErrorHolder] = error_holder
+        self._last_measurement = None
+        self._is_running = False
 
     def set_error_holder(self, error_holder: Optional[ErrorHolder]) -> None:
         """
@@ -64,7 +66,8 @@ class AbstractInterpreter(ABC):
         Args:
             data (Any): The measurement from the InputModule.
         """
-        pass
+        self._last_measurement = time.time()
+        return data
 
     @abstractmethod
     def simulate(self) -> None:
@@ -73,6 +76,13 @@ class AbstractInterpreter(ABC):
         run of equipment using existing data.
         """
         pass
+    
+    def get_last_measurement_time(self):
+        return self._last_measurement
+    
+    def experiment_stop(self,data=None):
+        self._last_measurement = None
+        return data
 
     def _handle_exception(self, exception: LEAFError) -> None:
         """
@@ -241,7 +251,13 @@ class EquipmentAdapter(ABC):
                                 exc_info=error,
                             )
                             # Not much can be done here
-                            raise NotImplementedError()
+                            for p in self._processes:
+                                p.stop()
+                            self._interpreter.experiment_stop()
+                            if self._watcher.is_running():
+                                self._watcher.stop()
+                            self._watcher.start()
+                            
                         elif isinstance(error, exceptions.ClientUnreachableError):
                             # This should generally not occur.
                             self._logger.warning(
@@ -266,23 +282,16 @@ class EquipmentAdapter(ABC):
                             exc_info=error,
                         )
 
-                """
-                The big issue here is that the adapters themselves dont really
-                have any knowledge of the experiment status...
-                We really need to figure out how to introduce some context.
-                Some quick ideas:
-                    1. Use the interpreter and add is_experiment_running or something.
-                    2. 
-                """
-                """
+                # Check for experiment stalling.
                 if self._experiment_timeout is not None:
-                    # If experiment is running. (HOW)
-                    if True:
-                        # If the difference between the last measurement 
-                        # and now > the experiment timeout (HOW)
-                        if last_measurement > self._experiment_timeout:
-                            pass # Send a stop message.
-                """
+                    lmt = self._interpreter.get_last_measurement_time()
+                    if (lmt is not None and time.time() - 
+                        lmt > self._experiment_timeout):
+                        e_str = f'Experiment timeout between measurements'
+                        exception = exceptions.HardwareStalledError(e_str)
+                        self._handle_exception(exception)
+                        
+
 
         except KeyboardInterrupt:
             self._logger.info("User keyboard input stopping adapter.")
@@ -301,7 +310,6 @@ class EquipmentAdapter(ABC):
 
         Stops the watcher and flushes all output channels.
         """
-        # Could do with a rework.
         for process in self._processes:
             process.stop()
         self._stop_event.set()
