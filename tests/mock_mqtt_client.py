@@ -5,13 +5,15 @@ from leaf.modules.output_modules.mqtt import MQTT
 
 class MockBioreactorClient(MQTT):
     def __init__(self, broker_address: str, port: int=1883,
-                 username: str|None=None,password: str|None=None):
+                 username: str|None=None,password: str|None=None,
+                 remove_flush=False):
         super().__init__(broker_address, port, 
                          username=username,password=password,clientid=None)
         self.messages = {}
         self.num_msg = 0
         self.client.on_message = self.on_message
         self._subs = []
+        self._remove_flush = remove_flush
 
     def on_message(self, client: mqtt.Client, userdata: str, msg: str) -> None:
         topic = msg.topic
@@ -19,6 +21,9 @@ class MockBioreactorClient(MQTT):
             payload = msg.payload.decode('utf-8')
             
             if payload == "":
+                if self._remove_flush and topic in self.messages:
+                    del self.messages[topic]
+                
                 return
 
             msg = json.loads(payload)
