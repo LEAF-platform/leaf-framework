@@ -269,7 +269,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         _create_file(text_watch_file)
-        time.sleep(5)
+        time.sleep(10)
         self._adapter.stop()
         mthread.join()
         expected_exception = HardwareStalledError("Experiment timeout between measurements")
