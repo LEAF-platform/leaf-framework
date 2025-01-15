@@ -2,6 +2,9 @@
 import logging
 import os
 import unittest
+import threading
+
+from hello_world.adapter import HelloWorldAdapter
 
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.output_modules.mqtt import MQTT
@@ -24,7 +27,15 @@ class TestHelloWorld(unittest.TestCase):
             "experiment_id": "test_exp",
         }
 
-        # Import the adapter
-        adap = HelloWorqldAdapter(instance_data=self.instance_data, output=self.output)
-        adap.start()
-        print("HelloWorldAdapter started successfully.")
+        logger.info("Starting HelloWorldAdapter...")
+        adap = HelloWorldAdapter(output=self.output, instance_data=self.instance_data)
+        # Start a new thread for the adapter.start() method
+        t = threading.Thread(target=adap.start)
+        t.start()
+        # Stop the adapter after 5 seconds
+        threading.Timer(5, adap.stop).start()
+        # Wait for the thread to finish
+        t.join()
+        # Add assertions
+        self.assertIsNotNone(adap)
+        logger.info("HelloWorldAdapter started successfully.")
