@@ -244,6 +244,8 @@ class TestTableSimulatorAdapter(unittest.TestCase):
             data = file.readlines()
             with open(watch_file, "w") as f:
                 for line in data:
+                    if isinstance(line, bytes):
+                        line = line.decode("utf-8")
                     f.write(line)
                     # Set to sleep from the config
                     time.sleep(0.1)
