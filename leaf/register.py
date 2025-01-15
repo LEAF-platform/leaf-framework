@@ -34,7 +34,11 @@ def load_adapters() -> dict[str, EquipmentAdapter]:
     """
     adapters = {}
     for entry_point in entry_points(group="leaf.adapters"):
-        adapters[entry_point.name] = entry_point.load()
+        try:
+            adapters[entry_point.name] = entry_point.load()
+        except Exception as e:
+            logging.error(f"Error loading adapter: {entry_point.name}")
+            # logging.error(exc_info=True)
     logging.warning("The following adapters have been detected:")
     for adapter in adapters:
         logging.warning(adapter)
