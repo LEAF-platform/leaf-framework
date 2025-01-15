@@ -119,3 +119,4 @@ dmypy.json
 cloud/pgadmin_data/sessions
 cloud/timescaledb_data
 cloud/grafana_data/
+cloud/vernemq_data

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "leaf"
-version = "0.1.4"
+version = "0.1.1"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = [
     "Matthew Crowther <b5044420@newcastle.ac.uk>",
