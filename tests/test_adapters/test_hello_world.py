@@ -25,6 +25,6 @@ class TestHelloWorld(unittest.TestCase):
         }
 
         # Import the adapter
-        adap = HelloWorqldAdapter(instance_data=self.instance_data, output=self.output)
+        adap = HelloWorldAdapter(instance_data=self.instance_data, output=self.output)
         adap.start()
         print("HelloWorldAdapter started successfully.")
