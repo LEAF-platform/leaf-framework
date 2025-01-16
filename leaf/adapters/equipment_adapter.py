@@ -13,7 +13,7 @@ from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.error_handler.error_holder import ErrorHolder
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "equipment_adapter.json")
+metadata_fn = os.path.join(current_dir, "device.json")
 
 
 class AbstractInterpreter(ABC):
@@ -143,6 +143,7 @@ class EquipmentAdapter(ABC):
         # Metadata
         if metadata_manager is None:
             self._metadata_manager: MetadataManager = MetadataManager()
+
         else:
             self._metadata_manager = metadata_manager
         self._metadata_manager.load_from_file(metadata_fn)
@@ -199,8 +200,9 @@ class EquipmentAdapter(ABC):
         self._stop_event.clear()
         if not self._metadata_manager.is_valid():
             ins_id = self._metadata_manager.get_instance_id()
+            missing_data = self._metadata_manager.get_missing_metadata()
             excp = exceptions.AdapterLogicError(
-                f"{ins_id} is missing data.", severity=exceptions.SeverityLevel.CRITICAL
+                f"{ins_id} is missing data. : {missing_data}", severity=exceptions.SeverityLevel.CRITICAL
             )
             self._logger.error(
                 f"Critical error, shutting down this adapter: {excp}", exc_info=excp
