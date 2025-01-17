@@ -1,5 +1,4 @@
 {
-    "class" : "Biolector1Adapter",
     "equipment_id": "BioLector1",
     "type" : "Bioreactor",
     "version": "1.0",

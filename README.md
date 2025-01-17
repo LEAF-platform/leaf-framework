@@ -1,9 +1,7 @@
 # Adapter Framework for Equipment Monitoring and Control
 
 ## Overview
-
-This tool implements a modular and scalable **Adapter Architecture** designed for monitoring and controlling various types of equipment (e.g., bioreactors). While the **EquipmentAdapter** is the primary adapter, the rest of the system is composed of **modules** (ProcessModules, PhaseModules, etc.) that work together to perform specific tasks such as event monitoring, data processing, and output transmission.
-
+The Lab Equipment Adapter Framework (LEAF) implements an **Adapter Architecture**  designed to monitor and control various equipment types (e.g., bioreactors). The core principle of LEAF is to reduce the barrier to entry as much as possible to develop and deploy adapters for new equipment. The **EquipmentAdapters** are the functional equipment monitors composed of the rest of the **modules** (ProcessModules, PhaseModules, etc.) that perform specific tasks such as event monitoring, data processing, and output transmission.
 ---
 
 ## For Users
@@ -12,29 +10,49 @@ The **Users** section is for those who want to use **existing EquipmentAdapters*
 
 ### Getting Started
 
-1. **Clone the Repository**:
+1. **Install LEAF**
     ```bash
-    git clone https://gitlab.com/LabEquipmentAdapterFramework/leaf/-/tree/main?ref_type=heads
-    cd leaf
+    python -m pip install git+https://gitlab.com/LabEquipmentAdapterFramework/leaf
     ```
 
-2. **Install Dependencies**:
+2. **Identify EquipmentAdapter**
+The framework includes a set of pre-built equipment adapters for common equipment types, such as bioreactors, fermenters, etc. All previously developed adapters can be explored [here](https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters).
+
+3. **Install EquipmentAdapter**
+Once an adapter is identified, it must be installed in the same way as the LEAF system. The adapter's URL from the repository must be swapped with <adapter_url> below.
     ```bash
-    pip install -r requirements.txt
+    python -m pip install git+<adapter_url>
     ```
+4. **Configuration**
+Before running the adapter, details on the specific environment must be provided. This is achieved by Modifying the configuration parameters, such as input/output settings (e.g., file paths, MQTT connections), as needed without writing custom code. This configuration is highly specific to the equipment and the environment, and many options exist. Therefore, the specifics are [here](#guidelines-for-defining-configuration). Once a `config.yaml` file has been established, the adapter can be started.
 
-3. **Run Pre-built EquipmentAdapters**:
-   The framework includes a set of pre-built EquipmentAdapters for common equipment types, such as bioreactors, fermenters, etc. Configure and run them with minimal setup.
+5. **Running EquipmentAdapter**
+Once a configuration has been established, the adapter can be executed using the command: 
+    ```bash
+    python -m leaf.start -c config.yaml
+    ```
+    If the adapter has been configured correctly, then the adapter should begin running and monitoring the equipment. If an error occurs, the LEAF adapter system uses custom errors to describe what has occurred. It must be noted that the adapter system will not run if an error occurs during initialisation (errors here are likely fatal and are not recoverable). Still, monitoring errors will not stop the adapter as it is designed to be a continuous monitoring tool.
 
-4. **Configuration**:
-   - Modify configuration parameters such as input/output settings (e.g., file paths, MQTT connections) as needed without writing custom code.
-
+6. **Debugging Adapters**
+In some cases, the adapter system may produce errors due to incorrect configuration, genuine fault with the adapter or issue with the equipment. If configuration errors occur, they will be displayed during initialisation, and the program will exit. All of these errors are "AdapterBuildError" errors. These error codes and names are expanded below.
+    * *"device.json not found for adapter at ..."*: The adapter chosen doesn't have attached metadata, i.e. device.json in the directory.
+    * *"equipment_id' not found in ..."*: The device.json is present but doesn't have an equipment_id.
+    * *"Adapter for code ... not found."*: An adapter equipment_id wasn't found with the same code as provided in the configuration file.
+    * *"Missing instance ID."*: The configuration file provided doesn't have an instance ID.
+    * *"Missing required keys for ..."*: The required parameters for an adapter haven't been provided in full.
+    If an error ocurrs during monitoring (usual running of the adapter), the adapter will continue running and attempt to adapt given the type of error. The types of errors are explained below.
+    * *InputError*: Either the hardware is down, or the input mechanism cannot access the information it should be able to.
+    * *HardwareStalledError*: The hardware appears to have stopped transmitting information.
+    * *ClientUnreachableError*: The client OR output mechanism can't post information. For example, the MQTT broker can't be transmitted to.
+    * *AdapterLogicError*: Logic within how the adapter has been built causes an error.
+    * *InterpreterError*: The adapter interpreter has some faults that cannot be identified without knowledge of the adapter's specifics.
 ### Guidelines for defining configuration
 When using an adapter, unique information about each physical instance is needed. Each piece may have different identifiers, data paths, and settings. The configuration file provides this individual context by bridging the general adapter code with the specific details of each setup. This configuration allows the adapter system to customise its behaviour for each instance, enabling a single adapter class to be reused across multiple pieces of equipment, each with its configuration.
-#### Equipment Instanes
+#### Equipment Instances
 Each entry under `EQUIPMENT_INSTANCES` represents an individual `EquipmentAdapter` instance for a piece of equipment (A single process can support running multiple adapters). This section provides information necessary to distinguish each instance and configure it according to specific needs:
 - equipment:
-    - **adapter**: This field specifies the adapter type (e.g., `ConcreteAdapter1`), which is the name of the adapter class. It is needed for adapter discovery.
+    - **adapter**: This field specifies the adapter type, which is the equipment ID within the `device.json` file of the given adapter (e.g.,`ConcreteAdapter1`), which is the name of the adapter class. It is needed for adapter discovery. Below, we discuss each aspect of a config file. Due to the config file's specific nature, some examples for specific adapters are given, denoted with the *(EquipmentAdapter specific)* tag.
+
     - **data**: This field contains identifiers/metadata. It is required for discovery and ensuring uniqueness within the larger network of equipment. If the instance_id is not unique, the program will fail at initialisation.
         - **instance_id**: A unique identifier for this equipment instance.
         - **institute**: The organisation or location where the equipment is based.
@@ -46,7 +64,8 @@ Each entry under `EQUIPMENT_INSTANCES` represents an individual `EquipmentAdapte
     - **simulation** *(optional)*: This nested data is only needed if the adapter is wanted to run in simulated mode.
         - **filename**: A path to a file with simulated data (Note this may change for different adapters).
         - **interval**: The interval in seconds when the simulation will feed the adapter another chunk of data (measurement).
-    - **maximum_message_size** *(optional)*: If present, it sets the maximum number of measurements that will be transmited within a single message. The higher this option, the less messages will be sent but each message will be a larger payload.ssss
+    - **maximum_message_size** *(optional)*: If present, it sets the maximum number of measurements that will be transmitted within a single message. The higher this option, the fewer messages will be sent, but each message will be a larger payload.
+    - **experiment_timeout** *(optional)*: If present, when an experiment is running, and a new measurement hasn't been taken within this timeout period, the experiment will be stopped. This is used for cases where the lack of measurement data will be due to an error in a given time.
 #### Outputs
 Each entry under `OUTPUTS` represents an `OutputModule` for transmitting or storing data. Output modules can be chained together through a fallback mechanism, where the next module in the sequence is used if the primary output fails. Like the requirement section within the `EquipmentAdapters`, most of the fields within an OUTPUTS element are specific to the type of module that is defined to be used.
 - **plugin**: This specifies the type of output module, e.g., MQTT, KEYDB, or FILE. The name needs to be the same as the `OutputModule` class.
@@ -56,7 +75,7 @@ Each entry under `OUTPUTS` represents an `OutputModule` for transmitting or stor
 - **fallback**: Defines the next output in the chain if the primary output fails. For example, if both previous outputs fail, an `MQTT` output can fall back to `KEYDB`, which can then fall back to a `FILE` output.
 - **filename** *(OutputModule specific)*: Specifies the path to a file where data will be stored locally if other outputs are unavailable.
 
-This structure enables flexible data transmission. Primary outputs can be backed up by secondary methods, ensuring data persistence even if one output method encounters issues.
+This structure enables flexible data transmission. Primary outputs can be backed up by secondary methods, ensuring data persistence even if one output method encounters issues. This data must be specified within a file known as a "yaml" file. This is essentially a dictionary of keys and values, as seen below.
 ````yaml
 
 EQUIPMENT_INSTANCES:
@@ -91,8 +110,6 @@ OUTPUTS:
   - plugin: MQTT
     broker: localhost
     port: 1883
-    username: mcrowther
-    password: Radeon12300
     fallback: KEYDB
   - plugin: KEYDB
     host: localhost
@@ -111,7 +128,15 @@ The **Developers** section is for those who want to extend the framework by buil
 
 ### Adapter Architecture
 
-The system’s design follows a modular, reusable structure, where only the **EquipmentAdapter** are composed of modules and an interpreter. The **modules** are used to compose the EquipmentAdapter. This modular design allows developers to create EquipmentAdapters by nesting and connecting existing modules.
+The system’s design follows a modular, reusable structure, where only the **EquipmentAdapter** comprises modules and an interpreter. The **modules** are used to compose the EquipmentAdapter. This modular design allows developers to create EquipmentAdapters by nesting and connecting existing modules. Below is a brief description of all of the components of an adapter.
+* **EquipmentAdapter** is the central component that contains all other modules and manages the interaction between processes, events, and outputs for a specific piece of equipment.
+* **ProcessModules** manage different processes within the equipment. These processes may include start, measurement, and stop phases.
+* **PhaseModules** handle distinct phases within a process and ensure the correct sequence of actions is followed. They may trigger measurements, control actions, or data output during the running of a process.
+* **EventWatcherModules** detect specific events from equipment (e.g., file changes or API events) and trigger the corresponding phase or process actions.
+* **MeasurementModules** transform raw equipment data into a standardised format using predefined terms and units.
+* **OutputModules** transmit the transformed data to external systems (e.g., MQTT, databases).
+
+As seen in Figure 1, these components all come together to identify events, take data from the equipment and route them to the correct place via the `ProcessAdapter` and `PhaseAdapter` based on the type of event (start, stop, measurement, etc).
 
 **Figure 1: Data Flow**  
 *This figure illustrates the high-level input/output data flow for EquipmentAdapters.*
@@ -122,10 +147,10 @@ The system’s design follows a modular, reusable structure, where only the **Eq
 
 ### Adapter Composition and Class Hierarchy
 
-The **EquipmentAdapter** uses several types of **modules** (ProcessModules, PhaseModules, InputModules, OutputModules, and MeasurementModules) to handle different functionalities. The EquipmentAdapter itself is the primary container that manages how these modules interact.
+The **EquipmentAdapter** uses several **modules** (ProcessModules, PhaseModules, InputModules, OutputModules, and MeasurementModules) to handle different functionalities. The EquipmentAdapter itself is the primary container that manages how these modules interact.
 
 **Figure 2: Structure**  
-*This figure shows how different types of modules are composed to form an EquipmentAdapter.*
+*This figure shows how different modules are composed to form an EquipmentAdapter.*
 
 ![Structure](docs/figures/structure.png "Struture")
 
@@ -133,7 +158,7 @@ The **EquipmentAdapter** uses several types of **modules** (ProcessModules, Phas
 
 ### Initialisation Process
 
-When the EquipmentAdapter starts, it initialises its modules (such as process and phase modules) and sets up the required input/output mechanisms. Initialisation typically involves linking the modules to specific equipment, setting up event watchers, and preparing for data collection or control actions.
+When the EquipmentAdapter starts, it initialises its modules (such as process and phase) and sets up the required input/output mechanisms. Initialisation typically involves linking the modules to specific equipment, setting up event watchers, and preparing for data collection or control actions.
 
 **Figure 3: Initialisation**  
 *This figure illustrates how the modules are initialised during the setup of an EquipmentAdapter.*
@@ -154,8 +179,7 @@ When an EquipmentAdapter starts, it begins monitoring for events, processing dat
 ---
 
 ### Handling Events
-
-Once the system is running, **EventWatcherModules** detect events, and these events trigger actions defined in the **ProcessModules** and **PhaseModules**. Each event is processed, and the associated data is transformed (if necessary) and outputted. The sequence of event detection, data transformation, and output is central to the framework’s operation.
+Once the system is running, `EventWatcherModules` detect events, and these events trigger actions defined in the `ProcessModules` and `PhaseModules`. Each event is processed, and the associated data is transformed (if necessary) and outputted. The sequence of event detection, data transformation, and output is central to the framework’s operation. Most adapters will likely inherit from the existing `StartStopAdapter` because they can be contained (even if conceptually) as equipment that performs discrete experiments. However, the routing system, i.e. how events are mapped to topics/actions and then to specific outputs, is a defined and extensible system, which is explained further [here](#leaf-register).
 
 **Figure 5: Event Handling**  
 *This figure details the flow of actions when an event occurs in the system.*
@@ -164,40 +188,21 @@ Once the system is running, **EventWatcherModules** detect events, and these eve
 
 ---
 
-### Key Components
-
-#### EquipmentAdapter
-The **EquipmentAdapter** is the central component that contains all other modules and manages the interaction between processes, events, and outputs for a specific piece of equipment.
-
-#### ProcessModule
-**ProcessModules** manage different processes within the equipment. These processes may include start, measurement, and stop phases.
-
-#### PhaseModule
-**PhaseModules** handle distinct phases within a process and ensure the correct sequence of actions is followed. They may trigger measurements, control actions, or data output during the running of a process.
-
-#### EventWatcherModule
-**EventWatcherModules** detect specific events from equipment (e.g., file changes or API events) and trigger the corresponding phase or process actions.
-
-#### MeasurementModule
-**MeasurementModules** transform raw equipment data into a standardised format using predefined terms and units.
-
-#### OutputModule
-**OutputModules** transmit the transformed data to external systems (e.g., MQTT, databases).
-
----
-
-
 ### Guidelines for Composing an Adapter
 
 #### Overview
-Equipment Adapters are containers of modules (and an interpreter) that, when joined, can take new information from equipment, transform it into a standard structure, and output or store it. By design, a new adapter is composed of reusing existing modules, and unlike developing interpreters, the process is more deterministic. At this point, it is assumed how adapters are structured and run as described in the [For Developer](#for-developers) section. This document provides guidelines for composing an adapter from existing components.
+Equipment Adapters are containers of modules (and an interpreter) that, when joined, can take new information from equipment, transform it into a standard structure, and output or store it. By design, a new adapter is composed of reusing existing modules, and unlike developing interpreters, the process is more deterministic. At this point, it is assumed how adapters are structured and run as described in the [For Developer](#for-developers) section. This document provides guidelines for composing an adapter from existing components. It must be noted and seen within Figure 5 that intermediate generic adapters such as the `StartStopAdapter` exist, which makes composing similar adapters trivial as connecting input events to topics is not required. However, for completeness in this example, an adapter will inherit from the base class (`EquipmentAdapter`) to provide an end-end example of what is needed.
+
+**Figure 5: Hierarchy**  
+*This figure displays the hierarchy of adapters. All adapters are derived from the original `EquipmentAdapter`, but intermediate adapters are available for common processes. For example, `StartStopAdapter` is an adapter that implements the process for discrete experiments (Experiments that have defined starts and ends).*
+![Event Handling](docs/figures/hierarchy.png "Hierarchy")
 
 ---
 
 #### Requirements
 1. **EquipmentAdapter**: An adapter must subclass the `EquipmentAdapter` base class or a derivative of `EquipmentAdapter`.
 2. **InputModule**:  An adapter must have the appropriate `InputModule` depending on how the equipment presents its data.
-3. **OutputModule**: An adapter must have the ability to take an `OutputAdapter` instance.
+3. **OutputModule**: An adapter must be able to take an `OutputAdapter` instance.
 4. **Interpreter**: An adapter must implement its own Interpreter to handle the equipment's unique data structure.
 5. **ProcessModules**: An adapter must compose one or more `ProcessModules` to define the equipment's related actions.
 6. **Error Handling**: Utilise `ErrorHolder` for error management.
@@ -206,20 +211,22 @@ Equipment Adapters are containers of modules (and an interpreter) that, when joi
 ---
 
 #### Step-by-Step Guide
-This section provides a step-by-step guide on how an Adapter can be composed. These guidelines provide the best practices for creating an adapter that will provide the best outputs but depends on the developer. This simple example is a piece of continuous equipment, i.e. it takes measurements and does not have distinct phases. Furthermore, it writes measurements to a database.
+This section provides a step-by-step guide on how an Adapter can be composed. These guidelines provide the best practices for creating an adapter that will provide the best outputs but depends on the developer. This simple example is a piece of continuous equipment, i.e. it takes measurements and does not have distinct phases. Furthermore, it writes measurements to a database. Note, the example code is listed at the end of this section.
 
 ##### 1. Subclass the `EquipmentAdapter`
-Begin by creating a new class inheriting from `EquipmentAdapter` OR form an existing derivative class (see an end-end example of an adapter that inherits from the `Bioreactor` derived class). This inheritance structure standardises the interface and enables the reuse of core adapter functionality. During initialisation, the EquipmentAdapter will be provided several components from the configuration (see config_definition).
-instance_data: A dictionary containing data specific to the equipment instance (e.g., physical setup or configuration parameters).
-Output: An OutputModule instance responsible for transmitting data collected from the equipment to external systems or clients. The OutputModule is instantiated outside the adapter to allow for reusability.
-Adapter-specific parameters - Some adapters may need extra information, such as filenames or credentials. Derived adapters, therefore, can have any number of parameters defined by the developer.
-error_holder: An optional ErrorHolder instance to capture and log errors, helping to diagnose issues without interrupting the adapter’s operation.
-After defining these components, initialise the `EquipmentAdapter` superclass with `instance_data`, `InputModule`, `ProcessModule(s)`, `Interpreter`, `metadata_manager`, and `error_holder`.
+Begin by creating a new class inheriting from `EquipmentAdapter` OR form an existing derivative class (see an end-end example of an adapter that inherits from the `StartStopAdapter` derived class). This inheritance structure standardises the interface and enables the reuse of core adapter functionality. During initialisation, the EquipmentAdapter will be provided (by LEAF) with several components from the configuration (see [Guidelines for defining configuration](#guidelines-for-composing-an-adapter)).
+* instance_data: A dictionary containing data specific to the equipment instance (e.g., physical setup or configuration parameters).
+* output: An OutputModule instance responsible for transmitting data collected from the equipment to external systems or clients. The OutputModule is instantiated outside the adapter to allow for reusability.
+* Adapter-specific parameters - Some adapters may need extra information, such as filenames or credentials. Derived adapters, therefore, can have any parameters defined by the developer.
+* error_holder: An optional ErrorHolder instance to capture and log errors, helping to diagnose issues without interrupting the adapter’s operation. This parameter must be present but doesn't require any processing within this class (it must be passed to the base class).
+* maximum_message_size: Sets the maximum number of measurements in one output message. This parameter must be present but doesn't require any processing within this class (it must be passed to the base class).
+* experiment_timeout: The maximum time between measurements in an experiment before an error is sent. This parameter must be present but doesn't require any processing within this class (it must be passed to the base class).
+
+
 ##### 2. Defining instance data
-When defining adapters, metadata is required to build unique namespaces, enabling the adapter system and the client tooling to identify the equipment. The JSON below displays an example metadata file. It describes the adapter's features and function. All but two key-value pairs are optional and not required for the adapter's function. The two mandatory entities are `class` and `equipment_id`. Firstly, the value of `class` must be the same as the Adapter class, i.e. in this case `CustomEquipmentAdapter`. The class field is required to enable discovery when identifying the correct adapter for the equipment when the monitor is running. Secondly, the `equipment_id` is a unique name for the type of equipment used to identify data coming from the adapter/equipment within the larger infrastructure, i.e., within the MQTT broker and client tooling. If either of these values is missing, the system cannot run.
+When defining adapters, metadata is required to build unique namespaces, enabling the adapter system and the client tooling to identify the equipment. The JSON below displays an example metadata file. It describes the adapter's features and function. All but two key-value pairs are optional and not required for the adapter's function. The only mandatory entity is `equipment_id`. The `equipment_id` is a unique name for the equipment used to identify data coming from the adapter/equipment within the larger infrastructure, i.e., within the MQTT broker and client tooling. All other information is optional details about the equipment provided to client tools when the adapter begins. This file must be named `device.json` and stored in the same directory as the adapter (this is needed for adapter discovery).
 ```json
 {
-    "class" : "CustomEquipmentAdapter",
     "equipment_id": "CustomEquipment",
     "version": "1.0",
     "manufacturer": "m2p-labs GmbH",
@@ -237,37 +244,56 @@ When defining adapters, metadata is required to build unique namespaces, enablin
     }
   }
 ```
-Instance data must then be passed to a metadata_manager instantiated within the constructor and passed to the superclass.
-
+A special MetadataManager class is present to handle the equipment metadata. This manager is critical for generating unique topics and tracking equipment. This manager should be initialised and then passed to the superclass. Finally, the `add_equiment_data` function should be called, and this file 
 ##### 3. Initialising the InputModule
-Different equipment presents information in different ways. The LEAF system contains several [Input Modules](https://gitlab.com/LabEquipmentAdapterFramework/leaf/-/tree/dev/core/modules/input_modules?ref_type=heads), one of which can be used depending on the system's specification. In this example, the `DBWatcher` is a simple `InputModule` that polls a database at every interval to check for changes. The InputModules can have callbacks for different events that occur. For example, a callback is activated when a measurement is taken (change in the database).
-
+Different equipment presents information in different ways. The LEAF system contains several [Input Modules](https://gitlab.com/LabEquipmentAdapterFramework/leaf/-/tree/dev/core/modules/input_modules?ref_type=heads), one of which can be used depending on the system's specification. In this example, the `DBWatcher` is a simple `InputModule` that polls a database at intervals to check for changes. Derivatives of the `InputModule` will likely require some unique information (in this pseudo case, the interval between polls), which a user of the adapter will define in the configuration file; LEAF will pass to this adapter via arguments and then are passed to the instance of the module in this constructor.
 ##### 4. Constructing ProcessModules and PhaseModules
-As described previously, `ProcessModules` are the container classes for specific processes in the equipment, such as an experiment process. Within `ProcessModules`, `PhaseModules` exist, which describe a particular action within the equipment, such as taking a measurement. Adding phases as callbacks to the `InputModule` is critical as it maps physical events to actions within the adapter. In this simple case, the system is defined as having a single continuous process, i.e., it is a piece of equipment that takes measurements and does not have discrete starts and ends of experiments or any extra processes. Therefore, a single `MeasurementPhase` is provided as a parameter.
-
+As described previously, `ProcessModules` are the container classes for specific processes in the equipment, such as an experiment process. Within `ProcessModules`, `PhaseModules` exist, which describe a particular action within the equipment, such as taking a measurement. Adding phases is critical as it maps physical events to actions within the adapter. In this simple case, the system is defined as having a single process, i.e., it is a piece of equipment that takes measurements and does not have discrete starts and ends of experiments or any extra processes. Therefore, `MeasurementPhase` is provided as a parameter with an `InitialisationPhase` that is REQUIRED for discovering the adapter. Behind the scenes, the `PhaseModules` are attached to the `InputModules` as callbacks. Then, when an Event occurs, the `InputModule` calls the `ProcessWatcher` with the action topic, which the `ProcessWatcher` dispatches to the appropriate phase.
+##### 5. Interpreters
+The `Interpreter` is all the code that is specialised for interpreting the unique form of data presented. This topic is described in detail [here](#guidelines-for-defining-an-interpreter). However, the Interpreter must be initialised and passed to the superclass for composition.
+##### 6. Initialise the superclass
+After defining these components, initialise the `EquipmentAdapter` superclass with `instance_data`, `InputModule`, `ProcessModule(s)`, `Interpreter`, `metadata_manager`, and `error_holder`, `experiment_timeout` and `maximum_message_size`.
 ````python
+from leaf.modules.process_modules.discrete_module import DiscreteProcess
+from leaf.modules.phase_modules.measure import MeasurePhase
+from leaf.modules.phase_modules.initialisation import InitialisationPhase
+from leaf_register.metadata import MetadataManager
+
+from leaf.modules.input_modules.event_watcher import EventWatcher
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.adapters.equipment_adapter import EquipmentAdapter
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "biolector1.json")
+metadata_fn = os.path.join(current_dir, "device.json")
 
 class CustomEquipmentAdapter(EquipmentAdapter):
-    def __init__(self,instance_data,output,interval,
-                 custom_parameter,error_holder):
+    def __init__(self,
+                instance_data,
+                output,
+                interval,
+                custom_parameter,
+                maximum_message_size = 1,
+                error_holder = None,
+                experiment_timeout= None):
         
         metadata_manager = MetadataManager()
         watcher = DBWatcher(metadata_manager,interval)
 
         measure_p = MeasurePhase(output, metadata_manager)
         details_p = InitialisationPhase(output, metadata_manager)
-
-        watcher.add_measurement_callback(measure_p.update)
-        watcher.add_initialise_callback(details_p.update)
-
-        process = [ContinousPhase(measure_p)]
+        process = [DiscreteProcess([measure_p,details_p])]
 
         interpreter = CustomEquipmentInterpreter(error_holder=error_holder)
-        super().__init__(instance_data, watcher, process, interpreter,
-                         metadata_manager=metadata_manager,
-                         error_holder=error_holder)
+        super().__init__(
+            instance_data,
+            watcher,
+            process,
+            interpreter,
+            metadata_manager=metadata_manager,
+            error_holder=error_holder,
+            experiment_timeout=experiment_timeout,
+            maximum_message_size=maximum_message_size
+        )
 
         self._custom_parameter = custom_parameter
         self._metadata_manager.add_equipment_data(metadata_fn)
@@ -275,33 +301,23 @@ class CustomEquipmentAdapter(EquipmentAdapter):
 ---
 
 #### End-End Example
-This section provides a complete, end-to-end example of an existing  Adapter. The `Biolector1Adapter` class is a custom adapter for a Biolector1 bioreactor. It handles various phases of an experiment—starting, measuring, and stopping—and manages communication between the Bioreactor, data input/output modules, and error handling systems. This section directly links to the "End-to-End Example" from the "defining an adapter" document, showing how the adapter and interpreter from each section combine to create a functional adapter. 
-These end-end examples are a reduced version of the "Biolector" adapter within the [code base](https://gitlab.com/LabEquipmentAdapterFramework/leaf/-/blob/dev/core/adapters/functional_adapters/biolector1/biolector1.py?ref_type=heads). The Biolector is a discrete bioreactor where experiments have defined beginnings and endings. Practically, the Biolector that this adapter is developed for writing measurements in real-time to a file. When the experiment begins, the file is created and populated with metadata.
-Most adapters will only need definitions inside the constructor, and no functions will be required because running is essentially mapping events from the input module to phases to the interpreter and then to the output module. All of this can be done behind the scenes, provided the adapter is configured correctly. Below is a description of each major action within the constructor.
+This section provides a complete, end-to-end example of an existing  Adapter. The `Biolector1Adapter` class is a custom adapter for a Biolector1 bioreactor. It handles various phases of an experiment—starting, measuring, and stopping—and manages communication between the Bioreactor, data input/output modules, and error handling systems. This section directly links to the "End-to-End Example" from the [defining an adapter](#defining-an-interpreter) document, showing how the adapter and interpreter from each section combine to create a functional adapter. 
+These end-end examples are a reduced version of the "Biolector" adapter within the [code base](https://gitlab.com/LabEquipmentAdapterFramework/leaf/-/blob/dev/core/adapters/functional_adapters/biolector1/biolector1.py?ref_type=heads). The Biolector is a discrete bioreactor where experiments have defined beginnings and endings. Practically, the Biolector that this adapter is developed for writing measurements in real-time to a file. When the experiment begins, the file is created and populated with metadata. Note that because this adapter is able to inherit from a core adapter `StartStopAdapter` the constructor can be much smaller because it doesn't have to define its own `PhaseModule`s and `ProcessModule`s.
 
 ##### Inheritence & Parameters
-The `Biolector1Adapter` class inherits from a base Bioreactor class and extends from a more general EquipmentAdapter class. During initialisation, the superclass `Bioreactor` is provided with several key components that customise the adapter's behaviour.
+The `Biolector1Adapter` class inherits from a base `StartStopAdapter` class and extends from a more general EquipmentAdapter class. During initialisation, the superclass `StartStopAdapter` is provided with several key components that customise the adapter's behaviour.
 - **instance_data**: A dictionary containing specific data for this bioreactor instance, offering context and configuration unique to the individual instance, i.e. the physical equipment (see config_definition).
 - **Output**: An instance of OutputModule responsible for transmitting data collected from the Equipment (See config_definition because outputs are instantiated outside of the adapter so they can be reused).
 - **write_file**: The path to the file monitored by CSVWatcher, where data output from the equipment is expected.
 - **error_holder**: An optional ErrorHolder instance that captures and logs errors, helping to identify and diagnose issues without stopping the adapter's operation.
 
-The parent `Bioreactor` is then initialised using the `instance_data`, `InputModule`,` ProcessModule(s)`,` Interpreter`, `metadata_manager` and `error_holder`.
+The parent `StartStopAdapter` is then initialised using the `instance_data`, `InputModule`,` ProcessModule(s)`,` Interpreter`, `metadata_manager` and `error_holder`.
 
 ##### Metadata
 The `MetadataManager` is instantiated and passed to all the composite objects so that they can access adapter details to perform a function. Later, metadata is loaded from the `biolector1.json` file, ensuring the adapter can access necessary equipment details during experiment phases and operations.
 
 ##### Input Module
 `CSVWatcher` is an input module designed to monitor the specified CSV file (`write_file`) for changes. As the Bioreactor writes new data to this file, `CSVWatcher` detects the updates and triggers the corresponding phase events: initialisation, start, measure, and stop.
-
-##### Process and Phase Modules
-The adapter manages each experiment stage using distinct phase modules organised within a `DiscreteProcess` module. The `DiscreteProcess` module defines the structure of the experiment via `PhaseModules`.
-- **InitialisationPhase**: This is configured when the adapter is first set up, ensuring that the adapter/equipment is visible to client tooling.
-- **StartPhase**: This is triggered when the experiment begins. It handles metadata via the interpreter and sends it to clients.
-- **MeasurePhase**: This is activated with each measurement and sends information measurements to the interpreter for standardisation, which is output.
-- **StopPhase**: This is signalled when the experiment concludes, transmitting a stop message to all clients.
-
-Each phase is linked to `CSVWatcher` (`InputModule`), automatically triggering each update function in response to specific events. This binding of callbacks is the backbone of the adapter system because it maps events within the equipment to actions within the adapter, allowing the correct data to be structured and sent to the appropriate output.
 
 ##### Interpreter
 The `Biolector1Interpreter` component interprets data from the CSV file and manages any errors that arise. Because each interpreter is specific to the adapter class, it is instantiated within the constructor and then passed to the parent class.
@@ -310,51 +326,42 @@ The `Biolector1Interpreter` component interprets data from the CSV file and mana
 The adapter takes an ErrorHolder instance to hold and deal with errors within the `EquipmentAdapter`. Providing the base class with the error_holder is critical because it stops the application from terminating in unnecessary cases.
 
 ```python
-from core.adapters.core_adapters.bioreactor import Bioreactor
+from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
+from leaf.adapters.functional_adapters.biolector1.interpreter import Biolector1Interpreter
+from leaf.modules.input_modules.csv_watcher import CSVWatcher
+from leaf_register.metadata import MetadataManager
 
 # External metadata file for this adapter.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 metadata_fn = os.path.join(current_dir, "biolector1.json")
 
-# Inherits from the Bioreactor class which 
+# Inherits from the StartStopAdapter class which 
 # is a derived class of EquipmentAdapter
-class Biolector1Adapter(Bioreactor):
-    def __init__(self,instance_data, output, write_file = None,
-                 error_holder = None):
+class Biolector1Adapter(StartStopAdapter):
+    def __init__(self,
+                instance_data,
+                output,
+                write_file,
+                maximum_message_size = 1,
+                error_holder = None,
+                experiment_timeout= None):
 
-        # Metadata manager instance for this adapter.
         metadata_manager = MetadataManager()
-        
-        # InputModule
         watcher = CSVWatcher(write_file, metadata_manager)
+        interpreter = Biolector1Interpreter(error_holder=error_holder)
 
-        # PhaseModules
-        start_p = StartPhase(output, metadata_manager)
-        stop_p = StopPhase(output, metadata_manager)
-        measure_p = MeasurePhase(output, metadata_manager)
-        details_p = InitialisationPhase(output, metadata_manager)
-        
-        # Bind watcher events to phase actions
-        watcher.add_start_callback(start_p.update)  
-        watcher.add_measurement_callback(measure_p.update)
-        watcher.add_stop_callback(stop_p.update)
-        watcher.add_initialise_callback(details_p.update)
-
-        # Add phases to a discrete process
-        phase = [start_p, measure_p, stop_p]
-        process = [DiscreteProcess(phase)]
-
-        # Initialise Interpreter
-        interpreter = Biolector1Interpreter(error_holder)
-
-        # Pass to parent class
-        super().__init__(instance_data,watcher,process,interpreter,metadata_manager,error_holder)
-
+        super().__init__(
+            instance_data,
+            watcher,
+            output,
+            interpreter,
+            maximum_message_size=maximum_message_size,
+            error_holder=error_holder,
+            metadata_manager=metadata_manager,
+            experiment_timeout=experiment_timeout,
+        )
         self._write_file = write_file
-
-        # Uses metadata_manager to handle loading of metadata
         self._metadata_manager.add_equipment_data(metadata_fn)
-
 ```
 ---
 
@@ -366,20 +373,20 @@ All equipment captures, structures, and stores data in different ways. Therefore
 ---
 
 #### Requirements
-This section briefly describes the programatic features that constitute an interpreter.
+This section briefly describes the programmatic features that constitute an interpreter.
 1. **AbstractInterpreter**: Each interpreter must subclass the `AbstractInterpreter`.
 2. **Methods**: Implement three main methods:
-   - `measurement()`: Process specific measurements when a measurement is taken.
+   - `measurement()`: Process-specific measurements are taken when a measurement is taken.
    - `metadata()`: Extract and process metadata when the experiment starts (Optional).
    - `simulate()`: Simulate data for testing purposes (Optional).
 3. **Error Handling**: Use the provided error handling system to ensure resilience.
 
 ---
 
-#### Defining an adapter
+#### Defining an interpreter
 This section provides a step-by-step guide on how an interpreter can be defined. It must be noted that the interpreter is by its nature unique to the equipment and, therefore, can differ considerably between types. These guidelines provide the best practices for creating an adapter that will provide the best outputs but is dependent on the developer.
 ##### 1. Subclass the `AbstractInterpreter`
-Begin by creating a new class that inherits from `AbstractInterpreter`. The interpreter can take any arguments from the parent equipment adapter that may be specific to the data. When the interpreter is initialised in the EquipmentAdapter a `ErrorHolder` may be provided so this must also be set as a parameter. The `measurement_manager` instance is a singleton that assists with transforming measurements which will be discussed later.
+Begin by creating a new class that inherits from `AbstractInterpreter`. The Interpreter can take any arguments from the parent equipment adapter that may be specific to the data. When the Interpreter is initialised in the EquipmentAdapter, an `ErrorHolder` may be provided, which must also be set as a parameter. The measurement_manager instance is a singleton that assists with transforming measurements, which will be discussed later.
 
 ```python
 from core.adapters.equipment_adapter import AbstractInterpreter
@@ -624,11 +631,8 @@ def simulate(self, read_file, write_file, wait):
     write(chunk)
 ```
 ---
-## Example Data Flow
-
-1. **Event Detection**: The EventWatcherModule detects an event (e.g., a file is updated).
-2. **Data Processing**: The data is passed to the appropriate MeasurementModule for standardisation (if required).
-3. **Data Output**: The processed data is sent via an OutputModule to the external system (e.g., MQTT).
+## LEAF Register
+At the LEAF system's core are the topic templates, which map abstract and broad actions between all equipment. The codebase provides more details, but an overview will be provided [here](https://gitlab.com/LabEquipmentAdapterFramework/leaf-register). Fundamental to the adapter system are the actions and topics. Actions are defined as abstract actions that equipment can perform, such as starting and stopping experiments and measuring. These actions are mapped to topics which follow the MQTT format. Within the core of the leaf system, events are mapped to topics, which are then output to specific MQTT topics.
 ---
 ## License
 

@@ -28,8 +28,6 @@ class TestMQTT(unittest.TestCase):
         except KeyError:
             un = None
             pw = None
-        test_file_dir = "test_dir"
-        test_file = os.path.join(test_file_dir,"ecoli-GFP-mCherry_inter.csv")
 
         # Cant get a connetion with the default clientid.
         self._adapter = MQTT(broker,port,username=un,password=pw,
@@ -59,6 +57,17 @@ class TestMQTT(unittest.TestCase):
         else:
             self.fail()
 
+
+    def test_false_null_payload(self):
+        test_topic = "test_false_null_payload"
+        self._mock_client.subscribe(test_topic)
+        time.sleep(0.5)
+        test_payload = ""
+        self._adapter.transmit(test_topic,test_payload)
+        time.sleep(0.5)
+
+        self.assertIn(test_topic,self._mock_client.messages)
+        self.assertEqual(self._mock_client.messages[test_topic],[{}])
 
 if __name__ == "__main__":
     unittest.main()
