@@ -77,6 +77,13 @@ def parse_args(args=None) -> argparse.Namespace:
     parser.add_argument(
         "--guidisable", action="store_false", help="Whether or not to disable the GUI."
     )
+    parser.add_argument(
+        "-p",
+        "--path",
+        type=str,
+        help="The path to the directory of the adapter to use.",
+        default=None
+    )
     return parser.parse_args(args=args)
 
 
@@ -170,12 +177,13 @@ def _get_output_module(config, error_holder: ErrorHolder) -> Any:
 
 
 def _process_instance(instance: dict[str, Any], 
-                      output: MQTT) -> EquipmentAdapter:
+                      output: MQTT,external_adapter=None) -> EquipmentAdapter:
     """Finds and initialises an adapter from the config."""
     equipment_code = instance["adapter"]
     instance_data = instance["data"]
     requirements = instance["requirements"]
-    adapter = register.get_equipment_adapter(equipment_code)
+    adapter = register.get_equipment_adapter(equipment_code,
+                                             external_adapter=external_adapter)
     manager = MetadataManager()
     try:
         instance_id = instance_data["instance_id"]
@@ -241,7 +249,8 @@ def handle_exception(exc_type: Type[BaseException], exc_value,
     stop_all_adapters()
 
 
-def run_adapters(equipment_instances, output, error_handler) -> None:
+def run_adapters(equipment_instances, output, error_handler,
+                 external_adapter=None) -> None:
     """Function to find and run a set of adapters defined within the config."""
     adapter_threads = []
     max_error_retries = 3
@@ -260,7 +269,8 @@ def run_adapters(equipment_instances, output, error_handler) -> None:
             if "simulation" in equipment_instance:
                 simulated = equipment_instance.pop("simulation")
 
-            adapter = _process_instance(equipment_instance, output)
+            adapter = _process_instance(equipment_instance, output,
+                                        external_adapter=external_adapter)
             if adapter is None:
                 continue
 
@@ -395,6 +405,7 @@ def main(args=None) -> None:
     if args.debug:
         logging.debug("Debug logging enabled.")
 
+    external_adapter = args.path
     logging.debug(f"Loading configuration file: {args.config}")
 
     with open(args.config, "r") as file:
@@ -404,7 +415,7 @@ def main(args=None) -> None:
     general_error_holder = ErrorHolder()
     output = _get_output_module(config, general_error_holder)
     run_adapters(config["EQUIPMENT_INSTANCES"], output, 
-                 general_error_holder)
+                 general_error_holder,external_adapter=external_adapter)
 
 
 if __name__ == "__main__":
