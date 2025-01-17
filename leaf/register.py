@@ -39,9 +39,9 @@ def load_adapters() -> dict[str, EquipmentAdapter]:
         except Exception as e:
             logging.error(f"Error loading adapter: {entry_point.name}")
             # logging.error(exc_info=True)
-    logging.warning("The following adapters have been detected:")
+    logging.info("The following adapters have been detected:")
     for adapter in adapters:
-        logging.warning(adapter)
+        logging.info(adapter)
     logging.info("Adapters loaded.")
     return adapters
 
