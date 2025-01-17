@@ -376,6 +376,7 @@ def run_adapters(equipment_instances, output, error_handler,
         logging.info("Keyboard interrupt received. Shutting down.")
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
+        logging.error("An error occurred", exc_info=True)
     finally:
         stop_all_adapters()
         logging.info("Proxy stopped.")

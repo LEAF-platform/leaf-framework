@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "leaf"
-version = "0.1.0"
+version = "0.1.1"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = [
     "Matthew Crowther <b5044420@newcastle.ac.uk>",
@@ -37,6 +37,10 @@ pytest-xdist = "^3.6.1"
 pytest = "^8.3.4"
 coverage = "^7.6.8"
 leaf-hello-world = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"}
+
+
+[tool.poetry.group.dev.dependencies]
+bump2version = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]
