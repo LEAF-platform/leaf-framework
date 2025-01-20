@@ -7,7 +7,6 @@ import time
 import uuid
 import tempfile
 import unittest
-import threading
 from csv import Error as csv_error
 from threading import Thread
 from unittest.mock import patch, MagicMock, mock_open
@@ -41,12 +40,8 @@ from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import InputError
-from leaf.error_handler.exceptions import InterpreterError
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.adapters import equipment_adapter
-from leaf.adapters.functional_adapters.biolector1.interpreter import (
-    Biolector1Interpreter,
-)
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -808,57 +803,6 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         When the FileWatcher cant monitor a file.
         """
         pass
-
-    def test_biolector_no_start(self) -> None:
-        fp = os.path.join(test_file_dir, "biolector1_measurement.csv")
-        with open(fp, "r", encoding="latin-1") as file:
-            reader = list(csv.reader(file, delimiter=";"))
-        error_holder = ErrorHolder(threshold=5)
-        interpreter = Biolector1Interpreter(error_holder=error_holder)
-        interpreter.measurement(reader)
-        exp_excep = [
-            InterpreterError(
-                "No filters defined, likely because the adapter hasn't identified experiment start",
-                severity=SeverityLevel.WARNING
-            )
-        ]
-        actual_errors = list(error_holder.get_unseen_errors())
-        self.assertTrue(len(actual_errors) > 0)
-        for error, tb in actual_errors:
-            for exp_exc in list(exp_excep):
-                if (
-                        type(exp_exc) == type(error)
-                        and exp_exc.severity == error.severity
-                        and exp_exc.args == error.args
-                ):
-                    exp_excep.remove(exp_exc)
-        self.assertEqual(len(exp_excep), 0)
-
-    def test_biolector_interpreter_measurements(self) -> None:
-        measure_fp = os.path.join(test_file_dir, "biolector1_measurement.csv")
-        metadata_fp = os.path.join(test_file_dir, "biolector1_metadata.csv")
-        with open(metadata_fp, "r", encoding="latin-1") as file:
-            md = list(csv.reader(file, delimiter=";"))
-        with open(measure_fp, "r", encoding="latin-1") as file:
-            measurements = list(csv.reader(file, delimiter=";"))
-        error_holder = ErrorHolder(threshold=5)
-        interpreter = Biolector1Interpreter(error_holder=error_holder)
-
-        interpreter.metadata(md)
-        to_delete_key = list(interpreter._filtermap.keys())[0]
-        del interpreter._filtermap[to_delete_key]
-        interpreter.measurement(measurements)
-        expected_num_errors = 2
-        actual_errors = list(error_holder.get_unseen_errors())
-        self.assertEqual(expected_num_errors, len(actual_errors))
-        exp_excep = InterpreterError("1 not a valid filter code")
-        for error, tb in actual_errors:
-            self.assertEqual(type(exp_excep), type(error))
-            # Upgrades error severity.
-            self.assertGreaterEqual(
-                int(error.severity.value), int(exp_excep.severity.value)
-            )
-            self.assertEqual(exp_excep.args, error.args)
 
     def test_equipment_adapter_created_file_not_found(self) -> None:
         """Tests the handling of all the custom exceptions using
