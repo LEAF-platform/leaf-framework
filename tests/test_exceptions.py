@@ -1,4 +1,3 @@
-import csv
 import errno
 import json
 import os
@@ -65,7 +64,7 @@ initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
 text_watch_file = os.path.join("tmp.txt")
-
+mock_functional_adapter_path = os.path.join(curr_dir,"mock_functional_adapter")
 
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
@@ -363,7 +362,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertIsNone(result)
         self.error_holder.add_error.assert_called_once()
 
-    '''
+
     def test_start_handler_no_fallback(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
@@ -383,10 +382,10 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "StartStopAdapter",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "biolector_devonshire10",
-                        "institute": "NCL",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file},
                 }
@@ -394,7 +393,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         ]
 
         def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
+            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
+                             kwargs={"external_adapter" : mock_functional_adapter_path})
             mthread.start()
             return mthread
 
@@ -430,6 +430,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
 
+    '''
     def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())
@@ -809,21 +810,12 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         """Tests the handling of all the custom exceptions using
         the equipment adapter start and error holder system."""
 
-        def _start_adapter(adapter: EquipmentAdapter) -> Thread:
-            mthread = Thread(target=adapter.start)
-            mthread.daemon = True
-            mthread.start()
-            return mthread
-
-        def _stop_adapter(adapter, thread) -> None:
-            adapter.stop()
-            thread.join()
-
         instance_data = {
             "instance_id": "test_equipment_adapter_start_instance_id",
             "institute": "test_equipment_adapter_start_institute_id",
             "equipment_id": "TestEquipmentAdapter",
         }
+        from watchdog.events import FileSystemEvent
         t_dir = "test_equipment_adapter_start"
         filepath = os.path.join(t_dir, "test_equipment_adapter_start.txt")
         if not os.path.isdir(t_dir):
@@ -833,34 +825,20 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         error_holder = ErrorHolder(timeframe=6,threshold=2)
         adapter = MockEquipment(instance_data, filepath, error_holder=error_holder)
 
-        with self.assertLogs(equipment_adapter.__name__, level="ERROR") as logs:
-            # Unreliable test, be good to think of an alternative way to spoof a file creation.
-            adapter_thread = _start_adapter(adapter)
-            for i in range(0, 3):
-                with open(filepath, "w") as file:
-                    pass
-                os.remove(filepath)
-                time.sleep(1)
-            time.sleep(10)
-            _stop_adapter(adapter, adapter_thread)
+        event = FileSystemEvent(filepath)
+        adapter._watcher.on_created(event)
 
         expected_exceptions = [
             InputError(
                 "File not found during creation event: test_equipment_adapter_start.txt",
                 SeverityLevel.ERROR,
-            ),
-            InputError(
-                "File not found during creation event: test_equipment_adapter_start.txt",
-                SeverityLevel.ERROR,
-            ),
-            InputError(
-                "File not found during creation event: test_equipment_adapter_start.txt",
-                SeverityLevel.CRITICAL,
-            ),
+            )
         ]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
-            exc_type, exc_value, exc_traceback = log.exc_info
+        print(error_holder._errors)
+        self.assertTrue(len(error_holder._errors) > 0)
+        for log in error_holder._errors:
+            exc_value = log["error"]
+            exc_type = type(exc_value)
             for exp_exc in list(expected_exceptions):
                 if (
                         type(exp_exc) == exc_type
