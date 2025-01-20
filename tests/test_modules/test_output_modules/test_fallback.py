@@ -128,7 +128,7 @@ class TestFallbacks(unittest.TestCase):
         for topic,messages in inp_messages.items():
             for message in messages:
                 self._file.transmit(topic,message)
-                time.sleep(0.1)
+                time.sleep(1)
         
         messages = list(self._module.pop_all_messages())
         self.assertTrue(len(messages) > 0)

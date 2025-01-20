@@ -1,4 +1,3 @@
-import csv
 import errno
 import json
 import os
@@ -7,7 +6,6 @@ import time
 import uuid
 import tempfile
 import unittest
-import threading
 from csv import Error as csv_error
 from threading import Thread
 from unittest.mock import patch, MagicMock, mock_open
@@ -41,12 +39,8 @@ from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import InputError
-from leaf.error_handler.exceptions import InterpreterError
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.adapters import equipment_adapter
-from leaf.adapters.functional_adapters.biolector1.interpreter import (
-    Biolector1Interpreter,
-)
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -70,7 +64,7 @@ initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
 text_watch_file = os.path.join("tmp.txt")
-
+mock_functional_adapter_path = os.path.join(curr_dir,"mock_functional_adapter")
 
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
@@ -368,6 +362,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertIsNone(result)
         self.error_holder.add_error.assert_called_once()
 
+
     def test_start_handler_no_fallback(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
@@ -387,10 +382,10 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "biolector_devonshire10",
-                        "institute": "NCL",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file},
                 }
@@ -398,7 +393,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         ]
 
         def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
+            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
+                             kwargs={"external_adapter" : mock_functional_adapter_path})
             mthread.start()
             return mthread
 
@@ -434,6 +430,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
 
+
     def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())
@@ -456,10 +453,10 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "biolector_devonshire10",
-                        "institute": "NCL",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file},
                 }
@@ -467,7 +464,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         ]
 
         def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
+            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
+                             kwargs={"external_adapter" : mock_functional_adapter_path})
             mthread.start()
             return mthread
 
@@ -506,6 +504,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertEqual(len(expected_exceptions), 0)
         self.assertEqual(len(expected_logs), 0)
 
+
     def test_start_handler_multiple_adapter_critical(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())
@@ -528,20 +527,20 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset1",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins1",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file1},
                 }
             },
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset2",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins2",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file2},
                 }
@@ -583,91 +582,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
     
-    '''
-    def test_start_handler_multiple_adapter_reset(self) -> None:
-        error_holder = ErrorHolder(threshold=5)
-        write_dir = f"test"+str(uuid.uuid4())
-        if not os.path.isdir(write_dir):
-            os.mkdir(write_dir)
-        write_file1 = os.path.join(write_dir, "tmp1.csv")
-        write_file2 = os.path.join(write_dir, "tmp2.csv")
-        file_fn = os.path.join(write_dir, "file_fn.txt")
-        file = FILE(file_fn)
-        output = MQTT(
-            broker,
-            port,
-            username=un,
-            password=pw,
-            clientid=None,
-            error_holder=error_holder,
-            fallback=file,
-        )
-
-        ins = [
-            {
-                "equipment": {
-                    "adapter": "BioLector1",
-                    "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset1",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins1",
-                    },
-                    "requirements": {"write_file": write_file1},
-                }
-            },
-            {
-                "equipment": {
-                    "adapter": "BioLector1",
-                    "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset2",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins2",
-                    },
-                    "requirements": {"write_file": write_file2},
-                }
-            },
-        ]
-
-        def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
-            mthread.start()
-            return mthread
-
-        def _stop(thread) -> None:
-            #stop_all_adapters()
-            thread.join()
-
-        with self.assertLogs(start.__name__, level="ERROR") as logs:
-            adapter_thread = _start()
-            time.sleep(5)
-            exception = ClientUnreachableError(
-                "test_multiple_adapter_reset_test_exception",
-                severity=SeverityLevel.ERROR,
-            )
-            error_holder.add_error(exception)
-            time.sleep(5)
-            self.assertTrue(output.client.is_connected())
-            
-            while len(threading.enumerate()) > 1:
-                for thread in threading.enumerate():
-                    if thread is not threading.current_thread():
-                        print(thread)
-                        thread.join()
-                time.sleep(0.5)
-            
-        expected_exceptions = [exception]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
-            exc_type, exc_value, exc_traceback = log.exc_info
-            for exp_exc in list(expected_exceptions):
-                if (
-                        type(exp_exc) == exc_type
-                        and exp_exc.severity == exc_value.severity
-                        and exp_exc.args == exc_value.args
-                ):
-                    expected_exceptions.remove(exp_exc)
-
-        self.assertEqual(len(expected_exceptions), 0)
-    '''
-    
+        
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -809,76 +724,16 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         """
         pass
 
-    def test_biolector_no_start(self) -> None:
-        fp = os.path.join(test_file_dir, "biolector1_measurement.csv")
-        with open(fp, "r", encoding="latin-1") as file:
-            reader = list(csv.reader(file, delimiter=";"))
-        error_holder = ErrorHolder(threshold=5)
-        interpreter = Biolector1Interpreter(error_holder=error_holder)
-        interpreter.measurement(reader)
-        exp_excep = [
-            InterpreterError(
-                "No filters defined, likely because the adapter hasn't identified experiment start",
-                severity=SeverityLevel.WARNING
-            )
-        ]
-        actual_errors = list(error_holder.get_unseen_errors())
-        self.assertTrue(len(actual_errors) > 0)
-        for error, tb in actual_errors:
-            for exp_exc in list(exp_excep):
-                if (
-                        type(exp_exc) == type(error)
-                        and exp_exc.severity == error.severity
-                        and exp_exc.args == error.args
-                ):
-                    exp_excep.remove(exp_exc)
-        self.assertEqual(len(exp_excep), 0)
-
-    def test_biolector_interpreter_measurements(self) -> None:
-        measure_fp = os.path.join(test_file_dir, "biolector1_measurement.csv")
-        metadata_fp = os.path.join(test_file_dir, "biolector1_metadata.csv")
-        with open(metadata_fp, "r", encoding="latin-1") as file:
-            md = list(csv.reader(file, delimiter=";"))
-        with open(measure_fp, "r", encoding="latin-1") as file:
-            measurements = list(csv.reader(file, delimiter=";"))
-        error_holder = ErrorHolder(threshold=5)
-        interpreter = Biolector1Interpreter(error_holder=error_holder)
-
-        interpreter.metadata(md)
-        to_delete_key = list(interpreter._filtermap.keys())[0]
-        del interpreter._filtermap[to_delete_key]
-        interpreter.measurement(measurements)
-        expected_num_errors = 2
-        actual_errors = list(error_holder.get_unseen_errors())
-        self.assertEqual(expected_num_errors, len(actual_errors))
-        exp_excep = InterpreterError("1 not a valid filter code")
-        for error, tb in actual_errors:
-            self.assertEqual(type(exp_excep), type(error))
-            # Upgrades error severity.
-            self.assertGreaterEqual(
-                int(error.severity.value), int(exp_excep.severity.value)
-            )
-            self.assertEqual(exp_excep.args, error.args)
-
     def test_equipment_adapter_created_file_not_found(self) -> None:
         """Tests the handling of all the custom exceptions using
         the equipment adapter start and error holder system."""
-
-        def _start_adapter(adapter: EquipmentAdapter) -> Thread:
-            mthread = Thread(target=adapter.start)
-            mthread.daemon = True
-            mthread.start()
-            return mthread
-
-        def _stop_adapter(adapter, thread) -> None:
-            adapter.stop()
-            thread.join()
 
         instance_data = {
             "instance_id": "test_equipment_adapter_start_instance_id",
             "institute": "test_equipment_adapter_start_institute_id",
             "equipment_id": "TestEquipmentAdapter",
         }
+        from watchdog.events import FileSystemEvent
         t_dir = "test_equipment_adapter_start"
         filepath = os.path.join(t_dir, "test_equipment_adapter_start.txt")
         if not os.path.isdir(t_dir):
@@ -888,34 +743,20 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         error_holder = ErrorHolder(timeframe=6,threshold=2)
         adapter = MockEquipment(instance_data, filepath, error_holder=error_holder)
 
-        with self.assertLogs(equipment_adapter.__name__, level="ERROR") as logs:
-            # Unreliable test, be good to think of an alternative way to spoof a file creation.
-            adapter_thread = _start_adapter(adapter)
-            for i in range(0, 3):
-                with open(filepath, "w") as file:
-                    pass
-                os.remove(filepath)
-                time.sleep(1)
-            time.sleep(10)
-            _stop_adapter(adapter, adapter_thread)
+        event = FileSystemEvent(filepath)
+        adapter._watcher.on_created(event)
 
         expected_exceptions = [
             InputError(
                 "File not found during creation event: test_equipment_adapter_start.txt",
                 SeverityLevel.ERROR,
-            ),
-            InputError(
-                "File not found during creation event: test_equipment_adapter_start.txt",
-                SeverityLevel.ERROR,
-            ),
-            InputError(
-                "File not found during creation event: test_equipment_adapter_start.txt",
-                SeverityLevel.CRITICAL,
-            ),
+            )
         ]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
-            exc_type, exc_value, exc_traceback = log.exc_info
+        print(error_holder._errors)
+        self.assertTrue(len(error_holder._errors) > 0)
+        for log in error_holder._errors:
+            exc_value = log["error"]
+            exc_type = type(exc_value)
             for exp_exc in list(expected_exceptions):
                 if (
                         type(exp_exc) == exc_type

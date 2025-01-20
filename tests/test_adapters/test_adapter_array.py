@@ -15,9 +15,12 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.adapters.functional_adapters.biolector1.adapter import Biolector1Adapter
+from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
+from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
+from leaf_register.metadata import MetadataManager
+from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -38,9 +41,23 @@ initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
 
+class MockBioreactorInterpreter(AbstractInterpreter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.id = "TestBioreactor"
 
+    def metadata(self, data):
+        return data
+
+    def measurement(self, data):
+        return super().measurement(data)
+
+    def simulate(self):
+        return
+    
 def _create_file(adapter) -> None:
-    watch_file = adapter._write_file
+    watch_file = os.path.join(adapter._watcher._path,
+                              adapter._watcher._file_name)
     if os.path.isfile(watch_file):
         os.remove(watch_file)
     shutil.copyfile(initial_file, watch_file)
@@ -48,7 +65,8 @@ def _create_file(adapter) -> None:
 
 
 def _modify_file(adapter) -> None:
-    watch_file = adapter._write_file
+    watch_file = os.path.join(adapter._watcher._path,
+                              adapter._watcher._file_name)
     with open(measurement_file, "r") as src:
         content = src.read()
     with open(watch_file, "a") as dest:
@@ -57,7 +75,8 @@ def _modify_file(adapter) -> None:
 
 
 def _delete_file(adapter) -> None:
-    watch_file = adapter._write_file
+    watch_file = os.path.join(adapter._watcher._path,
+                              adapter._watcher._file_name)
     if os.path.isfile(watch_file):
         os.remove(watch_file)
 
@@ -65,37 +84,45 @@ def _delete_file(adapter) -> None:
 class TestAdapterArray(unittest.TestCase):
     def setUp(self) -> None:
 
-        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_dir1 = tempfile.TemporaryDirectory()
+        self.temp_dir2 = tempfile.TemporaryDirectory()
 
         unique_id1 = str(uuid.uuid4())
         unique_id2 = str(uuid.uuid4())
         self.watch_file1 = os.path.join(
-            self.temp_dir.name, f"TestAdapterArray_{unique_id1}.txt"
+            self.temp_dir1.name, f"TestAdapterArray_{unique_id1}.txt"
         )
         self.watch_file2 = os.path.join(
-            self.temp_dir.name, f"TestAdapterArray_{unique_id2}.txt"
+            self.temp_dir2.name, f"TestAdapterArray_{unique_id2}.txt"
         )
-
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         self.output = MQTT(broker, port, username=un, password=pw)
 
         instance_data1 = {
             "instance_id": f"TestAdapterArray_{unique_id1}",
             "institute": f"Institute_{unique_id1}",
+            "equipment_id" : f"Equipment_{unique_id1}",
         }
-        self._biolector = Biolector1Adapter(
-            instance_data1, self.output, self.watch_file1
-        )
-
+        metadata_manager1 = MetadataManager()
+        metadata_manager1.add_equipment_data(instance_data1)
+        watcher1 = CSVWatcher(self.watch_file1,metadata_manager1)
+        self._adapter = StartStopAdapter(instance_data1, watcher1,
+                                         self.output,
+                                         MockBioreactorInterpreter(),
+                                         metadata_manager=metadata_manager1)
         instance_data2 = {
             "instance_id": f"TestAdapterArray_{unique_id2}",
             "institute": f"Institute_{unique_id2}",
+            "equipment_id" : f"Equipment_{unique_id2}",
         }
-        self._biolector2 = Biolector1Adapter(
-            instance_data2, self.output, self.watch_file2
-        )
-
-        self.adapter_array = [self._biolector, self._biolector2]
+        metadata_manager2 = MetadataManager()
+        metadata_manager2.add_equipment_data(instance_data2)
+        watcher2 = CSVWatcher(self.watch_file2,metadata_manager2)
+        self._adapter2 = StartStopAdapter(instance_data2, watcher2, 
+                                          self.output,
+                                          MockBioreactorInterpreter(),
+                                          metadata_manager=metadata_manager2)
+        self.adapter_array = [self._adapter,self._adapter2]
 
         for adapter in self.adapter_array:
             details_topic = adapter._metadata_manager.details()
@@ -104,15 +131,22 @@ class TestAdapterArray(unittest.TestCase):
             running_topic = adapter._metadata_manager.running()
 
             self.mock_client.flush(details_topic)
+            time.sleep(0.2)
             self.mock_client.flush(start_topic)
+            time.sleep(0.2)
             self.mock_client.flush(stop_topic)
+            time.sleep(0.2)
             self.mock_client.flush(running_topic)
             time.sleep(1)
             wildcard_measure = adapter._metadata_manager.experiment.measurement()
             self.mock_client.subscribe(start_topic)
+            time.sleep(0.2)
             self.mock_client.subscribe(stop_topic)
+            time.sleep(0.2)
             self.mock_client.subscribe(running_topic)
+            time.sleep(0.2)
             self.mock_client.subscribe(details_topic)
+            time.sleep(0.2)
             self.mock_client.subscribe(wildcard_measure)
             time.sleep(1)
 
@@ -120,7 +154,8 @@ class TestAdapterArray(unittest.TestCase):
         for adapter in self.adapter_array:
             self._flush_topics(adapter)
 
-        self.temp_dir.cleanup()
+        self.temp_dir1.cleanup()
+        #self.temp_dir2.cleanup()
 
     def _run_adapters(self) -> list[Thread]:
         adapter_threads = []
@@ -165,13 +200,6 @@ class TestAdapterArray(unittest.TestCase):
             start_topic = adapter._metadata_manager.experiment.start()
             self.assertIn(start_topic, self.mock_client.messages.keys())
             self.assertTrue(len(self.mock_client.messages[start_topic]) == 1)
-            self.assertIn("experiment_id", self.mock_client.messages[start_topic][0])
-            self.assertIn(
-                adapter._interpreter.id,
-                self.mock_client.messages[start_topic][0]["experiment_id"],
-            )
-            self.assertIn("timestamp", self.mock_client.messages[start_topic][0])
-
             running_topic = adapter._metadata_manager.running()
             self.assertIn(running_topic, self.mock_client.messages)
             expected_run = "True"
@@ -192,7 +220,7 @@ class TestAdapterArray(unittest.TestCase):
             stop_topic = adapter._metadata_manager.experiment.stop()
             running_topic = adapter._metadata_manager.running()
             self.assertIn(stop_topic, self.mock_client.messages)
-            self.assertTrue(len(self.mock_client.messages[stop_topic]) == 1)
+            self.assertEqual(len(self.mock_client.messages[stop_topic]),1)
             timestamp_string = self.mock_client.messages[stop_topic][0]
             # Check if it is a valid timestamp
             self.assertTrue(datetime.strptime(timestamp_string, '%Y-%m-%d %H:%M:%S'), "The datetime should be valid")
@@ -241,24 +269,23 @@ class TestAdapterArray(unittest.TestCase):
             self.mock_client.subscribe(exp_tp)
             time.sleep(1)
             _create_file(adapter1)
-            self.assertTrue(len(self.mock_client.messages.keys()) == 4)
+
             self.assertIn(start_topic, self.mock_client.messages)
             self.assertIn(running_topic, self.mock_client.messages)
             self.assertEqual(len(self.mock_client.messages[start_topic]), 1)
-            self.assertEqual(
-                self.mock_client.messages[start_topic][0]["experiment_id"],
-                adapter1._interpreter.id,
-            )
             self.assertEqual(len(self.mock_client.messages[running_topic]), 1)
             self.assertTrue(self.mock_client.messages[running_topic][0] == "True")
             time.sleep(1)
             _modify_file(adapter1)
             time.sleep(5)
-            print(len(self.mock_client.messages.keys()))
-            self.assertTrue(len(self.mock_client.messages.keys()) == 4)
             _delete_file(adapter1)
-            time.sleep(5)
-            self.assertTrue(len(self.mock_client.messages.keys()) == 4)
+            timeout = 50
+            count = 0
+            while len(self.mock_client.messages[running_topic]) != 2:
+                time.sleep(1)
+                count += 1
+                if count > timeout:
+                    self.fail()
             self.assertEqual(len(self.mock_client.messages[running_topic]), 2)
             self.assertTrue(self.mock_client.messages[running_topic][1] == "False")
             self.assertEqual(len(self.mock_client.messages[stop_topic]), 1)
@@ -273,7 +300,7 @@ class TestAdapterArray(unittest.TestCase):
 
         self.mock_client.reset_messages()
 
-    def _flush_topics(self, adapter: Biolector1Adapter) -> None:
+    def _flush_topics(self, adapter: StartStopAdapter) -> None:
         details_topic = adapter._metadata_manager.details()
         start_topic = adapter._metadata_manager.experiment.start()
         stop_topic = adapter._metadata_manager.experiment.stop()

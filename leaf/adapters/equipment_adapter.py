@@ -76,6 +76,7 @@ class AbstractInterpreter(ABC):
         run of equipment using existing data.
         """
         pass
+        
     
     def get_last_measurement_time(self):
         return self._last_measurement
