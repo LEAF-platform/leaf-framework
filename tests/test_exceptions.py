@@ -503,8 +503,8 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
         self.assertEqual(len(expected_logs), 0)
-        
-    '''
+
+
     def test_start_handler_multiple_adapter_critical(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())
@@ -527,20 +527,20 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset1",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins1",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file1},
                 }
             },
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset2",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins2",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file2},
                 }
@@ -582,91 +582,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
     
-
-    def test_start_handler_multiple_adapter_reset(self) -> None:
-        error_holder = ErrorHolder(threshold=5)
-        write_dir = f"test"+str(uuid.uuid4())
-        if not os.path.isdir(write_dir):
-            os.mkdir(write_dir)
-        write_file1 = os.path.join(write_dir, "tmp1.csv")
-        write_file2 = os.path.join(write_dir, "tmp2.csv")
-        file_fn = os.path.join(write_dir, "file_fn.txt")
-        file = FILE(file_fn)
-        output = MQTT(
-            broker,
-            port,
-            username=un,
-            password=pw,
-            clientid=None,
-            error_holder=error_holder,
-            fallback=file,
-        )
-
-        ins = [
-            {
-                "equipment": {
-                    "adapter": "BioLector1",
-                    "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset1",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins1",
-                    },
-                    "requirements": {"write_file": write_file1},
-                }
-            },
-            {
-                "equipment": {
-                    "adapter": "BioLector1",
-                    "data": {
-                        "instance_id": "test_start_handler_multiple_adapter_reset2",
-                        "institute": "test_start_handler_multiple_adapter_reset_ins2",
-                    },
-                    "requirements": {"write_file": write_file2},
-                }
-            },
-        ]
-
-        def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
-            mthread.start()
-            return mthread
-
-        def _stop(thread) -> None:
-            #stop_all_adapters()
-            thread.join()
-
-        with self.assertLogs(start.__name__, level="ERROR") as logs:
-            adapter_thread = _start()
-            time.sleep(5)
-            exception = ClientUnreachableError(
-                "test_multiple_adapter_reset_test_exception",
-                severity=SeverityLevel.ERROR,
-            )
-            error_holder.add_error(exception)
-            time.sleep(5)
-            self.assertTrue(output.client.is_connected())
-            
-            while len(threading.enumerate()) > 1:
-                for thread in threading.enumerate():
-                    if thread is not threading.current_thread():
-                        print(thread)
-                        thread.join()
-                time.sleep(0.5)
-            
-        expected_exceptions = [exception]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
-            exc_type, exc_value, exc_traceback = log.exc_info
-            for exp_exc in list(expected_exceptions):
-                if (
-                        type(exp_exc) == exc_type
-                        and exp_exc.severity == exc_value.severity
-                        and exp_exc.args == exc_value.args
-                ):
-                    expected_exceptions.remove(exp_exc)
-
-        self.assertEqual(len(expected_exceptions), 0)
-    '''
-    
+        
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
