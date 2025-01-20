@@ -20,6 +20,7 @@ from leaf.modules.process_modules.continous_module import ContinousProcess
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
+from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
@@ -65,14 +66,17 @@ def _run_change(func, text_watch_file) -> None:
     mthread.start()
     mthread.join()
 
-class MockInterpreter:
+class MockInterpreter(AbstractInterpreter):
     def __init__(self,experiment_id):
+        super().__init__()
         self.id = experiment_id
 
     def metadata(self,data):
         return [data]
     def measurement(self,data):
         return [data]
+    def simulate(self):
+        return super().simulate()
     
 class TestContinousProcess(unittest.TestCase):
     def setUp(self) -> None:

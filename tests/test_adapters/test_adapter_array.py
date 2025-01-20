@@ -220,8 +220,8 @@ class TestAdapterArray(unittest.TestCase):
             stop_topic = adapter._metadata_manager.experiment.stop()
             running_topic = adapter._metadata_manager.running()
             self.assertIn(stop_topic, self.mock_client.messages)
-            self.assertTrue(len(self.mock_client.messages[stop_topic]) == 2)
-            timestamp_string = self.mock_client.messages[stop_topic][1]
+            self.assertEqual(len(self.mock_client.messages[stop_topic]),1)
+            timestamp_string = self.mock_client.messages[stop_topic][0]
             # Check if it is a valid timestamp
             self.assertTrue(datetime.strptime(timestamp_string, '%Y-%m-%d %H:%M:%S'), "The datetime should be valid")
             # self.assertIn("timestamp", self.mock_client.messages[stop_topic][0])

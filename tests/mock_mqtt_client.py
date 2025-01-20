@@ -19,7 +19,6 @@ class MockBioreactorClient(MQTT):
         topic = msg.topic
         try:
             payload = msg.payload.decode('utf-8')
-            
             if payload == "":
                 if self._remove_flush and topic in self.messages:
                     del self.messages[topic]
