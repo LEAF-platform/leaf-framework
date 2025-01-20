@@ -146,6 +146,7 @@ class TestDiscreteProcess(unittest.TestCase):
         self.metadata_manager._metadata["equipment"]["equipment_id"] = equipment_id
         self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
         
+        self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, 
                       clientid=None)
 
