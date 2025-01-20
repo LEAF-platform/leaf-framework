@@ -80,7 +80,6 @@ class CSVWatcher(FileWatcher):
                 data = list(csv.reader(file, delimiter=self._delimiter))
         except Exception as e:
             self._file_event_exception(e, "modification")
-
         self._dispatch_callback(self.on_modified, data)
 
     def _file_event_exception(self, error: Exception, 

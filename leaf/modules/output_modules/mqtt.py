@@ -196,7 +196,7 @@ class MQTT(OutputModule):
 
         if not self.client.is_connected():
             return self.fallback(topic, data)
-        if data is None or data == "":
+        if data == "":
             data = {}
         if isinstance(data, (dict, list)):
             data = json.dumps(data)
