@@ -13,6 +13,7 @@ import inspect
 import importlib.util
 import os
 from shutil import copytree
+from shutil import rmtree
 import logging
 from typing import List
 from importlib.metadata import entry_points
@@ -95,10 +96,10 @@ def get_equipment_adapter(code: str,external_adapter=None) -> EquipmentAdapter:
     if external_adapter:
         copy_path = os.path.join(functional_adapter_dir,
                                  os.path.basename(external_adapter))
-        if not os.path.isdir(copy_path):
-            copytree(external_adapter, copy_path)
-        else:
-            logging.warning(f'Given external path: {external_adapter} but adapter exists in adapter directory.')
+        if os.path.isdir(copy_path):
+            rmtree(copy_path)
+        copytree(external_adapter, copy_path)
+            
         sys.path.append(copy_path)
     for adapter_dir in equipment_adapter_dirs:
         if code in available_adapters:
