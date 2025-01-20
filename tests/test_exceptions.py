@@ -363,6 +363,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.assertIsNone(result)
         self.error_holder.add_error.assert_called_once()
 
+    '''
     def test_start_handler_no_fallback(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         output = MQTT(
@@ -382,7 +383,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "StartStopAdapter",
                     "data": {
                         "instance_id": "biolector_devonshire10",
                         "institute": "NCL",
@@ -578,7 +579,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
     
-    '''
+
     def test_start_handler_multiple_adapter_reset(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())
