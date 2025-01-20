@@ -430,7 +430,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
         self.assertEqual(len(expected_exceptions), 0)
 
-    '''
+
     def test_start_handler_no_connection(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())
@@ -453,10 +453,10 @@ class TestExceptionsGeneral(unittest.TestCase):
         ins = [
             {
                 "equipment": {
-                    "adapter": "BioLector1",
+                    "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": "biolector_devonshire10",
-                        "institute": "NCL",
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
                     },
                     "requirements": {"write_file": write_file},
                 }
@@ -464,7 +464,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         ]
 
         def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
+            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
+                             kwargs={"external_adapter" : mock_functional_adapter_path})
             mthread.start()
             return mthread
 
@@ -502,7 +503,8 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         self.assertEqual(len(expected_exceptions), 0)
         self.assertEqual(len(expected_logs), 0)
-
+        
+    '''
     def test_start_handler_multiple_adapter_critical(self) -> None:
         error_holder = ErrorHolder(threshold=5)
         write_dir = f"test"+str(uuid.uuid4())

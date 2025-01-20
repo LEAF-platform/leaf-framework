@@ -6,6 +6,7 @@ import yaml
 import time
 import shutil
 import tempfile
+import uuid
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
@@ -84,13 +85,16 @@ class TestContinousProcess(unittest.TestCase):
         self.text_watch_file = tempfile.NamedTemporaryFile(delete=False).name
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
-        self.mock_client.subscribe(f'test_transmit/test_transmit/test_transmit/#')
+        ins_id = str(uuid.uuid4())
+        equipment_id = str(uuid.uuid4())
+        instance_id = str(uuid.uuid4())
+        self.mock_client.subscribe(f'{ins_id}/{equipment_id}/{instance_id}/#')
 
         self.metadata_manager = MetadataManager()
         self.metadata_manager._metadata["equipment"] = {}
-        self.metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self.metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self.metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        self.metadata_manager._metadata["equipment"]["institute"] = ins_id
+        self.metadata_manager._metadata["equipment"]["equipment_id"] = equipment_id
+        self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
 
         self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
@@ -128,20 +132,20 @@ class TestContinousProcess(unittest.TestCase):
 
 class TestDiscreteProcess(unittest.TestCase):
     def setUp(self) -> None:
-        # Use a temporary file for each test to avoid interference
         self.text_watch_file = tempfile.NamedTemporaryFile(delete=False).name
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
-        self.mock_client.subscribe(f'test_transmit/test_transmit/test_transmit/#')
+        ins_id = str(uuid.uuid4())
+        equipment_id = str(uuid.uuid4())
+        instance_id = str(uuid.uuid4())
+        self.mock_client.subscribe(f'{ins_id}/{equipment_id}/{instance_id}/#')
 
         self.metadata_manager = MetadataManager()
         self.metadata_manager._metadata["equipment"] = {}
-        self.metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self.metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self.metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
-
-        self.watcher = FileWatcher(self.text_watch_file, 
-                                   self.metadata_manager)
+        self.metadata_manager._metadata["equipment"]["institute"] = ins_id
+        self.metadata_manager._metadata["equipment"]["equipment_id"] = equipment_id
+        self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
+        
         output = MQTT(broker, port, username=un, password=pw, 
                       clientid=None)
 
