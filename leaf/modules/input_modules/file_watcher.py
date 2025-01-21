@@ -124,13 +124,11 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         data = {}
         try:
             fp = self._get_filepath(event)
-            print(fp,os.path.isfile(fp))
             if fp is None:
                 return
             self._last_created = time.time()
             with open(fp, 'r') as file:
                 data = file.read()
-                print("AQUI")
         except Exception as e:
             self._file_event_exception(e, "creation")
         self._dispatch_callback(self.on_created, data)

@@ -260,9 +260,9 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread.join()
     
     def test_experiment_timeout(self):
-        exp_timeout = 1
+        exp_timeout = 4
         unique_instance_id = str(uuid.uuid4())
-        unique_institute = "TestInstitute_"  # + unique_instance_id[:8]
+        unique_institute = "TestInstitute_"
 
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
         text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
@@ -275,7 +275,9 @@ class TestEquipmentAdapter(unittest.TestCase):
         mock_client = MockBioreactorClient(broker, port, username=un, password=pw,
                                            remove_flush=True)
 
-        _adapter = MockEquipmentAdapter(instance_data, text_watch_file, experiment_timeout=exp_timeout)
+        _adapter = MockEquipmentAdapter(instance_data, text_watch_file, 
+                                        experiment_timeout=exp_timeout)
+        
         _adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
             "TestBioreactor_transmit_" + unique_instance_id
         )
@@ -289,9 +291,9 @@ class TestEquipmentAdapter(unittest.TestCase):
         mock_client.flush(stop_topic)
         time.sleep(2)
         mock_client.subscribe(start_topic)
-        time.sleep(0.1)
+        time.sleep(0.5)
         mock_client.subscribe(stop_topic)
-        time.sleep(0.1)
+        time.sleep(0.5)
         mock_client.subscribe(details_topic)
         time.sleep(2)
 
@@ -304,15 +306,21 @@ class TestEquipmentAdapter(unittest.TestCase):
         expected_exceptions = [HardwareStalledError("Experiment timeout between measurements")]
         with self.assertLogs(unique_logger_name, level="WARNING") as logs:
             mthread.start()
-
+            watcher_timeout = 10
+            watcher_count = 0
+            while not _adapter._watcher._observer.is_alive():
+                time.sleep(1)
+                watcher_count += 1
+                if watcher_count > watcher_timeout:
+                    self.fail("Couldnt start watcher to test.")
             _create_file(text_watch_file)
-
-            timeout = 15  # seconds
+            time.sleep(1)
+            _modify_file(text_watch_file)
+            timeout = 30
             start_time = time.time()
 
-            while expected_exceptions and (time.time() - start_time < timeout):
+            while len(expected_exceptions) > 0 and (time.time() - start_time < timeout):
                 for log in logs.records:
-
                     exc_type, exc_value, exc_traceback = log.exc_info
                     for exp_exc in list(expected_exceptions):
                         if (
@@ -327,8 +335,6 @@ class TestEquipmentAdapter(unittest.TestCase):
             mthread.join()
             if len(expected_exceptions) > 0:
                 self.fail("Test timed out waiting for expected exceptions.")
-
-
         mock_client.reset_messages()
         self.assertIsNone(_adapter._interpreter.get_last_measurement_time())
         
