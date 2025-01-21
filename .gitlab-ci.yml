@@ -1,0 +1,26 @@
+# Define stages of the pipeline
+stages:
+  - test
+
+# Job to run tests
+test:
+  stage: test
+  image: registry.gitlab.com/labequipmentadapterframework/leaf:runner
+  before_script:
+    - mosquitto -d
+    - redis-server --daemonize yes
+    - source /venv/bin/activate
+    - poetry lock
+    - poetry install
+    - poetry env info  # Debug Poetry environment
+    - poetry show  # Check installed dependencies
+  script:
+    - poetry show pytest-xdist  # Verify pytest-xdist is installed
+    - poetry run pytest tests/ --junitxml=test-reports/report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: test-reports/*.xml
+    paths:
+      - test-reports/
+  timeout: 1h

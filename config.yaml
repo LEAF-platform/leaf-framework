@@ -1,0 +1,24 @@
+
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: BioLector1
+      data:
+        instance_id: example_equipment_id1
+        institute: example_equipment_institute1
+      requirements:
+        write_file: test/tmp123.csv
+
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: localhost
+    port: 1883
+    fallback: KEYDB
+  - plugin: KEYDB
+    host: localhost
+    port: 6379
+    db: 0
+    fallback: FILE
+  - plugin: FILE
+    filename: local.json
+    fallback: null
