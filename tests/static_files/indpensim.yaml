@@ -1,0 +1,19 @@
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: table_simulator
+      data:
+        instance_id: indpensim
+        institute: unlock
+      requirements:
+        watch_file: tmp_indpensim_v3_top10.csv
+        start_date: 2024-10-01 12:33:45
+        time_column: 'Time (h)'
+        separator: ','
+      simulation:
+        filename: static_files/IndPenSim_V3_Batch_1_top10.csv
+        interval: 0.10
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: localhost
+    port: 1883
