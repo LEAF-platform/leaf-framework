@@ -14,10 +14,10 @@ import importlib.util
 import os
 from shutil import copytree
 from shutil import rmtree
-import logging
+from leaf.modules.logger_modules.logger_utils import get_logger
 from typing import List
 from importlib.metadata import entry_points
-
+import logging
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.error_handler.exceptions import AdapterBuildError
 
@@ -32,6 +32,9 @@ equipment_adapter_dirs = [
 
 equipment_key = "equipment_id"
 output_adapter_dir = os.path.join(root_dir, "modules", "output_modules")
+logger = get_logger(__name__, log_file="global.log",
+                    error_log_file="global_error.log",
+                    log_level=logging.INFO)
 
 def load_adapters() -> dict[str, EquipmentAdapter]:
     """
@@ -65,15 +68,15 @@ def load_adapters() -> dict[str, EquipmentAdapter]:
                 adapters[equipment_id] = adapter_class
 
         except Exception as e:
-            logging.error(f"Failed to load adapter from entry point {entry_point.name}: {e}")
+            logger.error(f"Failed to load adapter from entry point {entry_point.name}: {e}")
             # logging.error(exc_info=True)
     if not adapters:
-        logging.warning(f"No adapters found. Adapters can be installed via pip. See http://leaf.systemsbiology.nl for more information.")
+        logger.warning(f"No adapters found. Adapters can be installed via pip. See http://leaf.systemsbiology.nl for more information.")
         return adapters
-    logging.info("The following adapters have been detected:")
+    logger.info("The following adapters have been detected:")
     for adapter in adapters:
-        logging.info("Adapter: " + adapter)
-    logging.info("Adapters loaded.")
+        logger.info("> " + adapter)
+    logger.info("Adapters loaded.")
 
     return adapters
 
