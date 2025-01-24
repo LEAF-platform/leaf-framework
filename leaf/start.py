@@ -395,6 +395,8 @@ sys.excepthook = handle_exception
 #
 ###################################
 def main(args=None) -> None:
+    register.load_adapters()
+
     """Main function as a wrapper for all steps."""
     logging.info("Starting the proxy.")
     args = parse_args(args)
