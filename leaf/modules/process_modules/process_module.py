@@ -3,6 +3,7 @@ from typing import Any, Optional
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf_register.metadata import MetadataManager
+from leaf_register.topic_utilities import topic_utilities
 from leaf.error_handler.error_holder import ErrorHolder
 
 
@@ -46,7 +47,7 @@ class ProcessModule:
         """
         for phase in self._phases:
             term = phase.get_term()
-            if self._metadata_manager.is_complete_topic(term):
+            if topic_utilities.is_complete_topic(term):
                 self._output.flush(term)
                 time.sleep(0.1)
 

@@ -548,7 +548,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         ]
 
         def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
+            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
+                             kwargs={"external_adapter" : mock_functional_adapter_path})
             mthread.start()
             return mthread
 
