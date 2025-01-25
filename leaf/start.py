@@ -174,7 +174,7 @@ def _get_existing_ids(output_module: MQTT,
 
     ids: list[str] = []
     for k, v in output_module.messages.items():
-        if metadata_manager.is_called(k, topic):
+        if metadata_manager.is_instance(k, topic):
             ids.append(metadata_manager.get_instance_id(k))
     output_module.reset_messages()
     return ids
