@@ -1,22 +1,15 @@
-import logging
-import redis
 import json
+import logging
 from typing import Optional, Any
-from leaf.modules.output_modules.output_module import OutputModule
+
+import redis
+
+from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.error_handler.error_holder import ErrorHolder
-
-
-import logging
-import redis
-import json
-from typing import Optional, Any
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.error_handler.exceptions import ClientUnreachableError
-from leaf.error_handler.exceptions import SeverityLevel
-from leaf.error_handler.error_holder import ErrorHolder
 
+logger = logging.getLogger(__name__)
 
 class KEYDB(OutputModule):
     """
