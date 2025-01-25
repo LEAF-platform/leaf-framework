@@ -94,7 +94,7 @@ class KEYDB(OutputModule):
         """
         try:
             self._client = redis.StrictRedis(host=self.host, port=self.port, db=self.db)
-            logging.info("Connected to KeyDB.")
+            logger.info("Connected to KeyDB.")
         except redis.RedisError as e:
             self._handle_redis_error(e)
 
@@ -113,7 +113,7 @@ class KEYDB(OutputModule):
                 False if a fallback was used.
         """
         if data is None:
-            logging.warning("No data provided to transmit.")
+            logger.warning("No data provided to transmit.")
             return False
 
         if isinstance(data, dict):
@@ -127,7 +127,7 @@ class KEYDB(OutputModule):
             if current_value:
                 current_list = json.loads(current_value.decode("utf-8"))
                 if not isinstance(current_list, list):
-                    logging.error(
+                    logger.error(
                         f"Unexpected value format for key '{topic}'. Overwriting."
                     )
                     current_list = []
@@ -136,7 +136,7 @@ class KEYDB(OutputModule):
                 current_list = [data]
 
             self._client.set(topic, json.dumps(current_list))
-            logging.info(f"Appended data to key '{topic}' in KeyDB.")
+            logger.info(f"Appended data to key '{topic}' in KeyDB.")
             return True
         except redis.RedisError as e:
             self._handle_redis_error(e)
@@ -160,9 +160,9 @@ class KEYDB(OutputModule):
         """
         if self._client is not None:
             self._client = None
-            logging.info("Disconnected from KeyDB.")
+            logger.info("Disconnected from KeyDB.")
         else:
-            logging.info("Already disconnected from KeyDB.")
+            logger.info("Already disconnected from KeyDB.")
 
     def retrieve(self, key: str) -> Optional[str]:
         """
@@ -201,7 +201,7 @@ class KEYDB(OutputModule):
                                     database is empty.
         """
         if self._client is None:
-            logging.warning("Attempted to pop from a disconnected KeyDB client.")
+            logger.warning("Attempted to pop from a disconnected KeyDB client.")
             return None
 
         try:
@@ -214,7 +214,7 @@ class KEYDB(OutputModule):
 
             random_key = self._client.randomkey()
             if not random_key:
-                logging.info("No keys available in KeyDB.")
+                logger.info("No keys available in KeyDB.")
                 return None
 
             random_key = random_key.decode("utf-8")
@@ -232,7 +232,7 @@ class KEYDB(OutputModule):
                     self._client.delete(random_key)
                 return random_key, popped_value
 
-            logging.error(
+            logger.error(
                 f"Unexpected value type for key '{random_key}'. Deleting key."
             )
             self._client.delete(random_key)

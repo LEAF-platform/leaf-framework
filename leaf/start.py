@@ -21,7 +21,7 @@ import yaml
 from leaf import register
 from leaf_register.metadata import MetadataManager
 
-from leaf.adapters.equipment_adapter import EquipmentAdapter
+from leaf.adapters.equipment_adapter import EquipmentAdapter, current_dir
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir
 
@@ -53,12 +53,17 @@ output_disable_time = 5 # Seconds
 #            FUNCTIONS
 #
 ###################################
+# class ArgumentParser(argparse.ArgumentParser):
+#     def error(self, message):
+#         self.print_help(sys.stderr)
+#         self.exit(2, "")
 
 def parse_args(args=None) -> argparse.Namespace:
     """Parses commandline arguments."""
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
     )
+
     parser.add_argument(
         "-d",
         "--delay",
@@ -66,43 +71,79 @@ def parse_args(args=None) -> argparse.Namespace:
         default=0,
         help="A delay in seconds before the proxy begins.",
     )
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
+
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging."
+    )
+
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    default = current_dir + "/config/config.yaml"  # Restore default if applicable
+    # Check if exists
+    if not os.path.exists(default):
+        logger.warning(f"Default config file {default} not found.")
     parser.add_argument(
         "-c",
         "--config",
         type=str,
-        # default="config.yaml",
+        default=default,
         help="The configuration file to use.",
     )
     parser.add_argument(
-        "--guidisable", action="store_false", help="Whether or not to disable the GUI."
+        "--enable-gui",
+        action="store_true",
+        help="Enable the GUI (default is disabled).",
     )
+
     parser.add_argument(
         "-p",
         "--path",
         type=str,
         help="The path to the directory of the adapter to use.",
-        default=None
+        default=None,
     )
+
     return parser.parse_args(args=args)
+
+
+def welcome_message() -> None:
+    """Prints a welcome message."""
+    print("#" * 40)
+    print("""
+ ##:::::::'########::::'###::::'########:
+ ##::::::: ##.....::::'## ##::: ##.....::
+ ##::::::: ##::::::::'##:. ##:: ##:::::::
+ ##::::::: ######:::'##:::. ##: ######:::
+ ##::::::: ##...:::: #########: ##...::::
+ ##::::::: ##::::::: ##.... ##: ##:::::::
+ ########: ########: ##:::: ##: ##:::::::
+........::........::..:::::..::..::::::::
+""")
+    logger.info("Welcome to the LEAF Proxy.")
+    logger.info("Starting the proxy.")
+    logger.info("Press Ctrl+C to stop the proxy.")
+    logger.info("For more information, visit leaf.systemsbiology.nl")
+    logger.info("For help, use the -h flag.")
+    print("#"*40)
 
 
 def signal_handler(signal_received, frame) -> None:
     """Handles shutting down of adapters when program is terminating."""
-    logging.info("Shutting down gracefully.")
+    logger.info("Shutting down gracefully.")
     stop_all_adapters()
     sys.exit(0)
 
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
-    logging.info("Stopping all adapters.")
+    logger.info("Stopping all adapters.")
     for adapter in adapters:
         try:
             adapter.stop()
-            logging.info(f"Adapter for {adapter} stopped successfully.")
+            logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
-            logging.error(f"Error stopping adapter: {e}")
+            logger.error(f"Error stopping adapter: {e}")
 
 
 def _start_all_adapters_in_threads(adapters):
@@ -126,7 +167,7 @@ def _get_existing_ids(output_module: MQTT,
                       time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = metadata_manager.details()
-    logging.debug(f"Setting up subscription to {topic}")
+    logger.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
     output_module.unsubscribe(topic)
@@ -210,7 +251,7 @@ def _process_instance(instance: dict[str, Any],
             f"Missing required keys for {equipment_code}: {missing_keys}"
         )
     if unexpected_keys:
-        logging.warning(
+        logger.warning(
             f"Unexpected keys provided for {equipment_code}: {unexpected_keys}"
         )
     try:
@@ -227,7 +268,7 @@ def _run_simulation_in_thread(adapter, filename: str,
     logger.info(f"Running simulation: {adapter}")
 
     def simulation():
-        logging.info(
+        logger.info(
             f"Starting simulation using file {filename} with interval {interval}."
         )
         adapter.simulate(filename, interval)
@@ -244,7 +285,7 @@ def handle_exception(exc_type: Type[BaseException], exc_value,
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, 
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value,
                                                   exc_traceback))
     stop_all_adapters()
 
@@ -281,7 +322,7 @@ def run_adapters(equipment_instances, output, error_handler,
                 if not hasattr(adapter, "simulate"):
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
-                logging.info(f"Simulator started for instance {instance_id}.")
+                logger.info(f"Simulator started for instance {instance_id}.")
                 if not os.path.isfile(simulated["filename"]):
                     raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
 
@@ -290,7 +331,7 @@ def run_adapters(equipment_instances, output, error_handler,
                 )
                 adapter_threads.append(thread)
             else:
-                logging.info(f"Proxy started for instance {instance_id}.")
+                logger.info(f"Proxy started for instance {instance_id}.")
                 thread = _start_all_adapters_in_threads([adapter])[0]
                 adapter_threads.append(thread)
 
@@ -373,17 +414,17 @@ def run_adapters(equipment_instances, output, error_handler,
 
 
     except KeyboardInterrupt:
-        logging.info("Keyboard interrupt received. Shutting down.")
+        logger.info("Keyboard interrupt received. Shutting down.")
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
-        logging.error("An error occurred", exc_info=True)
+        logger.error(f"An unexpected error occurred: {e}")
+        logger.error("An error occurred", exc_info=True)
     finally:
         stop_all_adapters()
-        logging.info("Proxy stopped.")
+        logger.info("Proxy stopped.")
 
     for thread in adapter_threads:
         thread.join()
-    logging.info("All adapter threads have been stopped.")
+    logger.info("All adapter threads have been stopped.")
 
 
 sys.excepthook = handle_exception
@@ -395,26 +436,32 @@ sys.excepthook = handle_exception
 #
 ###################################
 def main(args=None) -> None:
+    welcome_message()
+
     register.load_adapters()
 
     """Main function as a wrapper for all steps."""
-    logging.info("Starting the proxy.")
+    logger.info("Starting the proxy.")
     args = parse_args(args)
 
     if args.config is None:
-        logging.error("No configuration file provided (See the documentation for more details).")
-        return
+        logger.error("No configuration file provided (See the documentation for more details).")
+        raise ConfigurationError("No configuration file provided.")
 
     if args.debug:
-        logging.debug("Debug logging enabled.")
+        logger.debug("Debug logging enabled.")
 
     external_adapter = args.path
-    logging.debug(f"Loading configuration file: {args.config}")
+    logger.debug(f"Loading configuration file: {args.config}")
+
+    if not os.path.exists(args.config):
+        logger.error(f"Configuration file {args.config} not found.")
+        raise FileNotFoundError(f"Configuration file {args.config} not found.")
 
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
 
-    logging.info(f"Configuration: {args.config} loaded.")
+    logger.info(f"Configuration: {args.config} loaded.")
     general_error_holder = ErrorHolder()
     output = _get_output_module(config, general_error_holder)
     run_adapters(config["EQUIPMENT_INSTANCES"], output, 

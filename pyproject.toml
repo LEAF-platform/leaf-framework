@@ -27,7 +27,7 @@ watchdog = "~2.1.6"
 pandas = "~2.2.3"
 dateparser = "~1.2.0"
 leaf-register = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-register.git"}
-
+leaf-hello-world = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"}
 
 [tool.poetry.scripts]
 leaf = "leaf.start:main"
@@ -36,7 +36,6 @@ leaf = "leaf.start:main"
 pytest-xdist = "^3.6.1"
 pytest = "^8.3.4"
 coverage = "^7.6.8"
-leaf-hello-world = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -46,8 +45,8 @@ bump2version = "^1.0.1"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.pytest.ini_options]
-log_cli = true
-log_cli_level = "DEBUG"
-log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
-log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+#[tool.pytest.ini_options]
+#log_cli = true
+#log_cli_level = "DEBUG"
+#log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+#log_cli_date_format = "%Y-%m-%d %H:%M:%S"
