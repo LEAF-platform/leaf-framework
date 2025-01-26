@@ -5,7 +5,6 @@ from threading import Event
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Any
 from leaf_register.metadata import MetadataManager
-from leaf_register.topic_utilities import topic_utilities
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler import exceptions
 from leaf.modules.logger_modules.logger_utils import get_logger
