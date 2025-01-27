@@ -52,7 +52,8 @@ class PhaseModule:
         Returns:
             bool: True if the topic matches the term builder, False otherwise.
         """
-        return topic == self._term_builder
+        topic_instance = topic()
+        return topic_instance == self._term_builder()
 
     def set_interpreter(self, interpreter: 'AbstractInterpreter') -> None:
         """

@@ -170,7 +170,8 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread.join()
         time.sleep(2)
         self.assertIn(self.details_topic, self.mock_client.messages)
-        self.assertTrue(len(self.mock_client.messages[self.details_topic]) == 1)
+        
+        self.assertEqual(len(self.mock_client.messages[self.details_topic]),1)
 
     def test_start(self):
         self.initialize_experiment()

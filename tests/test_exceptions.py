@@ -392,19 +392,18 @@ class TestExceptionsGeneral(unittest.TestCase):
             }
         ]
 
-        # Thread Start and Stop Helpers
         def _start() -> Thread:
             mthread = Thread(
                 target=run_adapters,
                 args=[ins, output, error_holder],
                 kwargs={"external_adapter": mock_functional_adapter_path},
             )
+            mthread.daemon = True
             mthread.start()
             return mthread
 
         def _stop(thread: Thread) -> None:
             stop_all_adapters()
-            thread.join(timeout=5)
 
         try:
             with self.assertLogs(start.__name__, level="WARNING") as logs:
@@ -474,20 +473,29 @@ class TestExceptionsGeneral(unittest.TestCase):
             }
         ]
 
-        def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
-                             kwargs={"external_adapter" : mock_functional_adapter_path})
+        def _start() -> Thread:
+            mthread = Thread(
+                target=run_adapters,
+                args=[ins, output, error_holder],
+                kwargs={"external_adapter": mock_functional_adapter_path},
+            )
+            mthread.daemon = True
             mthread.start()
             return mthread
 
-        def _stop(thread) -> None:
+        def _stop(thread: Thread) -> None:
             stop_all_adapters()
-            thread.join()
 
         with self.assertLogs(start.__name__, level="WARNING") as logs:
             adapter_thread = _start()
-            while output._enabled:
-                time.sleep(0.1)
+            timeout = 30
+            cur_count = 0
+            while output._enabled is None:
+                time.sleep(1)
+                cur_count +=1 
+                if cur_count > timeout:
+                    self.fail()
+
             _stop(adapter_thread)
 
         expected_exceptions = [
@@ -561,12 +569,12 @@ class TestExceptionsGeneral(unittest.TestCase):
         def _start() -> None:
             mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
                              kwargs={"external_adapter" : mock_functional_adapter_path})
+            mthread.daemon = True
             mthread.start()
             return mthread
 
         def _stop(thread) -> None:
-            #stop_all_adapters()
-            thread.join()
+            stop_all_adapters()
 
         with self.assertLogs(start.__name__, level="ERROR") as logs:
             adapter_thread = _start()
