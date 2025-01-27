@@ -20,6 +20,7 @@ import yaml
 
 from leaf import register
 from leaf_register.metadata import MetadataManager
+from leaf_register.topic_utilities import topic_utilities
 
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.modules.logger_modules.logger_utils import get_logger
@@ -125,7 +126,7 @@ def _get_existing_ids(output_module: MQTT,
                       metadata_manager: MetadataManager, 
                       time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
-    topic = metadata_manager.details()
+    topic = topic_utilities.details()
     logging.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
@@ -133,8 +134,8 @@ def _get_existing_ids(output_module: MQTT,
 
     ids: list[str] = []
     for k, v in output_module.messages.items():
-        if metadata_manager.is_instance(k, topic):
-            ids.append(metadata_manager.get_instance_id(k))
+        if topic_utilities.is_instance(k, topic):
+            ids.append(topic_utilities.parse_topic(k).instance_id)
     output_module.reset_messages()
     return ids
 

@@ -392,23 +392,34 @@ class TestExceptionsGeneral(unittest.TestCase):
             }
         ]
 
-        def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
-                             kwargs={"external_adapter" : mock_functional_adapter_path})
+        # Thread Start and Stop Helpers
+        def _start() -> Thread:
+            mthread = Thread(
+                target=run_adapters,
+                args=[ins, output, error_holder],
+                kwargs={"external_adapter": mock_functional_adapter_path},
+            )
             mthread.start()
             return mthread
 
-        def _stop(thread) -> None:
+        def _stop(thread: Thread) -> None:
             stop_all_adapters()
-            thread.join()
+            thread.join(timeout=5)
 
-        with self.assertLogs(start.__name__, level="WARNING") as logs:
-            adapter_thread = _start()
-            time.sleep(2)
-            output.disconnect()
-            while not output.client.is_connected():
-                time.sleep(0.1)
-            self.assertTrue(output.client.is_connected())
+        try:
+            with self.assertLogs(start.__name__, level="WARNING") as logs:
+                adapter_thread = _start()
+                time.sleep(2)
+                while output.client.is_connected():
+                    output.disconnect()
+                    continue
+                no_op_top = "test/test/"
+                output.fallback(no_op_top,{})
+                time.sleep(15)
+                output.disconnect()
+                time.sleep(1)
+                _stop(adapter_thread)
+        finally:
             _stop(adapter_thread)
 
         expected_exceptions = [
