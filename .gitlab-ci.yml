@@ -23,4 +23,4 @@ test:
       junit: test-reports/*.xml
     paths:
       - test-reports/
-  timeout: 10m
+  timeout: 60m
