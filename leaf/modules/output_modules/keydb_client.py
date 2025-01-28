@@ -1,21 +1,14 @@
-import logging
-import redis
 import json
+
 from typing import Optional, Any
-from leaf.modules.output_modules.output_module import OutputModule
+
+import redis
+
+from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.error_handler.error_holder import ErrorHolder
-
-
-import logging
-import redis
-import json
-from typing import Optional, Any
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.error_handler.exceptions import ClientUnreachableError
-from leaf.error_handler.exceptions import SeverityLevel
-from leaf.error_handler.error_holder import ErrorHolder
+from leaf.start import logger
 
 
 class KEYDB(OutputModule):
@@ -94,7 +87,7 @@ class KEYDB(OutputModule):
         """
         try:
             self._client = redis.StrictRedis(host=self.host, port=self.port, db=self.db)
-            logging.info("Connected to KeyDB.")
+            logger.info("Connected to KeyDB.")
         except redis.RedisError as e:
             self._handle_redis_error(e)
 
@@ -113,7 +106,7 @@ class KEYDB(OutputModule):
                 False if a fallback was used.
         """
         if data is None:
-            logging.warning("No data provided to transmit.")
+            logger.warning("No data provided to transmit.")
             return False
 
         if isinstance(data, dict):
@@ -201,7 +194,7 @@ class KEYDB(OutputModule):
                                     database is empty.
         """
         if self._client is None:
-            logging.warning("Attempted to pop from a disconnected KeyDB client.")
+            logger.warning("Attempted to pop from a disconnected KeyDB client.")
             return None
 
         try:
