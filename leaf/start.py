@@ -17,6 +17,7 @@ import time
 from typing import Any, Type
 
 import yaml
+from coverage.exceptions import ConfigError
 
 from leaf import register
 from leaf_register.metadata import MetadataManager
@@ -89,18 +90,18 @@ def parse_args(args=None) -> argparse.Namespace:
 
 def signal_handler(signal_received, frame) -> None:
     """Handles shutting down of adapters when program is terminating."""
-    logging.info("Shutting down gracefully.")
+    logger.info("Shutting down gracefully.")
     stop_all_adapters()
     sys.exit(0)
 
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
-    logging.info("Stopping all adapters.")
+    logger.info("Stopping all adapters.")
     for adapter in adapters:
         try:
             adapter.stop()
-            logging.info(f"Adapter for {adapter} stopped successfully.")
+            logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
 
@@ -126,7 +127,7 @@ def _get_existing_ids(output_module: MQTT,
                       time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = metadata_manager.details()
-    logging.debug(f"Setting up subscription to {topic}")
+    logger.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
     output_module.unsubscribe(topic)
@@ -210,7 +211,7 @@ def _process_instance(instance: dict[str, Any],
             f"Missing required keys for {equipment_code}: {missing_keys}"
         )
     if unexpected_keys:
-        logging.warning(
+        logger.warning(
             f"Unexpected keys provided for {equipment_code}: {unexpected_keys}"
         )
     try:
@@ -227,7 +228,7 @@ def _run_simulation_in_thread(adapter, filename: str,
     logger.info(f"Running simulation: {adapter}")
 
     def simulation():
-        logging.info(
+        logger.info(
             f"Starting simulation using file {filename} with interval {interval}."
         )
         adapter.simulate(filename, interval)
@@ -244,7 +245,7 @@ def handle_exception(exc_type: Type[BaseException], exc_value,
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, 
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value,
                                                   exc_traceback))
     stop_all_adapters()
 
@@ -281,7 +282,7 @@ def run_adapters(equipment_instances, output, error_handler,
                 if not hasattr(adapter, "simulate"):
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
-                logging.info(f"Simulator started for instance {instance_id}.")
+                logger.info(f"Simulator started for instance {instance_id}.")
                 if not os.path.isfile(simulated["filename"]):
                     raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
 
@@ -290,7 +291,7 @@ def run_adapters(equipment_instances, output, error_handler,
                 )
                 adapter_threads.append(thread)
             else:
-                logging.info(f"Proxy started for instance {instance_id}.")
+                logger.info(f"Proxy started for instance {instance_id}.")
                 thread = _start_all_adapters_in_threads([adapter])[0]
                 adapter_threads.append(thread)
 
@@ -369,24 +370,39 @@ def run_adapters(equipment_instances, output, error_handler,
                                 exc_info=error)
 
             handle_disabled_modules(output,output_disable_time)
-                
-
 
     except KeyboardInterrupt:
-        logging.info("Keyboard interrupt received. Shutting down.")
+        logger.info("Keyboard interrupt received. Shutting down.")
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
-        logging.error("An error occurred", exc_info=True)
+        logger.error(f"An unexpected error occurred: {e}")
+        logger.error("An error occurred", exc_info=True)
     finally:
         stop_all_adapters()
-        logging.info("Proxy stopped.")
+        logger.info("Proxy stopped.")
 
     for thread in adapter_threads:
         thread.join()
-    logging.info("All adapter threads have been stopped.")
+    logger.info("All adapter threads have been stopped.")
 
 
 sys.excepthook = handle_exception
+
+def welcome_message() -> None:
+    """Prints a welcome message."""
+    logger.info("""\n\n ##:::::::'########::::'###::::'########:
+ ##::::::: ##.....::::'## ##::: ##.....::
+ ##::::::: ##::::::::'##:. ##:: ##:::::::
+ ##::::::: ######:::'##:::. ##: ######:::
+ ##::::::: ##...:::: #########: ##...::::
+ ##::::::: ##::::::: ##.... ##: ##:::::::
+ ########: ########: ##:::: ##: ##:::::::
+........::........::..:::::..::..::::::::\n\n""")
+    logger.info("Welcome to the LEAF Proxy.")
+    logger.info("Starting the proxy.")
+    logger.info("Press Ctrl+C to stop the proxy.")
+    logger.info("For more information, visit leaf.systemsbiology.nl")
+    logger.info("For help, use the -h flag.")
+    logger.info("#" * 40)
 
 
 ##################################
@@ -395,26 +411,32 @@ sys.excepthook = handle_exception
 #
 ###################################
 def main(args=None) -> None:
+    welcome_message()
     register.load_adapters()
 
     """Main function as a wrapper for all steps."""
-    logging.info("Starting the proxy.")
+    logger.info("Starting the proxy.")
     args = parse_args(args)
 
+    if args.debug:
+        logger.debug("Debug logging enabled.")
+        logger.setLevel(logging.DEBUG)
+
     if args.config is None:
-        logging.error("No configuration file provided (See the documentation for more details).")
+        logger.error("No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
+        if os.path.isfile("config/config.yaml"):
+            logger.info("An example of a config file if needed:")
+            with open("config/config.yaml", "r") as file:
+                logger.info("\n"+file.read())
         return
 
-    if args.debug:
-        logging.debug("Debug logging enabled.")
-
     external_adapter = args.path
-    logging.debug(f"Loading configuration file: {args.config}")
+    logger.debug(f"Loading configuration file: {args.config}")
 
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
 
-    logging.info(f"Configuration: {args.config} loaded.")
+    logger.info(f"Configuration: {args.config} loaded.")
     general_error_holder = ErrorHolder()
     output = _get_output_module(config, general_error_holder)
     run_adapters(config["EQUIPMENT_INSTANCES"], output, 
