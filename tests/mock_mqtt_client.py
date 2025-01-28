@@ -22,8 +22,8 @@ class MockBioreactorClient(MQTT):
             if payload == "":
                 if self._remove_flush and topic in self.messages:
                     del self.messages[topic]
-                
                 return
+                
 
             msg = json.loads(payload)
         except UnicodeDecodeError:
@@ -34,7 +34,7 @@ class MockBioreactorClient(MQTT):
 
         if topic not in self.messages:
             self.messages[topic] = []
-            
+
         self.messages[topic].append(msg)
         self.num_msg += 1
 
