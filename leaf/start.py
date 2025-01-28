@@ -128,7 +128,7 @@ def _get_existing_ids(output_module: MQTT,
                       time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = topic_utilities.details()
-    logging.debug(f"Setting up subscription to {topic}")
+    logger.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
     output_module.unsubscribe(topic)
