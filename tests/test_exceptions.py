@@ -751,7 +751,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         instance_data = {
             "instance_id": "test_equipment_adapter_start_instance_id",
             "institute": "test_equipment_adapter_start_institute_id",
-            "equipment_id": "TestEquipmentAdapter",
+            "adapter_id": "TestEquipmentAdapter",
         }
         from watchdog.events import FileSystemEvent
         t_dir = "test_equipment_adapter_start"

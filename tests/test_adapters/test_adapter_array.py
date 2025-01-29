@@ -101,7 +101,7 @@ class TestAdapterArray(unittest.TestCase):
         instance_data1 = {
             "instance_id": f"TestAdapterArray_{unique_id1}",
             "institute": f"Institute_{unique_id1}",
-            "equipment_id" : f"Equipment_{unique_id1}",
+            "adapter_id" : f"Equipment_{unique_id1}",
         }
         metadata_manager1 = MetadataManager()
         metadata_manager1.add_equipment_data(instance_data1)
@@ -113,7 +113,7 @@ class TestAdapterArray(unittest.TestCase):
         instance_data2 = {
             "instance_id": f"TestAdapterArray_{unique_id2}",
             "institute": f"Institute_{unique_id2}",
-            "equipment_id" : f"Equipment_{unique_id2}",
+            "adapter_id" : f"Equipment_{unique_id2}",
         }
         metadata_manager2 = MetadataManager()
         metadata_manager2.add_equipment_data(instance_data2)
