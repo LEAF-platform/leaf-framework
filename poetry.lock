@@ -830,13 +830,13 @@ files = []
 develop = false
 
 [package.dependencies]
-leaf = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf.git", rev = "77-adapter-has-device-information-through-device-json"}
+leaf = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf.git", rev = "dev"}
 
 [package.source]
 type = "git"
 url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"
 reference = "HEAD"
-resolved_reference = "2db587a31acb6a6f07216137c86cbc25ed421a9f"
+resolved_reference = "a89612e4a7086fa882933882317ff8d305c204e4"
 
 [[package]]
 name = "leaf-register"
@@ -851,7 +851,7 @@ develop = false
 type = "git"
 url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-register.git"
 reference = "HEAD"
-resolved_reference = "efe836b0a48caaa534277dfd636bca11e0f9c5f6"
+resolved_reference = "838bc8cfef2b8ae9905289ad98e15bc568b4eb8b"
 
 [[package]]
 name = "more-itertools"
@@ -1798,17 +1798,6 @@ python-versions = "*"
 files = [
     {file = "trove_classifiers-2025.1.15.22-py3-none-any.whl", hash = "sha256:5f19c789d4f17f501d36c94dbbf969fb3e8c2784d008e6f5164dd2c3d6a2b07c"},
     {file = "trove_classifiers-2025.1.15.22.tar.gz", hash = "sha256:90af74358d3a01b3532bc7b3c88d8c6a094c2fd50a563d13d9576179326d7ed9"},
-]
-
-[[package]]
-name = "typing-extensions"
-version = "4.12.2"
-description = "Backported and Experimental Type Hints for Python 3.8+"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
-    {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
 ]
 
 [[package]]
