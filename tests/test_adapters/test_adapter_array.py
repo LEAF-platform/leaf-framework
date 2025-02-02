@@ -21,7 +21,7 @@ from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
 from leaf.adapters.equipment_adapter import AbstractInterpreter
-
+from leaf.start import logger
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
 with open(curr_dir + "/../test_config.yaml", "r") as file:
