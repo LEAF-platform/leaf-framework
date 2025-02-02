@@ -79,7 +79,7 @@ class TestUploadAdapter(unittest.TestCase):
         self.instance_data = {
             "instance_id": unique_id,
             "institute": f"TestUploadAdapter_{unique_id}_ins",
-            "equipment_id" : f"TestUploadAdapter_{unique_id}_equipment",
+            "adapter_id" : f"TestUploadAdapter_{unique_id}_equipment",
         }
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)

@@ -47,7 +47,7 @@ class TestMeasurePhase(unittest.TestCase):
         self._metadata_manager = MetadataManager()
         self._metadata_manager._metadata["equipment"] = {}
         self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
+        self._metadata_manager._metadata["equipment"]["adapter_id"] = "test_transmit"
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
 
         self._module = MeasurePhase(metadata_manager=self._metadata_manager)
@@ -125,7 +125,7 @@ class TestControlPhase(unittest.TestCase):
         self._metadata_manager = MetadataManager()
         self._metadata_manager._metadata["equipment"] = {}
         self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
+        self._metadata_manager._metadata["equipment"]["adapter_id"] = "test_transmit"
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
         self._module = ControlPhase(self._metadata_manager.experiment.start, 
                                     metadata_manager=self._metadata_manager)
@@ -145,7 +145,7 @@ class TestStartPhase(unittest.TestCase):
         self._metadata_manager = MetadataManager()
         self._metadata_manager._metadata["equipment"] = {}
         self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
+        self._metadata_manager._metadata["equipment"]["adapter_id"] = "test_transmit"
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
         self._module = StartPhase(metadata_manager=self._metadata_manager)
         
@@ -165,7 +165,7 @@ class TestStopPhase(unittest.TestCase):
         self._metadata_manager = MetadataManager()
         self._metadata_manager._metadata["equipment"] = {}
         self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
+        self._metadata_manager._metadata["equipment"]["adapter_id"] = "test_transmit"
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
         self._module = StopPhase(metadata_manager=self._metadata_manager)
         
@@ -185,7 +185,7 @@ class TestInitialisationPhase(unittest.TestCase):
         self._metadata_manager = MetadataManager()
         self._metadata_manager._metadata["equipment"] = {}
         self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
+        self._metadata_manager._metadata["equipment"]["adapter_id"] = "test_transmit"
         self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
         self._module = InitialisationPhase(metadata_manager=self._metadata_manager)
         

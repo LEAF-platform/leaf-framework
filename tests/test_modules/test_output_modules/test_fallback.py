@@ -99,7 +99,7 @@ class TestFallbacks(unittest.TestCase):
         time.sleep(2)
         self._keydb.connect()
         institute = "test_pop_all_messages_institute"
-        equipment_id = "test_pop_all_messages_equipment_id"
+        adapter_id = "test_pop_all_messages_adapter_id"
         instance_id = "test_pop_all_messages_instance_id"
         experiment_id = "test_pop_all_messages_experiment_id"
         measurement_id = "test_pop_all_messages_measurement_id"
@@ -107,7 +107,7 @@ class TestFallbacks(unittest.TestCase):
         manager = MetadataManager()
         manager._metadata["equipment"] = {}
         manager._metadata["equipment"]["institute"] = institute
-        manager._metadata["equipment"]["equipment_id"] = equipment_id
+        manager._metadata["equipment"]["adapter_id"] = adapter_id
         manager._metadata["equipment"]["instance_id"] = instance_id
 
         inp_messages = {manager.experiment.measurement(experiment_id=experiment_id,
@@ -144,7 +144,7 @@ class TestFallbacks(unittest.TestCase):
 
         self._keydb.connect()
         institute = "test_pop_all_messages_institute"
-        equipment_id = "test_pop_all_messages_equipment_id"
+        adapter_id = "test_pop_all_messages_adapter_id"
         instance_id = "test_pop_all_messages_instance_id"
         experiment_id = "test_pop_all_messages_experiment_id"
         measurement_id = "test_pop_all_messages_measurement_id"
@@ -152,7 +152,7 @@ class TestFallbacks(unittest.TestCase):
         manager = MetadataManager()
         manager._metadata["equipment"] = {}
         manager._metadata["equipment"]["institute"] = institute
-        manager._metadata["equipment"]["equipment_id"] = equipment_id
+        manager._metadata["equipment"]["adapter_id"] = adapter_id
         manager._metadata["equipment"]["instance_id"] = instance_id
 
         keydb_messages = {manager.experiment.measurement(experiment_id=experiment_id,

@@ -86,14 +86,14 @@ class TestContinousProcess(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         ins_id = str(uuid.uuid4())
-        equipment_id = str(uuid.uuid4())
+        adapter_id = str(uuid.uuid4())
         instance_id = str(uuid.uuid4())
-        self.mock_client.subscribe(f'{ins_id}/{equipment_id}/{instance_id}/#')
+        self.mock_client.subscribe(f'{ins_id}/{adapter_id}/{instance_id}/#')
 
         self.metadata_manager = MetadataManager()
         self.metadata_manager._metadata["equipment"] = {}
         self.metadata_manager._metadata["equipment"]["institute"] = ins_id
-        self.metadata_manager._metadata["equipment"]["equipment_id"] = equipment_id
+        self.metadata_manager._metadata["equipment"]["adapter_id"] = adapter_id
         self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
 
         self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
@@ -136,14 +136,14 @@ class TestDiscreteProcess(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         ins_id = str(uuid.uuid4())
-        equipment_id = str(uuid.uuid4())
+        adapter_id = str(uuid.uuid4())
         instance_id = str(uuid.uuid4())
-        self.mock_client.subscribe(f'{ins_id}/{equipment_id}/{instance_id}/#')
+        self.mock_client.subscribe(f'{ins_id}/{adapter_id}/{instance_id}/#')
 
         self.metadata_manager = MetadataManager()
         self.metadata_manager._metadata["equipment"] = {}
         self.metadata_manager._metadata["equipment"]["institute"] = ins_id
-        self.metadata_manager._metadata["equipment"]["equipment_id"] = equipment_id
+        self.metadata_manager._metadata["equipment"]["adapter_id"] = adapter_id
         self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
         
         self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)

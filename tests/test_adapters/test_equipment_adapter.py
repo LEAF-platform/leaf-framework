@@ -135,7 +135,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
         self._adapter = MockEquipmentAdapter(instance_data, text_watch_file,**kwargs)
-        self._adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
+        self._adapter._metadata_manager._metadata["equipment"]["adapter_id"] = (
             "TestBioreactor_transmit_" + unique_instance_id
         )
 
@@ -244,7 +244,7 @@ class TestEquipmentAdapter(unittest.TestCase):
     def test_exceptions(self):
         instance_data = {"instance_id" : "test_exceptions_instance",
                         "institute" : "test_exceptions_ins",
-                        "equipment_id" : "test_exceptions_equip"}
+                        "adapter_id" : "test_exceptions_equip"}
         
         test_exp_tw_watch_file = os.path.join("tmp_exception.txt")
         adapter = MockEquipmentAdapter(instance_data,
@@ -279,7 +279,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         _adapter = MockEquipmentAdapter(instance_data, text_watch_file, 
                                         experiment_timeout=exp_timeout)
         
-        _adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
+        _adapter._metadata_manager._metadata["equipment"]["adapter_id"] = (
             "TestBioreactor_transmit_" + unique_instance_id
         )
 
@@ -344,7 +344,7 @@ class TestEquipmentAdapter(unittest.TestCase):
     def test_process_input_validation(self):
         instance_data = {"instance_id" : "test_process_input_validation_instance",
                         "institute" : "test_process_input_validation_ins",
-                        "equipment_id" : "test_process_input_validation_equip"}
+                        "adapter_id" : "test_process_input_validation_equip"}
         temp_dir = tempfile.TemporaryDirectory()
         test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_process_input_validation.txt")
 

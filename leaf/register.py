@@ -30,7 +30,7 @@ equipment_adapter_dirs = [
     functional_adapter_dir
 ]
 
-equipment_key = "equipment_id"
+adapter_id = "adapter_id"
 output_adapter_dir = os.path.join(root_dir, "modules", "output_modules")
 logger = get_logger(__name__, log_file="global.log",
                     error_log_file="global_error.log",
@@ -38,10 +38,10 @@ logger = get_logger(__name__, log_file="global.log",
 
 def load_adapters() -> dict[str, EquipmentAdapter]:
     """
-    Loads and returns a dictionary mapping `equipment_id` to 
+    Loads and returns a dictionary mapping `adapter_id` to
     the corresponding EquipmentAdapter class from the installed packages.
     This function looks for a `device.json` file in the same package directory
-    as the adapter and uses the `equipment_id` defined in it for the mapping.
+    as the adapter and uses the `adapter_id` defined in it for the mapping.
 
     Returns:
         dict[str, EquipmentAdapter]: A mapping of equipment IDs to adapter classes.
@@ -62,10 +62,10 @@ def load_adapters() -> dict[str, EquipmentAdapter]:
 
             with open(device_json_path, "r") as f:
                 device_info = json.load(f)
-                if "equipment_id" not in device_info:
-                    raise AdapterBuildError(f"'equipment_id' not found in {device_json_path}")
-                equipment_id = device_info["equipment_id"]
-                adapters[equipment_id] = adapter_class
+                if "adapter_id" not in device_info:
+                    raise AdapterBuildError(f"'adapter_id' not found in {device_json_path}")
+                adapter_id = device_info["adapter_id"]
+                adapters[adapter_id] = adapter_class
 
         except Exception as e:
             logger.error(f"Failed to load adapter from entry point {entry_point.name}: {e}")
@@ -118,7 +118,7 @@ def get_equipment_adapter(code: str,external_adapter=None) -> EquipmentAdapter:
                 if os.path.exists(json_fp) and os.path.exists(python_fp):
                     with open(json_fp, "r") as f:
                         data = json.load(f)
-                        if equipment_key in data and data[equipment_key] == code:
+                        if adapter_id in data and data[adapter_id] == code:
                             return _load_class_from_file(python_fp)
 
     raise AdapterBuildError(f"Adapter for code '{code}' not found.")

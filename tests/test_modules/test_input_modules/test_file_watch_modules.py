@@ -34,7 +34,7 @@ class TestFileWatcher(unittest.TestCase):
             metadata = MetadataManager()
             metadata._metadata["equipment"] = {}
             metadata._metadata["equipment"]["institute"] = "test_file_watcher_details"
-            metadata._metadata["equipment"]["equipment_id"] = "test_file_watcher_details"
+            metadata._metadata["equipment"]["adapter_id"] = "test_file_watcher_details"
             metadata._metadata["equipment"]["instance_id"] = "test_file_watcher_details"
             watcher = FileWatcher(text_watch_file,metadata,
                                   callbacks=[mock_callback])
