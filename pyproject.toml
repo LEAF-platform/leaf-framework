@@ -36,6 +36,7 @@ leaf = "leaf.start:main"
 pytest-xdist = "^3.6.1"
 pytest = "^8.3.4"
 coverage = "^7.6.8"
+mypy = "^1.14.1"
 leaf-hello-world = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"}
 
 
