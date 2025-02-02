@@ -862,13 +862,13 @@ files = []
 develop = false
 
 [package.dependencies]
-leaf = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf.git", rev = "77-adapter-has-device-information-through-device-json"}
+leaf = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf.git", rev = "dev"}
 
 [package.source]
 type = "git"
 url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"
 reference = "HEAD"
-resolved_reference = "2db587a31acb6a6f07216137c86cbc25ed421a9f"
+resolved_reference = "81fe8d88a4103aa297d5b5b0b8244858bb5cee7a"
 
 [[package]]
 name = "leaf-register"
