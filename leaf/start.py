@@ -17,7 +17,6 @@ import time
 from typing import Any, Type
 
 import yaml
-from coverage.exceptions import ConfigError
 
 from leaf import register
 from leaf_register.metadata import MetadataManager
