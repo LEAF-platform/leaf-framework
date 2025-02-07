@@ -17,7 +17,6 @@ import time
 from typing import Any, Type
 
 import yaml
-from coverage.exceptions import ConfigError
 
 from leaf import register
 from leaf_register.metadata import MetadataManager
@@ -95,6 +94,18 @@ def signal_handler(signal_received, frame) -> None:
     stop_all_adapters()
     sys.exit(0)
 
+def substitute_env_vars(config: Any):
+    """Recursively replace placeholders in a (yaml) dictionary with environment variables."""
+    if isinstance(config, dict):
+        return {key: substitute_env_vars(value) for key, value in config.items()}
+    elif isinstance(config, list):
+        return [substitute_env_vars(item) for item in config]
+    elif isinstance(config, str):
+        # Replace placeholders that look like {VAR_NAME} with actual env vars
+        for var in os.environ:
+            config = config.replace(f"{{{var}}}", os.environ[var])
+        return config
+    return config
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
@@ -123,8 +134,8 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 
-def _get_existing_ids(output_module: MQTT, 
-                      metadata_manager: MetadataManager, 
+def _get_existing_ids(output_module: MQTT,
+                      metadata_manager: MetadataManager,
                       time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = topic_utilities.details()
@@ -142,7 +153,7 @@ def _get_existing_ids(output_module: MQTT,
 
 
 def _get_output_module(config, error_holder: ErrorHolder) -> Any:
-    """Finds, initialises and connects all desired output 
+    """Finds, initialises and connects all desired output
         adapters defined within the config"""
     outputs = config["OUTPUTS"]
     output_objects = {}
@@ -153,7 +164,7 @@ def _get_output_module(config, error_holder: ErrorHolder) -> Any:
         fallback_code = out_data.pop("fallback", None)
         if fallback_code:
             fallback_codes.add(fallback_code)
-        output_objects[output_code] = {"data": out_data, 
+        output_objects[output_code] = {"data": out_data,
                                        "fallback_code": fallback_code}
 
     for code, out_data in output_objects.items():
@@ -178,7 +189,7 @@ def _get_output_module(config, error_holder: ErrorHolder) -> Any:
     return None
 
 
-def _process_instance(instance: dict[str, Any], 
+def _process_instance(instance: dict[str, Any],
                       output: MQTT,external_adapter=None) -> EquipmentAdapter:
     """Finds and initialises an adapter from the config."""
     equipment_code = instance["adapter"]
@@ -200,7 +211,7 @@ def _process_instance(instance: dict[str, Any],
     required_params = {
         name
         for name, param in adapter_params.items()
-        if name not in fixed_params and 
+        if name not in fixed_params and
         param.default == inspect.Parameter.empty
     }
     provided_keys = set(requirements.keys())
@@ -217,18 +228,18 @@ def _process_instance(instance: dict[str, Any],
         )
     try:
         error_holder = ErrorHolder(instance_id)
-        return adapter(instance_data, output, 
+        return adapter(instance_data, output,
                        error_holder=error_holder, **requirements)
     except ValueError as ex:
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
 
-def _run_simulation_in_thread(adapter, filename: str, 
+def _run_simulation_in_thread(adapter, filename: str,
                               interval: int) -> threading.Thread:
     """Run the adapter's simulate function in a separate thread."""
     logger.info(f"Running simulation: {adapter}")
 
-    def simulation():
+    def simulation() -> None:
         logger.info(
             f"Starting simulation using file {filename} with interval {interval}."
         )
