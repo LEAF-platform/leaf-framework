@@ -9,9 +9,10 @@ class TestConfigWithSysVariables(unittest.TestCase):
     def test_config_with_sys_variables(self) -> None:
         # Set environment variable for test
         os.environ["MQTT_PASSWORD"] = "qhuhf92384!±q3iht"
-
+        # Obtain current working directory
+        curr_dir: str = os.path.dirname(os.path.realpath(__file__))
         # Load YAML
-        with open("test_config_secret.yaml", "r") as file:
+        with open(curr_dir + "/test_config_secret.yaml", "r") as file:
             config = yaml.safe_load(file)
 
         # Substitute environment variables
