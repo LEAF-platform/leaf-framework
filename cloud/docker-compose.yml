@@ -1,24 +1,27 @@
 services:
-  vernemq:
-    image: vernemq/vernemq
-    container_name: vernemq
+  emqx:
+    image: emqx/emqx:latest
+    container_name: emqx
     environment:
-      - DOCKER_VERNEMQ_ACCEPT_EULA=yes
-      - DOCKER_VERNEMQ_ALLOW_ANONYMOUS=off  # Set to 'off' for enhanced security
-      - DOCKER_VERNEMQ_USER_${VERNEMQ_USER}=${VERNEMQ_PASSWORD}
+      - EMQX_ACCEPT_EULA=yes
+      - EMQX_ALLOW_ANONYMOUS=false  # Disable anonymous access for enhanced security
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=your_username
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=your_password
     ports:
-      - "1883:1883"  # MQTT default port
-      - "8888:8888"  # MQTT over WebSockets
+      - "1883:1883"   # MQTT default port
+      - "8883:8883"   # MQTT over TLS/SSL
+      - "8083:8083"   # MQTT over WebSockets
+      - "8084:8084"   # MQTT over Secure WebSockets
+      - "18083:18083" # EMQX Dashboard
     volumes:
-      - ./vernemq_data:/vernemq/data
-      - ./vernemq_logs:/vernemq/log
+      - ./emqx_data:/opt/emqx/data
+      - ./emqx_log:/opt/emqx/log
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 1883 && echo 'OK' || echo 'NOK'"]
+      test: ["CMD", "emqx_ctl", "status"]
       interval: 30s
       timeout: 10s
       retries: 3
     restart: always
-
   nodered:
     image: nodered/node-red
     container_name: nodered
@@ -27,12 +30,17 @@ services:
     environment:
       - NODE_OPTIONS=--max_old_space_size=256
       - NODE_RED_ENABLE_PROJECTS=true
-      - MQTT_USER=${VERNEMQ_USER}
-      - MQTT_PASSWORD=${VERNEMQ_PASSWORD}
+      - MQTT_HOST=${MQTT_HOST}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - POSTGRES_HOST=${PGHOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${PGPASSWORD}
     volumes:
       - ./nodered_data:/data
     depends_on:
-      vernemq:
+      emqx:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:1880 || exit 1"]
@@ -50,7 +58,7 @@ services:
     volumes:
       - ./timescaledb_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # PostgreSQL default port
+      - 5432:5432  # PostgreSQL default port
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -65,8 +73,11 @@ services:
       - HOST_PROC=/proc
       - PGPASSWORD=${PGPASSWORD}
       - PGDATABASE=${PGDATABASE}
-      - MQTT_USER=${VERNEMQ_USER}
-      - MQTT_PASSWORD=${VERNEMQ_PASSWORD}
+      - PGHOST=${PGHOST}
+      - PGPORT=${PGPORT}
+      - MQTT_HOST=${MQTT_HOST}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     depends_on:
@@ -119,3 +130,22 @@ services:
       timeout: 10s
       retries: 3
     restart: always
+  keydb:
+    image: eqalpha/keydb:latest
+    container_name: keydb
+    restart: unless-stopped
+    ports:
+      - "6379:6379"  # Exposes KeyDB on the default Redis port
+    volumes:
+      - ./keydb_data:/data
+  leaf:
+    image: docker-registry.wur.nl/m-unlock/docker/leaf:dev
+    container_name: leaf
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    restart: 
+      unless-stopped
+    depends_on:
+      - emqx
+      - timescaledb
+      - keydb

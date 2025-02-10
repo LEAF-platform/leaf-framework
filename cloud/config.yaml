@@ -1,0 +1,23 @@
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: HelloWorld
+      data:
+        instance_id: hello_world_instance
+        institute: WUR/ssb
+      requirements:
+        interval: 1
+
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: emqx
+    port: 1883
+    fallback: KEYDB
+  - plugin: KEYDB
+    host: keydb
+    port: 6379
+    db: 0
+    fallback: FILE
+  - plugin: FILE
+    filename: local.json
+    fallback: null
