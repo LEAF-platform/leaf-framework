@@ -101,11 +101,14 @@ def substitute_env_vars(config: Any):
     elif isinstance(config, list):
         return [substitute_env_vars(item) for item in config]
     elif isinstance(config, str):
-        # Replace placeholders that look like {VAR_NAME} with actual env vars
-        for var in os.environ:
-            config = config.replace(f"{{{var}}}", os.environ[var])
+        # Replace placeholders that look like $VAR_NAME with actual env vars
+        for var, value in os.environ.items():
+            placeholder = f"${var}"
+            if placeholder in config:
+                logger.info(f"Replacing {placeholder} with its environment value")
+                config = config.replace(placeholder, value)
         return config
-    return config
+    return
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
