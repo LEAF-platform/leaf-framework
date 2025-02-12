@@ -15,7 +15,7 @@ import sys
 import threading
 import time
 from typing import Any, Type
-
+import validators
 import yaml
 
 from leaf import register
@@ -237,16 +237,15 @@ def _process_instance(instance: dict[str, Any],
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
 
-def _run_simulation_in_thread(adapter, filename: str,
-                              interval: int) -> threading.Thread:
+def _run_simulation_in_thread(adapter, simulation_object) -> threading.Thread:
     """Run the adapter's simulate function in a separate thread."""
     logger.info(f"Running simulation: {adapter}")
 
     def simulation() -> None:
         logger.info(
-            f"Starting simulation using file {filename} with interval {interval}."
+            f"Starting simulation using object {simulation_object}"
         )
-        adapter.simulate(filename, interval)
+        adapter.simulate(simulation_object)
 
     thread = threading.Thread(target=simulation)
     thread.daemon = True
@@ -298,11 +297,14 @@ def run_adapters(equipment_instances, output, error_handler,
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
                 logger.info(f"Simulator started for instance {instance_id}.")
-                if not os.path.isfile(simulated["filename"]):
+                # Check if simulated["filename"] is a url or a file
+                if validators.url(simulated["filename"]):
+                    logger.info(f"URL simulation: {simulated['filename']}")
+                elif not os.path.isfile(simulated["filename"]):
                     raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
 
                 thread = _run_simulation_in_thread(
-                    adapter, simulated["filename"], simulated["interval"]
+                    adapter, simulated
                 )
                 adapter_threads.append(thread)
             else:
