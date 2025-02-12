@@ -298,10 +298,10 @@ def run_adapters(equipment_instances, output, error_handler,
 
                 logger.info(f"Simulator started for instance {instance_id}.")
                 # Check if simulated["filename"] is a url or a file
-                if validators.url(simulated["filename"]):
-                    logger.info(f"URL simulation: {simulated['filename']}")
-                elif not os.path.isfile(simulated["filename"]):
-                    raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
+                # if validators.url(simulated["filename"]):
+                #     logger.info(f"URL simulation: {simulated['filename']}")
+                # elif not os.path.isfile(simulated["filename"]):
+                #     raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
 
                 thread = _run_simulation_in_thread(
                     adapter, simulated
