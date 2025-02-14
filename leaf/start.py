@@ -237,16 +237,15 @@ def _process_instance(instance: dict[str, Any],
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
 
 
-def _run_simulation_in_thread(adapter, filename: str,
-                              interval: int) -> threading.Thread:
+def _run_simulation_in_thread(adapter, **kwargs) -> threading.Thread:
     """Run the adapter's simulate function in a separate thread."""
     logger.info(f"Running simulation: {adapter}")
 
     def simulation() -> None:
         logger.info(
-            f"Starting simulation using file {filename} with interval {interval}."
+            f"Starting simulation using data {str(kwargs)}."
         )
-        adapter.simulate(filename, interval)
+        adapter.simulate(**kwargs)
 
     thread = threading.Thread(target=simulation)
     thread.daemon = True
@@ -298,12 +297,7 @@ def run_adapters(equipment_instances, output, error_handler,
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
                 logger.info(f"Simulator started for instance {instance_id}.")
-                if not os.path.isfile(simulated["filename"]):
-                    raise AdapterBuildError(f'{simulated["filename"]} doesn\'t exist')
-
-                thread = _run_simulation_in_thread(
-                    adapter, simulated["filename"], simulated["interval"]
-                )
+                thread = _run_simulation_in_thread(adapter, **simulated)
                 adapter_threads.append(thread)
             else:
                 logger.info(f"Proxy started for instance {instance_id}.")
