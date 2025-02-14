@@ -21,7 +21,7 @@ logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 def run_adapter(instance_data):
     """ Function to create and start the adapter in a separate process """
-    output = MQTT("localhost", 1883,username="mcrowther",password="Radeon12300")
+    output = MQTT("localhost", 1883)
     adap = HelloWorldAdapter(output=output, instance_data=instance_data)
     adap.start()
 
