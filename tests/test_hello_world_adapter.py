@@ -21,7 +21,7 @@ logger = get_logger(__name__, log_file="app.log", log_level=logging.DEBUG)
 
 def run_adapter(instance_data):
     """ Function to create and start the adapter in a separate process """
-    output = MQTT("localhost", 1883)
+    output = MQTT("localhost", 1883,username="mcrowther",password="Radeon12300")
     adap = HelloWorldAdapter(output=output, instance_data=instance_data)
     adap.start()
 
@@ -75,7 +75,7 @@ class HelloWorldCase(unittest.TestCase):
 
     def test_demo_adapter(self) -> None:
         """ Test HelloWorldAdapter publishing messages to MQTT broker """
-        self.output = MQTT("localhost", 1883)
+        self.output = MQTT("localhost", 1883,username="mcrowther",password="Radeon12300")
         self.instance_data = {
             "instance_id": "test_hello_world",
             "institute": "test_ins",
@@ -91,7 +91,7 @@ class HelloWorldCase(unittest.TestCase):
 
         logger.info("Starting HelloWorldAdapter in a separate process...")
 
-        proc = multiprocessing.Process(target=run_adapter, args=(self.instance_data,))
+        proc = multiprocessing.Process(target=run_adapter, args=(self.instance_data,),daemon=True)
         proc.start()
 
         # Wait for adapter to run (simulate processing time)
@@ -141,7 +141,7 @@ class HelloWorldCase(unittest.TestCase):
 
         logger.info("Starting Leaf execution in a separate process...")
         curr_dir: str = os.path.dirname(os.path.realpath(interpreter.__file__))
-        proc = multiprocessing.Process(target=start.main, args=(["--config", curr_dir + "/example.yaml"],))
+        proc = multiprocessing.Process(target=start.main, args=(["--config", curr_dir + "/example.yaml"],),daemon=True)
         proc.start()
 
         # Wait for process to execute
