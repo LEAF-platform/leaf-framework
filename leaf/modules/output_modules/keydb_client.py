@@ -106,7 +106,7 @@ class KEYDB(OutputModule):
                 False if a fallback was used.
         """
         if data is None:
-            logger.warning("No data provided to transmit.")
+            logger.warning(f"No data provided to transmit ({topic}).")
             return False
 
         if isinstance(data, dict):

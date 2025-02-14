@@ -167,28 +167,31 @@ def _get_output_module(config, error_holder: ErrorHolder) -> Any:
         fallback_code = out_data.pop("fallback", None)
         if fallback_code:
             fallback_codes.add(fallback_code)
-        output_objects[output_code] = {"data": out_data,
-                                       "fallback_code": fallback_code}
+        output_objects[output_code] = {
+            "data": out_data,
+            "fallback_code": fallback_code,
+            "output": None
+        }
 
     for code, out_data in output_objects.items():
-        fallback = None
-        if out_data["fallback_code"]:
-            try:
-                fallback = output_objects[out_data["fallback_code"]].get("output")
-            except KeyError:
-                raise AdapterBuildError(
-                    f'Cant find output: {out_data["fallback_code"]}'
-                )
         try:
-            output_obj = register.get_output_adapter(code)(
-                fallback=fallback, error_holder=error_holder, **out_data["data"])
+            output_objects[code]["output"] = register.get_output_adapter(code)(
+                fallback=None, error_holder=error_holder, **out_data["data"])
         except TypeError as ex:
-            raise AdapterBuildError(f"code missing params ({ex.args})")
-        output_objects[code]["output"] = output_obj
+            raise AdapterBuildError(f"code missing parameters ({ex.args})")
+
+    for code, out_data in output_objects.items():
+        if out_data["fallback_code"]:
+            fallback_code = out_data["fallback_code"]
+            if fallback_code not in output_objects:
+                raise AdapterBuildError(f"Can't find output: {fallback_code}")
+
+            output_objects[code]["output"].set_fallback(output_objects[fallback_code]["output"])
 
     for code, out_data in output_objects.items():
         if code not in fallback_codes:
             return out_data["output"]
+
     return None
 
 

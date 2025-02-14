@@ -61,7 +61,10 @@ class ProcessModule:
         """
         for phase in self._phases:
             if phase.is_activated(topic):
-                for topic_val, data in phase.update(data):
+                phase_data = phase.update(data)
+                if phase_data is None:
+                    continue
+                for topic_val, data in phase_data:
                     self._output.transmit(topic_val, data)
 
     def set_interpreter(self, interpreter: 'AbstractInterpreter') -> None:
