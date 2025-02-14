@@ -125,8 +125,12 @@ class MQTT(OutputModule):
         self.client.on_log = self.on_log
         self.client.on_message = self.on_message
 
+        self._username = None
+        self._password is None
         if username and password:
-            self.client.username_pw_set(username, password)
+            self._username = username
+            self._password = password
+        
         if tls:
             try:
                 self.client.tls_set()
@@ -140,14 +144,11 @@ class MQTT(OutputModule):
         """
         Connects to the MQTT broker and sets a thread looping.
         """
-        if not self.is_enabled:
-            logger.warning(
-                f"{self.__class__.__name__} - connect called with module disabled."
-            )
-            return
         try:
+            if self._username and self._password:
+                        self.client.username_pw_set(self._username, self._password)
             self.client.connect(self._broker, self._port, 60)
-            time.sleep(0.5)
+            time.sleep(3)
             self.client.loop_start()
         except (socket_error, gaierror, OSError) as e:
             self._handle_exception(
@@ -160,6 +161,11 @@ class MQTT(OutputModule):
         """
         Disconnect from the MQTT broker and stop the threaded loop.
         """
+        if not self.is_enabled():
+            logger.warning(
+                f"{self.__class__.__name__} - disconnect called with module disabled."
+            )
+            return
         try:
             if self.client.is_connected():
                 self.client.disconnect()
@@ -188,7 +194,7 @@ class MQTT(OutputModule):
         Returns:
             bool: True if the message was successfully published, False otherwise.
         """
-        if not self.is_enabled:
+        if not self.is_enabled():
             logger.warning(
                 f"{self.__class__.__name__} - transmit called with module disabled."
             )
@@ -227,7 +233,7 @@ class MQTT(OutputModule):
         Args:
             topic (str): The topic to clear retained messages for.
         """
-        if not self.is_enabled:
+        if not self.is_enabled():
             logger.warning(
                 f"{self.__class__.__name__} - flush called with module disabled."
             )
@@ -267,6 +273,11 @@ class MQTT(OutputModule):
             rc (int): The connection result code.
             metadata (Optional[Any]): Additional metadata (if any).
         """
+        if not self.is_enabled():
+            logger.warning(
+                f"{self.__class__.__name__} - on_connect called with module disabled."
+            )
+            return
         logger.debug(f"Connected: {rc}")
         if rc != 0:
             error_messages = {
@@ -325,6 +336,13 @@ class MQTT(OutputModule):
             rc (int): The disconnection result code.
             properties (Optional[Any]): Additional metadata (if any).
         """
+        
+        if not self.is_enabled():
+            logger.warning(
+                f"{self.__class__.__name__} - disconnect called with module disabled."
+            )
+            return
+        
         if rc != mqtt.MQTT_ERR_SUCCESS:
             reconnect_count, reconnect_delay = 0, FIRST_RECONNECT_DELAY
             while reconnect_count < MAX_RECONNECT_COUNT:
@@ -425,8 +443,6 @@ class MQTT(OutputModule):
         Returns:
             bool: True if successfully enabled, False otherwise.
         """
-        if self.client.is_connected():
-            self.disconnect()
         return super().enable()
 
     def disable(self) -> bool:
@@ -436,8 +452,6 @@ class MQTT(OutputModule):
         Returns:
             bool: True if successfully disabled, False otherwise.
         """
-        if not self.client.is_connected():
-            self.connect()
         return super().disable()
 
     def pop(self, key: Optional[str] = None) -> None:

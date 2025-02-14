@@ -48,7 +48,7 @@ logger = get_logger(__name__, log_file="global.log",
                     error_log_file="global_error.log",
                     log_level=logging.INFO)
 adapters: list[Any] = []
-output_disable_time = 5 # Seconds
+output_disable_time = 500
 ##################################
 #
 #            FUNCTIONS
@@ -341,11 +341,13 @@ def run_adapters(equipment_instances, output, error_handler,
                             f"Error, resetting adapters (attempt {error_retry_count}): {error}",
                             exc_info=error,
                         )
-                        stop_all_adapters()
+                        # Need to consider whats best to be done here.
+                        #stop_all_adapters()
+
                         output.disconnect()
                         time.sleep(cooldown_period_error)
                         output.connect()
-                        adapter_threads = _start_all_adapters_in_threads(adapters)
+                        #adapter_threads = _start_all_adapters_in_threads(adapters)
                     else:
                         logger.error(
                             f"Exceeded max retries, shutting down.", exc_info=error
@@ -361,18 +363,19 @@ def run_adapters(equipment_instances, output, error_handler,
                             exc_info=error,
                         )
                         # Retry mechanism based on cumulative warnings
-                        if client_warning_retry_count >= max_warning_retries:
-                            logger.error(
-                                f"Disabling client {output.__class__.__name__}.",
-                                exc_info=error,
-                            )
-                            output.disable()
-                            client_warning_retry_count = 0
-                        else:
-                            client_warning_retry_count += 1
-                            output.disconnect()
-                            time.sleep(cooldown_period_warning)
-                            output.connect()
+                        if output.is_enabled():
+                            if client_warning_retry_count >= max_warning_retries:
+                                logger.error(
+                                    f"Disabling client {output.__class__.__name__}.",
+                                    exc_info=error,
+                                )
+                                output.disable()
+                                client_warning_retry_count = 0
+                            else:
+                                client_warning_retry_count += 1
+                                output.disconnect()
+                                time.sleep(cooldown_period_warning)
+                                output.connect()
                     else:
                         logger.warning(f"Warning encountered: {error}", 
                                        exc_info=error)

@@ -45,6 +45,7 @@ class KEYDB(OutputModule):
         self.port: int = port
         self.db: int = db
         self._client: Optional[redis.StrictRedis] = None
+        self.connect()
 
     def _handle_redis_error(self, exception: redis.RedisError) -> None:
         """
