@@ -174,16 +174,19 @@ class EquipmentAdapter(ABC):
             watcher (EventWatcher): The event watcher.
             processes (List[ProcessModule]): List of process modules to validate.
         """
+        phase_terms = []    
         watcher_terms = watcher.get_terms()
         for process in processes:
-            if not process.has_valid_terms(watcher_terms):
-                error_str = (
-                    "Current phases in process " "don't handle all potential inputs."
-                )
-                excp = exceptions.AdapterBuildError(
-                    error_str, severity=exceptions.SeverityLevel.WARNING
-                )
-                self._handle_exception(excp)
+            phase_terms += [t for t in process.get_phase_terms()]
+        if not all(term in phase_terms for term in watcher_terms):
+            error_str = (
+                "Current processes and phases " 
+                "don't handle all potential inputs"
+            )
+            excp = exceptions.AdapterBuildError(
+                error_str, severity=exceptions.SeverityLevel.WARNING
+            )
+            self._handle_exception(excp)
 
     def start(self) -> None:
         """
