@@ -98,15 +98,5 @@ class ProcessModule:
         self._metadata_manager = manager
         [p.set_metadata_manager(manager) for p in self._phases]
 
-    def has_valid_terms(self, terms: list[str]) -> bool:
-        """
-        Check if the given terms are valid for the phases in this process.
-
-        Args:
-            terms (list[str]): A collection of terms to validate.
-
-        Returns:
-            bool: True if all terms are valid for the phases, False otherwise.
-        """
-        phase_terms = {phase.get_term() for phase in self._phases}
-        return all(term in phase_terms for term in terms)
+    def get_phase_terms(self):
+        return {phase.get_term() for phase in self._phases}
