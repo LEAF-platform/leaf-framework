@@ -1,5 +1,8 @@
 from typing import Optional
-from leaf.modules.process_modules.discrete_module import DiscreteProcess
+import time
+
+from leaf.modules.process_modules.continous_module import ContinousProcess
+from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.phase_modules.measure import MeasurePhase
@@ -12,12 +15,14 @@ from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 
-class StartStopAdapter(EquipmentAdapter):
+class ContinuousExperimentAdapter(EquipmentAdapter):
     """
-    Adapter that implements a start-stop process workflow.
+    Adapter that implements a continous process workflow i.e. for equipment 
+    that doesn't have defined experiments.
 
     It initializes and manages discrete phases for starting, stopping,
-    measuring, and initializing equipment processes.
+    measuring, and initializing equipment processes. The start phase is initialised 
+    when the adapter starts and end phase before the adapter exits.
     """
 
     def __init__(
@@ -32,7 +37,7 @@ class StartStopAdapter(EquipmentAdapter):
         experiment_timeout: Optional[int] = None,
     ):
         """
-        Initialize the StartStopAdapter with its phases and processes.
+        Initialize the ContinuousAdapter with its phases and processes.
 
         Args:
             instance_data (dict): Data related to the equipment instance.
@@ -53,10 +58,14 @@ class StartStopAdapter(EquipmentAdapter):
         details_p = InitialisationPhase(metadata_manager)
 
         # Combine phases into a discrete process
-        phase = [start_p, measure_p, stop_p, details_p]
-        process = [DiscreteProcess(output, phase)]
+        measurement_process = ContinousProcess(output, measure_p,
+                                            metadata_manager=metadata_manager,
+                                            error_holder=error_holder)
+        self._control_process = ProcessModule(output,[start_p, stop_p, details_p],
+                                            metadata_manager=metadata_manager,
+                                            error_holder=error_holder)
+        process = [measurement_process,self._control_process]
 
-        # Call the parent class constructor
         super().__init__(
             instance_data,
             watcher,
@@ -66,3 +75,15 @@ class StartStopAdapter(EquipmentAdapter):
             error_holder=error_holder,
             experiment_timeout=experiment_timeout,
         )
+
+
+    def start(self):
+        # Send start message
+        start_topic = self._metadata_manager.experiment.start
+        self._control_process.process_input(start_topic,{})
+        time.sleep(1)
+        super().start()
+        time.sleep(1)
+        # Send stop message
+        stop_topic = self._metadata_manager.experiment.stop
+        self._control_process.process_input(stop_topic,{})

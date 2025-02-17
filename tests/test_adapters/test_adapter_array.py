@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
+from leaf.adapters.core_adapters.discrete_experiment_adapter import DiscreteExperimentAdapter
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
@@ -106,7 +106,7 @@ class TestAdapterArray(unittest.TestCase):
         metadata_manager1 = MetadataManager()
         metadata_manager1.add_equipment_data(instance_data1)
         watcher1 = CSVWatcher(self.watch_file1,metadata_manager1)
-        self._adapter = StartStopAdapter(instance_data1, watcher1,
+        self._adapter = DiscreteExperimentAdapter(instance_data1, watcher1,
                                          self.output,
                                          MockBioreactorInterpreter(),
                                          metadata_manager=metadata_manager1)
@@ -118,7 +118,7 @@ class TestAdapterArray(unittest.TestCase):
         metadata_manager2 = MetadataManager()
         metadata_manager2.add_equipment_data(instance_data2)
         watcher2 = CSVWatcher(self.watch_file2,metadata_manager2)
-        self._adapter2 = StartStopAdapter(instance_data2, watcher2, 
+        self._adapter2 = DiscreteExperimentAdapter(instance_data2, watcher2, 
                                           self.output,
                                           MockBioreactorInterpreter(),
                                           metadata_manager=metadata_manager2)
@@ -300,7 +300,7 @@ class TestAdapterArray(unittest.TestCase):
 
         self.mock_client.reset_messages()
 
-    def _flush_topics(self, adapter: StartStopAdapter) -> None:
+    def _flush_topics(self, adapter: DiscreteExperimentAdapter) -> None:
         details_topic = adapter._metadata_manager.details()
         start_topic = adapter._metadata_manager.experiment.start()
         stop_topic = adapter._metadata_manager.experiment.stop()
