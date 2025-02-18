@@ -580,7 +580,9 @@ class TestExceptionsGeneral(unittest.TestCase):
                 severity=SeverityLevel.CRITICAL,
             )
             error_holder.add_error(exception)
+            time.sleep(1)
             while not _is_error_seen(exception, error_holder):
+                
                 time.sleep(0.1)
             _stop(adapter_thread)
 
@@ -769,7 +771,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
                 SeverityLevel.ERROR,
             )
         ]
-        print(error_holder._errors)
+        
         self.assertTrue(len(error_holder._errors) > 0)
         for log in error_holder._errors:
             exc_value = log["error"]
