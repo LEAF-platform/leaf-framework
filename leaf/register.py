@@ -161,21 +161,21 @@ def get_output_adapter(code: str):
 
 def _load_class_from_file(file_path: str, class_name: str = None):
     """
-    Loads and returns a class dynamically from the given Python file.
+    Loads and returns the most derived class dynamically from the given Python file.
 
     If a class name is provided, it attempts to load that specific class.
-    If no class name is provided, it searches for the first class that
-    inherits from EquipmentAdapter.
+    If no class name is provided, it searches for the most derived class
+    that inherits from EquipmentAdapter.
 
     Args:
         file_path (str): The file path of the Python module.
         class_name (str, optional): The name of the class to be loaded. If None,
-                                    the function will search for a class that
-                                    inherits from EquipmentAdapter.
+                                    the function will search for the most derived
+                                    class that inherits from EquipmentAdapter.
 
     Returns:
-        type: The class object from the specified file and class name, or the
-              first class inheriting from EquipmentAdapter if no class name is provided.
+        type: The most derived class object from the specified file and class name, or the
+              most derived class inheriting from EquipmentAdapter if no class name is provided.
 
     Raises:
         AdapterBuildError: If the specified class or a class inheriting from
@@ -191,8 +191,22 @@ def _load_class_from_file(file_path: str, class_name: str = None):
         else:
             raise AdapterBuildError(f"Class '{class_name}' not found in '{file_path}'.")
     else:
-        for name, obj in inspect.getmembers(module, inspect.isclass):
-            if issubclass(obj, EquipmentAdapter) and obj is not EquipmentAdapter:
-                return obj
+        derived_classes = [
+            obj for _, obj in inspect.getmembers(module, inspect.isclass)
+            if issubclass(obj, EquipmentAdapter) and obj is not EquipmentAdapter
+        ]
 
-        raise AdapterBuildError(f"No class inheriting from EquipmentAdapter found in '{file_path}'.")
+        if not derived_classes:
+            raise AdapterBuildError(f"No class inheriting from EquipmentAdapter found in '{file_path}'.")
+
+        most_derived_class = max(derived_classes, key=lambda cls: _inheritance_depth(cls, EquipmentAdapter))
+
+        return most_derived_class
+
+def _inheritance_depth(cls, base_cls):
+    """Helper function to compute the inheritance depth of a class from the base class."""
+    depth = 0
+    while cls and cls is not base_cls:
+        cls = cls.__base__
+        depth += 1
+    return depth

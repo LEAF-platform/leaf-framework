@@ -31,7 +31,7 @@ class OutputModule(ABC):
         Raises:
             AdapterLogicError: If the fallback is not an 
                                 OutputModule instance.
-        """
+        """ 
         if fallback is not None and not isinstance(fallback, OutputModule):
             raise AdapterLogicError("Output fallback must be an OutputModule.")
         self._fallback = fallback
@@ -109,6 +109,13 @@ class OutputModule(ABC):
             self._handle_exception(ClientUnreachableError(
                 "Cannot store data, no output mechanisms available."))
             return False
+
+    def set_fallback(self,fallback):
+        if not isinstance(fallback,OutputModule):
+            self._handle_exception(AdapterLogicError(
+                "Cant set fallback to non output module"))
+        else:
+            self._fallback = fallback
 
     def is_enabled(self) -> bool:
         return self._enabled is None

@@ -8,17 +8,16 @@ def handle_disabled_modules(output,timeout):
     '''
     if (not output.is_enabled() and 
         time.time() - output.get_disabled_time() > timeout):
-        output.enable()
         output.connect()
         connect_timeout_count = 0
         connect_timeout = 15
         while not output.is_connected():
-            time.sleep(0.1)
+            time.sleep(1)
             connect_timeout_count += 1
             if connect_timeout_count > connect_timeout:
                 output.disable()
                 return
-
+        output.enable()
         thread = threading.Thread(target=output_messages,
                                 args=(output,))
         thread.daemon = True

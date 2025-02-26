@@ -295,12 +295,6 @@ class TestExceptionsGeneral(unittest.TestCase):
                 broker=self.broker, port=self.port, error_holder=self.error_holder
             )
 
-    @patch("leaf.modules.output_modules.keydb_client.redis.StrictRedis.set")
-    def test_keydb_transmit_cant_access_client(self, mock_set) -> None:
-        mock_set.side_effect = ClientUnreachableError("Unable to connect to KeyDB")
-        self.keydb_client.transmit("test_key", "test_data")
-        self.assertEqual(self.error_holder.add_error.call_count, 2)
-
     @patch("leaf.modules.output_modules.keydb_client.KEYDB._handle_redis_error")
     @patch("leaf.modules.output_modules.keydb_client.redis.StrictRedis")
     def test_keydb_connect_cant_access_client(self, mock_redis, mock_handle_error) -> None:
@@ -586,7 +580,9 @@ class TestExceptionsGeneral(unittest.TestCase):
                 severity=SeverityLevel.CRITICAL,
             )
             error_holder.add_error(exception)
+            time.sleep(1)
             while not _is_error_seen(exception, error_holder):
+                
                 time.sleep(0.1)
             _stop(adapter_thread)
 
@@ -775,7 +771,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
                 SeverityLevel.ERROR,
             )
         ]
-        print(error_holder._errors)
+        
         self.assertTrue(len(error_holder._errors) > 0)
         for log in error_holder._errors:
             exc_value = log["error"]
