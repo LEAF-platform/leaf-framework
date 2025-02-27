@@ -63,10 +63,11 @@ class MockUploadInterpreter(AbstractInterpreter):
         return
     
 class MockUploadAdapter(UploadAdapter):
-    def __init__(self, instance_data, output, watch_dir):
+    def __init__(self, instance_data,equipment_data, output, watch_dir):
         metadata_manager = MetadataManager()
+        metadata_manager.add_instance_data(instance_data)
         interpreter = MockUploadInterpreter()
-        super().__init__(instance_data, output, interpreter, watch_dir,
+        super().__init__(equipment_data, output, interpreter, watch_dir,
                          metadata_manager=metadata_manager)
         
 class TestUploadAdapter(unittest.TestCase):
@@ -79,12 +80,12 @@ class TestUploadAdapter(unittest.TestCase):
         self.instance_data = {
             "instance_id": unique_id,
             "institute": f"TestUploadAdapter_{unique_id}_ins",
-            "adapter_id" : f"TestUploadAdapter_{unique_id}_equipment",
         }
+        self.equipment_data = {"adapter_id" : f"TestUploadAdapter_{unique_id}_equipment",}
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         self.output = MQTT(broker, port, username=un, password=pw)
-        self._adapter = MockUploadAdapter(self.instance_data, self.output, 
+        self._adapter = MockUploadAdapter(self.instance_data,self.equipment_data, self.output, 
                                           str(self.watch_dir))
 
         self.details_topic = self._adapter._metadata_manager.details()

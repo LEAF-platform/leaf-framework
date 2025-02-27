@@ -32,10 +32,9 @@ class TestCSVWatcher(unittest.TestCase):
                     pass
 
             metadata = MetadataManager()
-            metadata._metadata["equipment"] = {}
-            metadata._metadata["equipment"]["institute"] = "test_csv_watcher_details"
-            metadata._metadata["equipment"]["adapter_id"] = "test_csv_watcher_details"
-            metadata._metadata["equipment"]["instance_id"] = "test_csv_watcher_details"
+            metadata.add_equipment_value("adapter_id","test_csv_watcher_details")
+            metadata.add_instance_value("institute","test_csv_watcher_details")
+            metadata.add_instance_value("instance_id","test_csv_watcher_details")
             watcher = CSVWatcher(text_watch_file,metadata,
                                   callbacks=[mock_callback])
             watcher.start()

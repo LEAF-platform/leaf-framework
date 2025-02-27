@@ -41,10 +41,10 @@ class TestMQTT(unittest.TestCase):
 
     def test_transmit(self):
         metadata_manager = MetadataManager()
-        metadata_manager._metadata["equipment"] = {}
-        metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        metadata_manager._metadata["equipment"]["adapter_id"] = "test_transmit"
-        metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        metadata_manager.add_instance_value("institute","test_transmit")
+        metadata_manager.add_instance_value("instance_id","test_transmit")
+
         self._mock_client.subscribe(metadata_manager.experiment.start())
         time.sleep(2)
         self._adapter.transmit(metadata_manager.experiment.start(),

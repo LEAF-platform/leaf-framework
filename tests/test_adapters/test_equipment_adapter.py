@@ -83,7 +83,7 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 
 
 class MockEquipmentAdapter(EquipmentAdapter):
-    def __init__(self, instance_data, fp,
+    def __init__(self, instance_data,equipment_data, fp,
                  experiment_timeout=None):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
@@ -93,11 +93,12 @@ class MockEquipmentAdapter(EquipmentAdapter):
         measure_p = MeasurePhase()
         details_p = ControlPhase(metadata_manager.details)
 
+        metadata_manager.add_instance_data(instance_data)
         phase = [start_p, measure_p, stop_p,details_p]
         mock_process = [DiscreteProcess(output,phase)]
         error_holder = ErrorHolder()
         super().__init__(
-            instance_data,
+            equipment_data,
             watcher,
             mock_process,
             MockBioreactorInterpreter(),
@@ -131,13 +132,11 @@ class TestEquipmentAdapter(unittest.TestCase):
             "instance_id": unique_instance_id,
             "institute": unique_institute,
         }
+        equipment_data = {"adapter_id" : "TestBioreactor_transmit_" + unique_instance_id}
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockEquipmentAdapter(instance_data, text_watch_file,**kwargs)
-        self._adapter._metadata_manager._metadata["equipment"]["adapter_id"] = (
-            "TestBioreactor_transmit_" + unique_instance_id
-        )
+        self._adapter = MockEquipmentAdapter(instance_data,equipment_data, text_watch_file,**kwargs)
 
         self.details_topic = self._adapter._metadata_manager.details()
         self.start_topic = self._adapter._metadata_manager.experiment.start()
@@ -243,11 +242,11 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_exceptions(self):
         instance_data = {"instance_id" : "test_exceptions_instance",
-                        "institute" : "test_exceptions_ins",
-                        "adapter_id" : "test_exceptions_equip"}
+                        "institute" : "test_exceptions_ins"}
+        equipment_data = {"adapter_id" : "test_exceptions_equip"}
         
         test_exp_tw_watch_file = os.path.join("tmp_exception.txt")
-        adapter = MockEquipmentAdapter(instance_data,
+        adapter = MockEquipmentAdapter(instance_data,equipment_data,
                                  test_exp_tw_watch_file)
         
         mthread = Thread(target=adapter.start)
@@ -273,15 +272,12 @@ class TestEquipmentAdapter(unittest.TestCase):
             "institute": unique_institute,
         }
 
+        equipment_data = {"adapter_id" : "TestBioreactor_transmit_" + unique_instance_id}
         mock_client = MockBioreactorClient(broker, port, username=un, password=pw,
                                            remove_flush=True)
 
-        _adapter = MockEquipmentAdapter(instance_data, text_watch_file, 
-                                        experiment_timeout=exp_timeout)
-        
-        _adapter._metadata_manager._metadata["equipment"]["adapter_id"] = (
-            "TestBioreactor_transmit_" + unique_instance_id
-        )
+        _adapter = MockEquipmentAdapter(instance_data,equipment_data, 
+                                        text_watch_file, experiment_timeout=exp_timeout)
 
         details_topic = _adapter._metadata_manager.details()
         start_topic = _adapter._metadata_manager.experiment.start()
@@ -343,13 +339,13 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_process_input_validation(self):
         instance_data = {"instance_id" : "test_process_input_validation_instance",
-                        "institute" : "test_process_input_validation_ins",
-                        "adapter_id" : "test_process_input_validation_equip"}
+                        "institute" : "test_process_input_validation_ins"}
+        equipment_data = {"adapter_id" : "test_process_input_validation_equip"}
         temp_dir = tempfile.TemporaryDirectory()
         test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_process_input_validation.txt")
 
         try:
-            adapter = MockEquipmentAdapter(instance_data,
+            adapter = MockEquipmentAdapter(instance_data,equipment_data,
                                     test_exp_tw_watch_file)
         except AdapterBuildError as e:
             self.fail(f"Unexpected exception raised: {e}")

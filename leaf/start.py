@@ -19,7 +19,6 @@ from typing import Any, Type
 import yaml
 
 from leaf import register
-from leaf_register.metadata import MetadataManager
 from leaf_register.topic_utilities import topic_utilities
 
 from leaf.adapters.equipment_adapter import EquipmentAdapter
@@ -138,7 +137,6 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 
 def _get_existing_ids(output_module: MQTT,
-                      metadata_manager: MetadataManager,
                       time_to_sleep: int = 5) -> list[str]:
     """Returns IDS of equipment already in the system."""
     topic = topic_utilities.details()
@@ -203,12 +201,11 @@ def _process_instance(instance: dict[str, Any],
     requirements = instance["requirements"]
     adapter = register.get_equipment_adapter(equipment_code,
                                              external_adapter=external_adapter)
-    manager = MetadataManager()
     try:
         instance_id = instance_data["instance_id"]
     except KeyError:
         raise AdapterBuildError(f"Missing instance ID.")
-    if instance_id in _get_existing_ids(output, manager):
+    if instance_id in _get_existing_ids(output):
         logger.warning(f"ID: {instance_id} is taken.")
     adapter_params = inspect.signature(adapter).parameters
     adapter_param_names = set(adapter_params.keys())

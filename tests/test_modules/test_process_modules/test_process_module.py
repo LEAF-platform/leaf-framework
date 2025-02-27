@@ -91,10 +91,9 @@ class TestContinousProcess(unittest.TestCase):
         self.mock_client.subscribe(f'{ins_id}/{adapter_id}/{instance_id}/#')
 
         self.metadata_manager = MetadataManager()
-        self.metadata_manager._metadata["equipment"] = {}
-        self.metadata_manager._metadata["equipment"]["institute"] = ins_id
-        self.metadata_manager._metadata["equipment"]["adapter_id"] = adapter_id
-        self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
+        self.metadata_manager.add_equipment_value("adapter_id",adapter_id)
+        self.metadata_manager.add_instance_value("institute",ins_id)
+        self.metadata_manager.add_instance_value("instance_id",instance_id)
 
         self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
@@ -141,10 +140,9 @@ class TestDiscreteProcess(unittest.TestCase):
         self.mock_client.subscribe(f'{ins_id}/{adapter_id}/{instance_id}/#')
 
         self.metadata_manager = MetadataManager()
-        self.metadata_manager._metadata["equipment"] = {}
-        self.metadata_manager._metadata["equipment"]["institute"] = ins_id
-        self.metadata_manager._metadata["equipment"]["adapter_id"] = adapter_id
-        self.metadata_manager._metadata["equipment"]["instance_id"] = instance_id
+        self.metadata_manager.add_equipment_value("adapter_id",adapter_id)
+        self.metadata_manager.add_instance_value("institute",ins_id)
+        self.metadata_manager.add_instance_value("instance_id",instance_id)
         
         self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, 

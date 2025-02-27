@@ -83,14 +83,15 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 
 
 class MockEquipmentAdapter(ContinuousExperimentAdapter):
-    def __init__(self, instance_data, fp,
+    def __init__(self, instance_data,equipment_data, fp,
                  experiment_timeout=None):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         error_holder = ErrorHolder()
+        metadata_manager.add_instance_data(instance_data)
         super().__init__(
-            instance_data,
+            equipment_data,
             watcher,
             output,
             MockBioreactorInterpreter(),
@@ -124,13 +125,11 @@ class TestEquipmentAdapter(unittest.TestCase):
             "instance_id": unique_instance_id,
             "institute": unique_institute,
         }
-
+        equipment_data = {"adapter_id" : "TestBioreactor_transmit_" + unique_instance_id}
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockEquipmentAdapter(instance_data, text_watch_file,**kwargs)
-        self._adapter._metadata_manager._metadata["equipment"]["adapter_id"] = (
-            "TestBioreactor_transmit_" + unique_instance_id
-        )
+        self._adapter = MockEquipmentAdapter(instance_data,equipment_data,
+                                              text_watch_file,**kwargs)
 
         self.details_topic = self._adapter._metadata_manager.details()
         self.start_topic = self._adapter._metadata_manager.experiment.start()

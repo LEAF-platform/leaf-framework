@@ -83,7 +83,8 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 
 
 class MockEquipment(EquipmentAdapter):
-    def __init__(self, instance_data, fp, error_holder=None) -> None:
+    def __init__(self, instance_data,equipment_data,
+                  fp, error_holder=None) -> None:
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
@@ -94,9 +95,9 @@ class MockEquipment(EquipmentAdapter):
 
         phase = [start_p, measure_p, stop_p,details_p]
         mock_process = [DiscreteProcess(output,phase)]
-
+        metadata_manager.add_instance_data(instance_data)
         super().__init__(
-            instance_data,
+            equipment_data,
             watcher,
             mock_process,
             MockBioreactorInterpreter(),
@@ -749,8 +750,8 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         instance_data = {
             "instance_id": "test_equipment_adapter_start_instance_id",
             "institute": "test_equipment_adapter_start_institute_id",
-            "adapter_id": "TestEquipmentAdapter",
         }
+        equipment_data = {"adapter_id": "TestEquipmentAdapter",}
         from watchdog.events import FileSystemEvent
         t_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".." / "testing_data" / "test_equipment_adapter_start"
         # t_dir = "test_equipment_adapter_start"
@@ -760,7 +761,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         if os.path.isfile(filepath):
             os.remove(filepath)
         error_holder = ErrorHolder(timeframe=6,threshold=2)
-        adapter = MockEquipment(instance_data, filepath, error_holder=error_holder)
+        adapter = MockEquipment(instance_data,equipment_data, filepath, error_holder=error_holder)
 
         event = FileSystemEvent(filepath)
         adapter._watcher.on_created(event)
