@@ -23,7 +23,7 @@ class UploadAdapter(EquipmentAdapter):
     """
     def __init__(
         self,
-        instance_data: dict,
+        instance_data: str,
         output: OutputModule,
         interpreter: AbstractInterpreter,
         watch_dir: Optional[str] = None,
@@ -35,13 +35,12 @@ class UploadAdapter(EquipmentAdapter):
         Initialize the UploadAdapter with its phases and processes.
 
         Args:
-            instance_data (dict): Data related to the equipment instance.
+            instance_data (str): Data related to the instance.
             output (OutputModule): The output module used to transmit data.
             interpreter (AbstractInterpreter): The interpreter for processing data.
             watch_dir (str): The directory path to watch for uploads.
             maximum_message_size (Optional[int]): The maximum size of messages in the MeasurePhase.
             error_holder (Optional[ErrorHolder]): Object to store and manage errors.
-            metadata_manager (Optional[MetadataManager]): The metadata manager for equipment data.
             experiment_timeout (Optional[int]): Timeout for experiments in seconds.
         """
 

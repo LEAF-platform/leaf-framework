@@ -22,7 +22,7 @@ class DiscreteExperimentAdapter(EquipmentAdapter):
 
     def __init__(
         self,
-        instance_data: dict,
+        instance_data: str,
         watcher: EventWatcher,
         output: OutputModule,
         interpreter: AbstractInterpreter,
@@ -35,7 +35,7 @@ class DiscreteExperimentAdapter(EquipmentAdapter):
         Initialize the StartStopAdapter with its phases and processes.
 
         Args:
-            instance_data (dict): Data related to the equipment instance.
+            instance_data (str): Data related to the instance.
             watcher (EventWatcher): The input module used to watch or monitor events or data.
             output (OutputModule): The output module used to transmit data.
             interpreter (AbstractInterpreter): The interpreter for processing data.

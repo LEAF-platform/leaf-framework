@@ -98,7 +98,7 @@ class EquipmentAdapter(ABC):
 
     def __init__(
         self,
-        equipment_data: dict,
+        instance_data: str,
         watcher: EventWatcher,
         process_adapters: Union[ProcessModule, List[ProcessModule]],
         interpreter: AbstractInterpreter,
@@ -110,7 +110,7 @@ class EquipmentAdapter(ABC):
         Initialize the EquipmentAdapter instance.
 
         Args:
-            equipment_data (dict): Data related to the equipment.
+            instance_data (str): Data related to the instance.
             watcher (EventWatcher): An object that watches or monitors events or data.
             process_adapters (Union[ProcessModule, List[ProcessModule]]): A list or a single instance of ProcessModules.
             interpreter (AbstractInterpreter): An interpreter object to process the data.
@@ -139,7 +139,7 @@ class EquipmentAdapter(ABC):
 
         else:
             self._metadata_manager = metadata_manager
-        self._metadata_manager.add_equipment_data(equipment_data)
+        self._metadata_manager.add_instance_data(instance_data)
 
         # Watcher
         self._watcher: EventWatcher = watcher

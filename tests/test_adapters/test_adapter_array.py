@@ -104,7 +104,6 @@ class TestAdapterArray(unittest.TestCase):
         equipment_data = {"adapter_id" : f"Equipment_{unique_id1}",}
         metadata_manager1 = MetadataManager()
         metadata_manager1.add_equipment_data(equipment_data)
-        metadata_manager1.add_instance_data(instance_data1)
         watcher1 = CSVWatcher(self.watch_file1,metadata_manager1)
         self._adapter = DiscreteExperimentAdapter(instance_data1, watcher1,
                                          self.output,
@@ -117,7 +116,6 @@ class TestAdapterArray(unittest.TestCase):
 
         metadata_manager2 = MetadataManager()
         metadata_manager2.add_equipment_data(equipment_data2)
-        metadata_manager2.add_instance_data(instance_data2)
         watcher2 = CSVWatcher(self.watch_file2,metadata_manager2)
         self._adapter2 = DiscreteExperimentAdapter(instance_data2, watcher2, 
                                           self.output,
@@ -185,7 +183,7 @@ class TestAdapterArray(unittest.TestCase):
 
             self.assertIn("instance_id", details_data["instance"])
             self.assertEqual(
-                adapter._metadata_manager.get_equipment_data()["instance_id"],
+                adapter._metadata_manager.get_instance_data()["instance_id"],
                 details_data["instance"]["instance_id"],
             )
 
