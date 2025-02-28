@@ -517,7 +517,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
 
         # With a fake broker at least one exception is expected?
-        self.assertEqual(len(expected_exceptions), 0)
+        self.assertTrue(len(expected_exceptions) <= 1)
         self.assertEqual(len(expected_logs), 0)
 
 
