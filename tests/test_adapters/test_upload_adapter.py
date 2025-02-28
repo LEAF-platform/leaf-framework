@@ -135,8 +135,8 @@ class TestUploadAdapter(unittest.TestCase):
         self.assertTrue(len(self.mock_client.messages[self.details_topic]) == 1)
         details_data = self.mock_client.messages[self.details_topic][0]
         for k, v in self.instance_data.items():
-            self.assertIn(k, details_data)
-            self.assertEqual(v, details_data[k])
+            self.assertIn(k, details_data["instance"])
+            self.assertEqual(v, details_data["instance"][k])
         self._flush_topics()
         self.mock_client.reset_messages()
 

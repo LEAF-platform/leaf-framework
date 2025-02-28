@@ -105,10 +105,9 @@ class TestFallbacks(unittest.TestCase):
         measurement_id = "test_pop_all_messages_measurement_id"
 
         manager = MetadataManager()
-        manager._metadata["equipment"] = {}
-        manager._metadata["equipment"]["institute"] = institute
-        manager._metadata["equipment"]["adapter_id"] = adapter_id
-        manager._metadata["equipment"]["instance_id"] = instance_id
+        manager.add_equipment_value("adapter_id",adapter_id)
+        manager.add_instance_value("institute",institute)
+        manager.add_instance_value("instance_id",instance_id)
 
         inp_messages = {manager.experiment.measurement(experiment_id=experiment_id,
                                                    measurement=measurement_id) : ["A","B","C"],
@@ -150,11 +149,10 @@ class TestFallbacks(unittest.TestCase):
         measurement_id = "test_pop_all_messages_measurement_id"
 
         manager = MetadataManager()
-        manager._metadata["equipment"] = {}
-        manager._metadata["equipment"]["institute"] = institute
-        manager._metadata["equipment"]["adapter_id"] = adapter_id
-        manager._metadata["equipment"]["instance_id"] = instance_id
-
+        manager.add_equipment_value("adapter_id",adapter_id)
+        manager.add_instance_value("institute",institute)
+        manager.add_instance_value("instance_id",instance_id)
+        
         keydb_messages = {manager.experiment.measurement(experiment_id=experiment_id,
                                                          measurement=measurement_id) : ["A","B","C"],
                                                          manager.experiment.start() : ["D","E","F"]}

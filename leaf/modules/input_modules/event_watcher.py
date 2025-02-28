@@ -44,7 +44,7 @@ class EventWatcher(ABC):
         """
         Start the EventWatcher and trigger the initialise callbacks.
         """
-        equipment_data = self._metadata_manager.get_equipment_data()
+        equipment_data = self._metadata_manager.get_data()
         self._running = True
         return self._dispatch_callback(self.start, equipment_data)
 

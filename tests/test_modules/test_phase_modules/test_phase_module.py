@@ -44,10 +44,10 @@ class TestMeasurePhase(unittest.TestCase):
         # Create a unique temporary file for this test
         self.text_watch_file = tempfile.NamedTemporaryFile(delete=False).name
 
-        self.metadata_manager = MetadataManager()
-        self.metadata_manager.add_equipment_value("adapter_id","test_transmit")
-        self.metadata_manager.add_instance_value("institute","test_transmit")
-        self.metadata_manager.add_instance_value("instance_id","test_transmit")
+        self._metadata_manager = MetadataManager()
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
 
         self._module = MeasurePhase(metadata_manager=self._metadata_manager)
 
@@ -121,10 +121,10 @@ class TestMeasurePhase(unittest.TestCase):
 
 class TestControlPhase(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata_manager = MetadataManager()
-        self.metadata_manager.add_equipment_value("adapter_id","test_transmit")
-        self.metadata_manager.add_instance_value("institute","test_transmit")
-        self.metadata_manager.add_instance_value("instance_id","test_transmit")
+        self._metadata_manager = MetadataManager()
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = ControlPhase(self._metadata_manager.experiment.start, 
                                     metadata_manager=self._metadata_manager)
 
@@ -140,10 +140,10 @@ class TestControlPhase(unittest.TestCase):
 
 class TestStartPhase(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata_manager = MetadataManager()
-        self.metadata_manager.add_equipment_value("adapter_id","test_transmit")
-        self.metadata_manager.add_instance_value("institute","test_transmit")
-        self.metadata_manager.add_instance_value("instance_id","test_transmit")
+        self._metadata_manager = MetadataManager()
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = StartPhase(metadata_manager=self._metadata_manager)
         
     def test_start_phase(self) -> None:
@@ -159,10 +159,10 @@ class TestStartPhase(unittest.TestCase):
 
 class TestStopPhase(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata_manager = MetadataManager()
-        self.metadata_manager.add_equipment_value("adapter_id","test_transmit")
-        self.metadata_manager.add_instance_value("institute","test_transmit")
-        self.metadata_manager.add_instance_value("instance_id","test_transmit")
+        self._metadata_manager = MetadataManager()
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = StopPhase(metadata_manager=self._metadata_manager)
         
     def test_stop_phase(self) -> None:
@@ -178,10 +178,10 @@ class TestStopPhase(unittest.TestCase):
 
 class TestInitialisationPhase(unittest.TestCase):
     def setUp(self) -> None:
-        self.metadata_manager = MetadataManager()
-        self.metadata_manager.add_equipment_value("adapter_id","test_transmit")
-        self.metadata_manager.add_instance_value("institute","test_transmit")
-        self.metadata_manager.add_instance_value("instance_id","test_transmit")
+        self._metadata_manager = MetadataManager()
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = InitialisationPhase(metadata_manager=self._metadata_manager)
         
     def test_initialisation_phase(self) -> None:

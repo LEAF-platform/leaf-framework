@@ -183,10 +183,10 @@ class TestAdapterArray(unittest.TestCase):
             self.assertTrue(len(self.mock_client.messages[details_topic]) == 1)
             details_data = self.mock_client.messages[details_topic][0]
 
-            self.assertIn("instance_id", details_data)
+            self.assertIn("instance_id", details_data["instance"])
             self.assertEqual(
                 adapter._metadata_manager.get_equipment_data()["instance_id"],
-                details_data["instance_id"],
+                details_data["instance"]["instance_id"],
             )
 
     def test_start(self) -> None:

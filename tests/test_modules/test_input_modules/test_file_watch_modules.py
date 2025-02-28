@@ -39,7 +39,7 @@ class TestFileWatcher(unittest.TestCase):
                                   callbacks=[mock_callback])
             watcher.start()
             watcher.stop()
-            self.assertEqual(topics[metadata.details()][0],metadata.get_equipment_data())
+            self.assertEqual(topics[metadata.details()][0],metadata.get_data())
 
     def test_file_watcher_change(self):
         with tempfile.TemporaryDirectory() as test_dir:
