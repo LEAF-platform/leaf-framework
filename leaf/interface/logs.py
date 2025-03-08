@@ -18,14 +18,15 @@ class LogElementHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-def create_logs_panel(tabs, logs_tab, self) -> None:
-    with ui.tab_panel(logs_tab).style('width: 100%'):
-        ui.label('System Logs').classes('text-xl font-bold')
 
+def create_logs_panel(tabs, logs_tab, self) -> None:
     logger = logging.getLogger()
-    log = ui.log(max_lines=10).classes('w-full')
+    log = ui.log(max_lines=100).classes('w-full')
     handler = LogElementHandler(log)
     logger.addHandler(handler)
     ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
-    ui.button('Log time', on_click=lambda: logger.warning(datetime.now().strftime('%X.%f')[:-5]))
 
+    with ui.tab_panel(logs_tab).style('width: 100%'):
+        ui.label('System Logs').classes('text-xl font-bold')
+        ui.number(label='Max log lines', value=10,
+            on_change=lambda e: setattr(log, 'max_lines', int(e.value)))
