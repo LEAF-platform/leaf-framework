@@ -8,7 +8,7 @@ from leaf.error_handler.exceptions import SeverityLevel
 from leaf.interface.config import create_config_panel
 from leaf.interface.dashboard import create_dashboard_panel
 from leaf.interface.docs import create_docs_panel
-
+from leaf.interface.logs import create_logs_panel
 # Initialize logger
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ class LEAFGUI:
                 dashboard_tab = ui.tab('Dashboard')
                 config_tab = ui.tab('Configuration')
                 docs_tab = ui.tab('Documentation')
+                logs_tab = ui.tab('Logs')
 
             # Main content for all tabs
             with ui.tab_panels(tabs, value=dashboard_tab).classes('w-full'):
@@ -93,14 +94,9 @@ class LEAFGUI:
                     # Documentation tab content
                     create_docs_panel(tabs, docs_tab, self)
 
-                    # External adapter path
-                    # external_adapter_path = ui.input(label='External Adapter Path (Optional)', placeholder='/path/to/adapter')
-                    #
-                    # def set_external_adapter():
-                    #     self.global_external_adapter = external_adapter_path.value
-                    #     ui.notify(f'External adapter path set: {self.global_external_adapter}', color='positive')
-                    #
-                    # ui.button('Set External Adapter', on_click=set_external_adapter)
+                with ui.tab_panel(logs_tab):
+                    # Logs tab content
+                    create_logs_panel(tabs, logs_tab, self)
             
 
     def update_error_state(self, error, severity):
