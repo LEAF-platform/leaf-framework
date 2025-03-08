@@ -1,5 +1,3 @@
-""" LEAF: start.py """
-
 ##################################
 #
 #            PACKAGES
@@ -35,6 +33,7 @@ from leaf.adapters.equipment_adapter import EquipmentAdapter
 
 from leaf.utility.running_utilities import handle_disabled_modules
 
+from leaf.interface.main import create_gui
 ##################################
 #
 #            VARIABLES
@@ -48,6 +47,14 @@ logger = get_logger(__name__, log_file="global.log",
                     log_level=logging.INFO)
 adapters: list[Any] = []
 output_disable_time = 500
+
+# Global variables for the app
+global_output = None
+global_error_handler = None
+global_config = None
+# global_external_adapter = None
+global_gui = None
+global_args = None
 ##################################
 #
 #            FUNCTIONS
@@ -84,6 +91,12 @@ def parse_args(args=None) -> argparse.Namespace:
         help="The path to the directory of the adapter to use.",
         default=None
     )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="The port to run the NiceGUI web interface on.",
+    )
     return parser.parse_args(args=args)
 
 
@@ -112,12 +125,17 @@ def substitute_env_vars(config: Any):
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
     logger.info("Stopping all adapters.")
+    if global_gui:
+        global_gui.update_status("Stopping")
     for adapter in adapters:
         try:
             adapter.stop()
             logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
+    if global_gui:
+        global_gui.update_adapters_count(0)
+        global_gui.update_status("Stopped")
 
 
 def _start_all_adapters_in_threads(adapters):
@@ -129,6 +147,8 @@ def _start_all_adapters_in_threads(adapters):
         thread.daemon = True
         thread.start()
         adapter_threads.append(thread)
+    if global_gui:
+        global_gui.update_adapters_count(len(adapters))
     return adapter_threads
 
 
@@ -275,6 +295,10 @@ def run_adapters(equipment_instances, output, error_handler,
     max_warning_retries = 2
     client_warning_retry_count = 0
     cooldown_period_warning = 1
+    
+    if global_gui:
+        global_gui.update_status("Running")
+    
     try:
         # Initialize and start all adapters
         for equipment_instance in equipment_instances:
@@ -321,6 +345,11 @@ def run_adapters(equipment_instances, output, error_handler,
                 
                 for adapter in adapters:
                     adapter.transmit_error(error)
+                    
+                # Add error to our GUI state if GUI is enabled
+                if global_gui:
+                    global_gui.update_error_state(error, error.severity)
+                
                 if error.severity == SeverityLevel.CRITICAL:
                     logger.error(
                         f"Critical error encountered: {error}. Shutting down.",
@@ -423,37 +452,70 @@ def welcome_message() -> None:
 #
 ###################################
 def main(args=None) -> None:
+    global global_gui, global_output, global_error_handler, global_config, global_external_adapter
+    
     welcome_message()
     register.load_adapters()
 
     """Main function as a wrapper for all steps."""
     logger.info("Starting the proxy.")
     args = parse_args(args)
-
+    global_args = args
     if args.debug:
         logger.debug("Debug logging enabled.")
         logger.setLevel(logging.DEBUG)
 
-    if args.config is None:
-        logger.error("No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
-        if os.path.isfile("config/config.yaml"):
-            logger.info("An example of a config file if needed:")
-            with open("config/config.yaml", "r") as file:
-                logger.info("\n"+file.read())
-        return
+    # If GUI is enabled, run NiceGUI as the main application
+    import threading
+    import time
 
-    external_adapter = args.path
-    logger.debug(f"Loading configuration file: {args.config}")
+    if args.guidisable:
+        logger.info(f"Starting NiceGUI web interface on port {args.port}")
+        # Create GUI instance
+        global_gui = create_gui(args.port)
+        # Set global variables
+        global_gui.global_args = global_args
+        global_gui.global_config = global_config
+        # Register callbacks for GUI to use
+        global_gui.register_callbacks(
+            start_adapters_func=run_adapters,
+            stop_adapters_func=stop_all_adapters
+        )
 
-    with open(args.config, "r") as file:
-        config = yaml.safe_load(file)
+        # Function to run background tasks (adapter setup)
+        def run_background_tasks():
+            external_adapter = args.path
+            global_external_adapter = external_adapter
+            logger.debug(f"Loading configuration file: {args.config}")
 
-    logger.info(f"Configuration: {args.config} loaded.")
-    general_error_holder = ErrorHolder()
-    output = _get_output_module(config, general_error_holder)
-    run_adapters(config["EQUIPMENT_INSTANCES"], output, 
-                 general_error_holder,external_adapter=external_adapter)
+            # Load the configuration file
+            if args.config is None or not os.path.exists(args.config):
+                logger.error(
+                    "No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
+                global_config: str = "No configuration file provided."
+                config = None
+            else:
+                with open(args.config, "r") as file:
+                    config = yaml.safe_load(file)
+                    global_config: str = yaml.dump(config, indent=4)
+
+                logger.info(f"Configuration: {args.config} loaded.")
+                logger.info(f"\n{global_config}\n")
+
+                general_error_holder = ErrorHolder()
+                global_error_handler = general_error_holder
+                output = _get_output_module(config, general_error_holder)
+                global_output = output
+                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder,
+                             external_adapter=external_adapter)
+
+        # Start the background tasks (adapter setup) in a separate thread
+        background_thread = threading.Thread(target=run_background_tasks, daemon=True)
+        background_thread.start()
+
+        # Run the GUI in the main thread
+        global_gui.run()
 
 
-if __name__ == "__main__":
-    main()
+if __name__ in {"__main__", "__mp_main__"}:
+    main(["-c", "/Users/koeho006/git/leaf/leaf/venv/lib/python3.12/site-packages/leaf_hello_world/example.yaml"])
