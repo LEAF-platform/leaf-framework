@@ -133,6 +133,9 @@ def stop_all_adapters() -> None:
             logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
+    # Delete all adapters
+    adapters.clear()
+    logger.info(f"All adapters cleared and {len(adapters)} still running.")
     if global_gui:
         global_gui.update_adapters_count(0)
         global_gui.update_status("Stopped")

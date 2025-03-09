@@ -66,7 +66,8 @@ async def create_config_panel(tabs, config_tab, self) -> None:
 
                     general_error_holder = ErrorHolder()
                     output = _get_output_module(self.global_config, general_error_holder)
-                    await asyncio.to_thread(self.start_adapters_func, self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder)
+                    ui.notify(f'Starting adapters not yet implemented', color='negative')
+                    # await asyncio.to_thread(self.start_adapters_func, self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder)
 
                 except Exception as e:
                     ui.notify(f'Error saving configuration: {str(e)}', color='negative')

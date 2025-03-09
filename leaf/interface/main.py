@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import threading
+from datetime import datetime
 from typing import Callable
 
 from nicegui import ui
@@ -62,7 +63,7 @@ class LEAFGUI:
     async def setup_nicegui(self) -> None:
         """Set up NiceGUI web interface"""
         @ui.page('/')
-        async def index():
+        async def index() -> None:
             # Add favicon
             ui.add_head_html('<link rel="icon" type="image/x-icon" href="https://nicegui.io/favicon.ico">')
             
@@ -71,8 +72,12 @@ class LEAFGUI:
                 ui.label('LEAF Monitoring System').classes('text-2xl font-bold')
 
             # Footer layout
-            with ui.footer().classes('bg-gray-100 text-center'):
-                ui.label('LEAF System Biology - Documentation at leaf.systemsbiology.nl')
+            # Footer layout
+            with ui.footer().classes('bg-gray-100 justify-center'):
+                # Obtain current year
+                year = str(datetime.now().year)
+                ui.label(f'LEAF ({year})').classes('text-black')
+                ui.link(text='leaf.systemsbiology.nl', target='https://leaf.systemsbiology.nl', new_tab=True).classes('text-black')
 
             # Tabs
             with ui.tabs().classes('w-full') as tabs:
@@ -114,11 +119,11 @@ class LEAFGUI:
     def update_status(self, status) -> None:
         """Update the UI status"""
         leaf_state["status"] = status
-    
+
     def update_adapters_count(self, count: int) -> None:
         """Update the active adapters count"""
         leaf_state["active_adapters"] = count
-    
+
     def run(self) -> None:
         """Start the NiceGUI interface"""
         # self.setup_nicegui()
