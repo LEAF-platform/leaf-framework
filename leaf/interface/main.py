@@ -7,6 +7,7 @@ from typing import Callable
 from nicegui import ui
 
 from leaf.error_handler.exceptions import SeverityLevel
+from leaf.interface.adapters import create_adapters_panel
 from leaf.interface.config import create_config_panel
 from leaf.interface.dashboard import create_dashboard_panel
 from leaf.interface.docs import create_docs_panel
@@ -85,6 +86,7 @@ class LEAFGUI:
                 config_tab = ui.tab('Configuration')
                 docs_tab = ui.tab('Documentation')
                 logs_tab = ui.tab('Logs')
+                adapters_tab = ui.tab('Adapters')
 
             # Main content for all tabs
             with ui.tab_panels(tabs, value=dashboard_tab).classes('w-full'):
@@ -103,6 +105,10 @@ class LEAFGUI:
                 with ui.tab_panel(logs_tab):
                     # Logs tab content
                     create_logs_panel(tabs, logs_tab, self)
+
+                with ui.tab_panel(adapters_tab):
+                    # Adapters tab content
+                    await create_adapters_panel(tabs, adapters_tab, self)
             
 
     def update_error_state(self, error, severity):
