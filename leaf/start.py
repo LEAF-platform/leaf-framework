@@ -173,7 +173,7 @@ def _get_existing_ids(output_module: MQTT,
     return ids
 
 
-def _get_output_module(config, error_holder: ErrorHolder) -> Any:
+def _get_output_module(config: dict[Any], error_holder: ErrorHolder) -> Any:
     """Finds, initialises and connects all desired output
         adapters defined within the config"""
     outputs = config["OUTPUTS"]
@@ -506,8 +506,7 @@ def main(args=None) -> None:
                 global_error_handler = general_error_holder
                 output = _get_output_module(config, general_error_holder)
                 global_output = output
-                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder,
-                             external_adapter=external_adapter)
+                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=external_adapter)
 
         # Start the background tasks (adapter setup) in a separate thread
         background_thread = threading.Thread(target=run_background_tasks, daemon=True)

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import threading
 from typing import Callable
@@ -58,10 +59,10 @@ class LEAFGUI:
             ui.notify("Configuration not loaded yet", color="negative")
             return False
 
-    def setup_nicegui(self) -> None:
+    async def setup_nicegui(self) -> None:
         """Set up NiceGUI web interface"""
         @ui.page('/')
-        def index():
+        async def index():
             # Add favicon
             ui.add_head_html('<link rel="icon" type="image/x-icon" href="https://nicegui.io/favicon.ico">')
             
@@ -88,7 +89,7 @@ class LEAFGUI:
                 # Other tab panels would follow...
                 with ui.tab_panel(config_tab):
                     # Configuration tab content
-                    create_config_panel(tabs, config_tab, self)
+                    await create_config_panel(tabs, config_tab, self)
                     
                 with ui.tab_panel(docs_tab):
                     # Documentation tab content
@@ -120,7 +121,8 @@ class LEAFGUI:
     
     def run(self) -> None:
         """Start the NiceGUI interface"""
-        self.setup_nicegui()
+        # self.setup_nicegui()
+        asyncio.run(self.setup_nicegui())  # ✅ Run the async function properly
         ui.run(port=self.port, title="LEAF Monitoring System")
 
 

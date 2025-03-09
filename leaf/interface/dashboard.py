@@ -86,7 +86,7 @@ def create_dashboard_panel(tabs, dashboard_tab, leaf_state, self) -> None:
                     
                     ui.button('Start/Restart Adapters', on_click=restart_adapters).classes('bg-blue-500')
                     
-                    def stop_system():
+                    def stop_system() -> None:
                         if self.stop_adapters_func:
                             self.stop_adapters_func()
                             ui.notify('System stopped')
