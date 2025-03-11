@@ -40,7 +40,8 @@ from leaf.error_handler.exceptions import SeverityLevel
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import InputError
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.adapters import equipment_adapter
+from leaf.error_handler.exceptions import InterpreterError
+from tests.mock_mqtt_client import MockBioreactorClient
 from pathlib import Path
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
@@ -360,7 +361,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
 
     def test_start_handler_no_fallback(self) -> None:
-        error_holder = ErrorHolder(threshold=5)
+        error_holder = ErrorHolder()
         output = MQTT(
             broker,
             port,
@@ -439,7 +440,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
     def test_start_handler_no_connection(self) -> None:
         write_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".." / "testing_data" / str(uuid.uuid4())
-        error_holder = ErrorHolder(threshold=5)
+        error_holder = ErrorHolder()
         if not os.path.isdir(write_dir):
             os.makedirs(write_dir, exist_ok=False)
         write_file = os.path.join(write_dir, "tmp1.csv")
@@ -522,7 +523,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
 
     def test_start_handler_multiple_adapter_critical(self) -> None:
-        error_holder = ErrorHolder(threshold=5)
+        error_holder = ErrorHolder()
         write_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".." / "testing_data" / str(uuid.uuid4())
         if not os.path.isdir(write_dir):
             os.makedirs(write_dir, exist_ok=False)
@@ -573,7 +574,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         def _stop(thread) -> None:
             stop_all_adapters()
 
-        with self.assertLogs(start.__name__, level="ERROR") as logs:
+        with self.assertLogs(start.__name__, level="ERROR") as captured:
             adapter_thread = _start()
             time.sleep(5)
             exception = ClientUnreachableError(
@@ -582,14 +583,26 @@ class TestExceptionsGeneral(unittest.TestCase):
             )
             error_holder.add_error(exception)
             time.sleep(1)
-            while not _is_error_seen(exception, error_holder):
-                
+            # Wait until the error string appears in logs (up to a timeout)
+            start_time = time.time()
+            found_log = False
+            while time.time() - start_time < 10:  # 10-second timeout
+                # Check if the log message is in any of the captured logs   
+                if any("test_multiple_adapter_reset_test_exception" in record.getMessage() 
+                       for record in captured.records):
+                    found_log = True
+                    break
                 time.sleep(0.1)
             _stop(adapter_thread)
 
+        self.assertTrue(
+            found_log,
+            "Timed out waiting for the critical error to be logged."
+        )
+
         expected_exceptions = [exception]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
+        self.assertTrue(len(captured.records) > 0)
+        for log in captured.records:
             exc_type, exc_value, exc_traceback = log.exc_info
             for exp_exc in list(expected_exceptions):
                 if (
@@ -600,8 +613,7 @@ class TestExceptionsGeneral(unittest.TestCase):
                     expected_exceptions.remove(exp_exc)
 
         self.assertEqual(len(expected_exceptions), 0)
-    
-        
+         
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -760,7 +772,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             os.makedirs(t_dir, exist_ok=True)
         if os.path.isfile(filepath):
             os.remove(filepath)
-        error_holder = ErrorHolder(timeframe=6,threshold=2)
+        error_holder = ErrorHolder()
         adapter = MockEquipment(instance_data,equipment_data, filepath, error_holder=error_holder)
 
         event = FileSystemEvent(filepath)
@@ -787,8 +799,73 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.assertEqual(len(expected_exceptions), 0)
 
 
+    def test_ensure_all_errors_handled_start(self):
+        write_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".." / "testing_data" / str(uuid.uuid4())
+        error_holder = ErrorHolder()
+        if not os.path.isdir(write_dir):
+            os.makedirs(write_dir, exist_ok=False)
+        write_file = os.path.join(write_dir, "tmp1.csv")
+        output = MQTT(
+            broker,
+            port,
+            username=un,
+            password=pw,
+            clientid=None,
+            error_holder=error_holder,
+        )
+
+        ins = [
+            {
+                "equipment": {
+                    "adapter": "MockFunctionalAdapter",
+                    "data": {
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
+                    },
+                    "requirements": {"write_file": write_file},
+                }
+            }
+        ]
+
+        def _start() -> Thread:
+            mthread = Thread(
+                target=run_adapters,
+                args=[ins, output, error_holder],
+                kwargs={"external_adapter": mock_functional_adapter_path},
+            )
+            mthread.daemon = True
+            mthread.start()
+            return mthread
+
+        def _stop(thread: Thread) -> None:
+            stop_all_adapters()
+        
+        mock_client = MockBioreactorClient(broker,port,username=un,password=pw)
+        mock_client.subscribe(f'{ins[0]["equipment"]["data"]["institute"]}/#')
+        time.sleep(0.5)
+        adapter_thread = _start()
+        time.sleep(10)
+        excp = InterpreterError("test1_critical",severity=SeverityLevel.CRITICAL)
+        error_holder.add_error(excp)
+
+        excp2 = InterpreterError("test2_critical")
+        error_holder.add_error(excp2)
+
+        time.sleep(5)
+        _stop(adapter_thread)
+
+        expected_exceptions = [excp.to_json(),excp2.to_json()]
+        
+        error_messages = None
+        for mt in mock_client.messages.keys():
+            if "error" in mt and ins[0]["equipment"]["data"]["institute"] in mt:
+                error_messages = mock_client.messages[mt]
+        for e in expected_exceptions:
+            self.assertIn(e,error_messages)
+
+
 def _is_error_seen(exception, error_holder: ErrorHolder) -> bool:
     for error in error_holder._errors:
         if exception == error["error"]:
-            return error["is_seen"]
+            True
     return False

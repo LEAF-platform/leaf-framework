@@ -1,11 +1,10 @@
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf_register.metadata import MetadataManager
 from leaf_register.topic_utilities import topic_utilities
 from leaf.error_handler.error_holder import ErrorHolder
-
 
 class ProcessModule:
     """
@@ -41,6 +40,10 @@ class ProcessModule:
         self._error_holder = error_holder
         self._metadata_manager = metadata_manager
 
+    def transmit_error(self,error:Dict) -> None:
+        error_topic = self._metadata_manager.error()
+        self._output.transmit(error_topic, error)
+        
     def stop(self) -> None:
         """
         Stop all phases by flushing their respective terms if they are complete.

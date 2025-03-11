@@ -17,7 +17,7 @@ from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf_register.metadata import MetadataManager
-
+from leaf.error_handler.exceptions import LEAFError
 # Current location of this script
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
@@ -118,6 +118,23 @@ class TestMeasurePhase(unittest.TestCase):
         self.assertEqual(len(measurement_messages), len(expected_chunks))
         for chunk, expected_chunk in zip(measurement_messages, expected_chunks):
             self.assertEqual(chunk[1], expected_chunk)
+
+
+    def test_interpreter_error_handle(self):
+        self._module._maximum_message_size = 10
+        exp_id = "test_measure_phase_max_measurement"
+        class MockInterpreter:
+            def __init__(self):
+                self.id = exp_id
+            def measurement(self,data):
+                return 1/0
+            
+        interpreter = MockInterpreter()
+        self._module.set_interpreter(interpreter)
+        
+        content = []
+        with self.assertRaises(LEAFError):
+            self._module.update(content)
 
 class TestControlPhase(unittest.TestCase):
     def setUp(self) -> None:

@@ -3,7 +3,7 @@ from typing import Optional, Any
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
-
+from leaf.error_handler.exceptions import InterpreterError
 
 class StartPhase(ControlPhase):
     """
@@ -41,7 +41,13 @@ class StartPhase(ControlPhase):
             list: A list of tuples containing the action terms and data.
         """
         if self._interpreter is not None:
-            data = self._interpreter.metadata(data)
+            try:
+                data = self._interpreter.metadata(data)
+            except Exception as ex:
+                leaf_exp = InterpreterError(ex)
+                self._handle_exception(leaf_exp)
+                data = []
+            
         data = super().update(data)
         data += [(self._metadata_manager.running(), True)]
         data += [(self._metadata_manager.experiment.stop(), None)]

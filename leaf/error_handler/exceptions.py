@@ -20,6 +20,11 @@ class LEAFError(Exception):
         """Return the severity of the error."""
         return self._severity
     
+    def to_json(self):
+        return {"type" : self.__class__.__name__,
+                "severity" : str(self._severity),
+                "message" : self._message}
+    
     def upgrade_severity(self) -> None:
         """
         Upgrade the severity of the error to the next level.
