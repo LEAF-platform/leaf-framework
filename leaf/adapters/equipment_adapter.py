@@ -57,7 +57,7 @@ class AbstractInterpreter(ABC):
         Args:
             data (Any): The metadata from the InputModule.
         """
-        pass
+        return {self.TIMESTAMP_KEY : time.time()}
 
     @abstractmethod
     def measurement(self, data: Any) -> None:
