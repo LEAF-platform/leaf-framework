@@ -2,7 +2,7 @@ import asyncio
 import logging
 import threading
 from datetime import datetime
-from typing import Callable
+from typing import Callable, Any
 
 from nicegui import ui
 
@@ -16,7 +16,7 @@ from leaf.interface.logs import create_logs_panel
 logger = logging.getLogger(__name__)
 
 # Global state for the UI
-leaf_state = {
+leaf_state: dict[str, Any] = {
     "status": "Initializing",
     "active_adapters": 0,
     "errors": [],
@@ -69,10 +69,9 @@ class LEAFGUI:
             ui.add_head_html('<link rel="icon" type="image/x-icon" href="https://nicegui.io/favicon.ico">')
             
             # Main layout
-            with ui.header().classes('bg-blue-600 text-white'):
+            with ui.header().style('background-color: rgb(133, 171, 215); color: white;'):
                 ui.label('LEAF Monitoring System').classes('text-2xl font-bold')
 
-            # Footer layout
             # Footer layout
             with ui.footer().classes('bg-gray-100 justify-center'):
                 # Obtain current year
@@ -96,7 +95,7 @@ class LEAFGUI:
                 # Other tab panels would follow...
                 with ui.tab_panel(config_tab):
                     # Configuration tab content
-                    await create_config_panel(tabs, config_tab, self)
+                    await create_config_panel(self, tabs, config_tab)
                     
                 with ui.tab_panel(docs_tab):
                     # Documentation tab content
@@ -111,7 +110,7 @@ class LEAFGUI:
                     await create_adapters_panel(tabs, adapters_tab, self)
             
 
-    def update_error_state(self, error, severity):
+    def update_error_state(self, error, severity: SeverityLevel) -> None:
         """Update the UI state with new errors or warnings"""
         if severity in [SeverityLevel.CRITICAL, SeverityLevel.ERROR]:
             leaf_state["errors"].append(str(error))

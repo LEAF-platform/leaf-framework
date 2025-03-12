@@ -1,34 +1,60 @@
+import os
+
 import yaml
 from nicegui import ui
 import asyncio
 
 
-async def create_config_panel(tabs, config_tab, self) -> None:
+def existing_yamls() -> list[str]:
+    # Obtain current directory
+    import os
+    current_dir = os.getcwd()
+    # Check for yaml files in current directory
+    yaml_files = [f for f in os.listdir(current_dir) if f.endswith('.yaml')]
+    # If the yaml file content contains 'EQUIPMENT_INSTANCES'
+    yaml_files = [f for f in yaml_files if 'EQUIPMENT_INSTANCES' in open(f).read()]
+    # If there are yaml files in the current directory
+    if yaml_files:
+        ui.notify(f'Found yaml files in current directory: {len(yaml_files)}', color='positive')
+    yaml_files.insert(0, 'Select yaml file')
+    return yaml_files
+
+
+async def create_config_panel(self, tabs, config_tab) -> None:
     # Configuration tab
+    file_selection = self.global_args.config if self.global_args is not None else ""
+    if file_selection is None:
+        file_selection = "No yaml files found"
     with ui.tab_panel(config_tab).style('width: 100%'):
         with ui.row().style("display: flex; width: 100%"):
+            async def load_config(selection_path) -> None:
+                if os.path.exists(selection_path.value):
+                    ui.notify(f'Loading config from selection path')
+                    path = selection_path.value
+                    try:
+                        with open(path, 'r') as file:
+                            config = yaml.safe_load(file)
+                            self.global_config = config
+                            ui.notify(f'Configuration loaded: {path}', color='positive')
+
+                            # Update the editor with the loaded config
+                            print(f'Dumping config:\n{yaml.dump(self.global_config, indent=4)}')
+                            config_editor.value = yaml.dump(self.global_config, indent=4)
+                    except Exception as e:
+                        ui.notify(f'Error loading configuration: {str(e)}', color='negative')
+                else:
+                    if selection_path.value.endswith('.yaml'):
+                        ui.notify(f'File not found', color='negative')
+
             # Configuration form
-            config_path = ui.input(label='Configuration File Path', value=self.global_args.config).style('width: 100%')
+            ui.input(label='Configuration File Path', value=self.global_args.config).style('width: 100%').on_value_change(load_config)
 
-            async def load_config() -> None:
-                path = config_path.value
-                if not path:
-                    ui.notify('Please enter a configuration file path', color='negative')
-                    return
-
-                try:
-                    with open(path, 'r') as file:
-                        config = yaml.safe_load(file)
-                        self.global_config = config
-                        ui.notify(f'Configuration loaded: {path}', color='positive')
-
-                        # Update the editor with the loaded config
-                        print(f'Dumping config:\n{yaml.dump(self.global_config, indent=4)}')
-                        config_editor.value = yaml.dump(self.global_config, indent=4)
-                except Exception as e:
-                    ui.notify(f'Error loading configuration: {str(e)}', color='negative')
-
-            ui.button('Load Configuration', on_click=load_config)
+            # Check for yaml files in current directory
+            yaml_files = existing_yamls()
+            if yaml_files:
+                print(yaml_files)
+                print(file_selection)
+                ui.select(yaml_files, value=yaml_files[0], label='Select yaml file').style('width: 100%').on_value_change(load_config)
 
         with ui.row().style("width: 100%"):
             # Configuration output
@@ -66,9 +92,7 @@ async def create_config_panel(tabs, config_tab, self) -> None:
 
                     general_error_holder = ErrorHolder()
                     output = _get_output_module(self.global_config, general_error_holder)
-                    ui.notify(f'Starting adapters not yet implemented', color='negative')
-                    # await asyncio.to_thread(self.start_adapters_func, self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder)
-
+                    await asyncio.to_thread(self.start_adapters_func, self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder)
                 except Exception as e:
                     ui.notify(f'Error saving configuration: {str(e)}', color='negative')
 
