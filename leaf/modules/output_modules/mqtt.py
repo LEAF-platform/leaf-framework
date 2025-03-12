@@ -336,7 +336,6 @@ class MQTT(OutputModule):
             rc (int): The disconnection result code.
             properties (Optional[Any]): Additional metadata (if any).
         """
-        
         if not self.is_enabled():
             logger.warning(
                 f"{self.__class__.__name__} - disconnect called with module disabled."

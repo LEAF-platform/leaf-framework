@@ -33,6 +33,7 @@ class MockBioreactorClient(MQTT):
             print(f"Non-UTF-8 message payload received. {topic}")
             payload = str(msg.payload)
         except json.JSONDecodeError:
+            print(f"JSON DECODE ERROR {topic}")
             payload = payload
 
         if topic not in self.messages:
