@@ -6,6 +6,7 @@ from influxobject import InfluxPoint
 
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf.error_handler.exceptions import AdapterLogicError
+from leaf.error_handler.exceptions import InterpreterError
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 
@@ -67,7 +68,13 @@ class MeasurePhase(PhaseModule):
                 )
                 self._handle_exception(excp)
 
-            result = self._interpreter.measurement(data)
+            try:
+                result = self._interpreter.measurement(data)
+            except Exception as ex:
+                leaf_exp = InterpreterError(ex)
+                self._handle_exception(leaf_exp)
+                return None
+            
             if result is None:
                 excp = AdapterLogicError(
                     "Interpreter couldn't parse measurement, likely metadata has been "
