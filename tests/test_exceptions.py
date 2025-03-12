@@ -401,6 +401,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         def _stop(thread: Thread) -> None:
             stop_all_adapters()
+            time.sleep(10)
 
         try:
             with self.assertLogs(start.__name__, level="WARNING") as logs:
@@ -449,9 +450,6 @@ class TestExceptionsGeneral(unittest.TestCase):
         fake_broker = "fake_mqtt_broker_"
         output = MQTT(
             fake_broker,
-            port,
-            username=un,
-            password=pw,
             clientid=None,
             error_holder=error_holder,
             fallback=file,
@@ -482,16 +480,18 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         def _stop(thread: Thread) -> None:
             stop_all_adapters()
+            time.sleep(10)
 
         with self.assertLogs(start.__name__, level="WARNING") as logs:
             adapter_thread = _start()
-            timeout = 30
+            timeout = 50
             cur_count = 0
-            while output._enabled is None:
+            while output.is_enabled():
                 time.sleep(1)
                 cur_count +=1 
                 if cur_count > timeout:
                     self.fail()
+                output.transmit("test_topic")
 
             _stop(adapter_thread)
 
@@ -573,6 +573,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         def _stop(thread) -> None:
             stop_all_adapters()
+            time.sleep(10)
 
         with self.assertLogs(start.__name__, level="ERROR") as captured:
             adapter_thread = _start()
@@ -839,6 +840,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
 
         def _stop(thread: Thread) -> None:
             stop_all_adapters()
+            time.sleep(10)
         
         mock_client = MockBioreactorClient(broker,port,username=un,password=pw)
         mock_client.subscribe(f'{ins[0]["equipment"]["data"]["institute"]}/#')

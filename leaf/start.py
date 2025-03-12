@@ -349,7 +349,6 @@ def run_adapters(equipment_instances, output, error_handler,
                     output.connect()
                     adapter_threads = _start_all_adapters_in_threads(adapters)
                     
-
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
                         logger.warning(
