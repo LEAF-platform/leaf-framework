@@ -4,6 +4,8 @@ import yaml
 from nicegui import ui
 import asyncio
 
+from leaf.start import run_adapters
+
 
 def existing_yamls() -> list[str]:
     # Obtain current directory
@@ -20,7 +22,7 @@ def existing_yamls() -> list[str]:
     return yaml_files
 
 
-async def create_config_panel(self, tabs, config_tab) -> None:
+async def create_config_panel(self, config_tab) -> None:
     # Configuration tab
     file_selection = self.global_args.config if self.global_args is not None else ""
     if file_selection is None:
@@ -36,9 +38,8 @@ async def create_config_panel(self, tabs, config_tab) -> None:
                             config = yaml.safe_load(file)
                             self.global_config = config
                             ui.notify(f'Configuration loaded: {path}', color='positive')
-
                             # Update the editor with the loaded config
-                            print(f'Dumping config:\n{yaml.dump(self.global_config, indent=4)}')
+                            # print(f'Dumping config:\n{yaml.dump(self.global_config, indent=4)}')
                             config_editor.value = yaml.dump(self.global_config, indent=4)
                     except Exception as e:
                         ui.notify(f'Error loading configuration: {str(e)}', color='negative')
@@ -52,8 +53,6 @@ async def create_config_panel(self, tabs, config_tab) -> None:
             # Check for yaml files in current directory
             yaml_files = existing_yamls()
             if yaml_files:
-                print(yaml_files)
-                print(file_selection)
                 ui.select(yaml_files, value=yaml_files[0], label='Select yaml file').style('width: 100%').on_value_change(load_config)
 
         with ui.row().style("width: 100%"):
@@ -92,7 +91,9 @@ async def create_config_panel(self, tabs, config_tab) -> None:
 
                     general_error_holder = ErrorHolder()
                     output = _get_output_module(self.global_config, general_error_holder)
-                    await asyncio.to_thread(self.start_adapters_func, self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder)
+                    run_adapters(self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder,
+                                 external_adapter=external_adapter)
+                    # await asyncio.to_thread(self.start_adapters_func, self.global_config["EQUIPMENT_INSTANCES"], output, general_error_holder)
                 except Exception as e:
                     ui.notify(f'Error saving configuration: {str(e)}', color='negative')
 

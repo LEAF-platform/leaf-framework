@@ -19,7 +19,6 @@ import yaml
 from leaf import register
 from leaf_register.topic_utilities import topic_utilities
 
-from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir
 
@@ -32,7 +31,6 @@ from leaf.adapters.equipment_adapter import EquipmentAdapter
 
 from leaf.utility.running_utilities import handle_disabled_modules
 
-from leaf.interface.main import create_gui
 ##################################
 #
 #            VARIABLES
@@ -136,7 +134,10 @@ def stop_all_adapters() -> None:
             logging.error(f"Error stopping adapter: {e}")
     
     for thread in adapter_threads:
+        logger.info(f"Stopping {thread} adapter.")
         thread.join()
+        logger.info(f"Adapter for {thread} stopped successfully.")
+    logger.info("All adapters stopped.")
 
 
 def _start_all_adapters_in_threads(adapters):
@@ -148,6 +149,9 @@ def _start_all_adapters_in_threads(adapters):
         thread.daemon = True
         thread.start()
         threads.append(thread)
+    # Update the global state with the number of active adapters for the GUI
+    if global_gui:
+        global_gui.leaf_state['active_adapters'] = len(adapters)
     return threads
 
 
@@ -440,7 +444,7 @@ def main(args=None) -> None:
     global global_gui, global_output, global_error_handler, global_config, global_external_adapter
     
     welcome_message()
-    register.load_adapters()
+    # register.load_adapters()
 
     """Main function as a wrapper for all steps."""
     logger.info("Starting the proxy.")
@@ -457,6 +461,7 @@ def main(args=None) -> None:
     if args.guidisable:
         logger.info(f"Starting NiceGUI web interface on port {args.port}")
         # Create GUI instance
+        from leaf.interface.main import create_gui
         global_gui = create_gui(args.port)
         # Set global variables
         global_gui.global_args = global_args
@@ -469,8 +474,7 @@ def main(args=None) -> None:
 
         # Function to run background tasks (adapter setup)
         def run_background_tasks():
-            external_adapter = args.path
-            global_external_adapter = external_adapter
+            global_external_adapter = args.path
             logger.debug(f"Loading configuration file: {args.config}")
 
             # Load the configuration file
@@ -491,7 +495,7 @@ def main(args=None) -> None:
                 global_error_handler = general_error_holder
                 output = _get_output_module(config, general_error_holder)
                 global_output = output
-                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=external_adapter)
+                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=global_external_adapter)
 
         # Start the background tasks (adapter setup) in a separate thread
         background_thread = threading.Thread(target=run_background_tasks, daemon=True)

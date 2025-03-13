@@ -1,5 +1,8 @@
 import asyncio
 import logging
+import os
+import signal
+import sys
 import threading
 from datetime import datetime
 from typing import Callable, Any
@@ -15,14 +18,6 @@ from leaf.interface.logs import create_logs_panel
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-# Global state for the UI
-leaf_state: dict[str, Any] = {
-    "status": "Initializing",
-    "active_adapters": 0,
-    "errors": [],
-    "warnings": []
-}
-
 class LEAFGUI:
     def __init__(self, port: int = 8080):
         self.port = port
@@ -33,6 +28,12 @@ class LEAFGUI:
         self.start_adapters_func = None
         self.stop_adapters_func = None
         self.global_args = None
+        self.leaf_state: dict[str, Any] = {
+            "status": "Initializing",
+            "active_adapters": 0,
+            "errors": [],
+            "warnings": []
+        }
         
     def register_callbacks(self, 
                           start_adapters_func: Callable,
@@ -61,6 +62,7 @@ class LEAFGUI:
             ui.notify("Configuration not loaded yet", color="negative")
             return False
 
+
     async def setup_nicegui(self) -> None:
         """Set up NiceGUI web interface"""
         @ui.page('/')
@@ -69,8 +71,23 @@ class LEAFGUI:
             ui.add_head_html('<link rel="icon" type="image/x-icon" href="https://nicegui.io/favicon.ico">')
             
             # Main layout
-            with ui.header().style('background-color: rgb(133, 171, 215); color: white;'):
-                ui.label('LEAF Monitoring System').classes('text-2xl font-bold')
+
+            # Header layout
+            async def confirm_exit(self) -> None:
+                # TODO not working properly yet
+                with ui.dialog() as dialog, ui.card():
+                    ui.label("Are you sure you want to turn off?").classes('text-lg font-bold')
+                    with ui.row().classes('justify-end'):
+                        ui.button("Cancel", on_click=dialog.close).classes('bg-gray-500 text-white')
+                        ui.button("Yes, Exit", on_click=lambda: os.kill(os.getpid(), signal.SIGKILL)).classes(
+                            'bg-red-500 text-white')
+                dialog.open()
+
+            with ui.header().style('background-color: rgb(133, 171, 215); color: white; padding: 10px;'):
+                with ui.row().classes('justify-between items-center w-full'):
+                    ui.label('LEAF Monitoring System').classes('text-2xl font-bold')
+                    # Kill button to stop the system (not working yet)
+                    ui.button('Turn Off', on_click=confirm_exit).classes('bg-red-500 text-white').visible = False
 
             # Footer layout
             with ui.footer().classes('bg-gray-100 justify-center'):
@@ -90,16 +107,12 @@ class LEAFGUI:
             # Main content for all tabs
             with ui.tab_panels(tabs, value=dashboard_tab).classes('w-full'):
                 # Add the dashboard panel
-                create_dashboard_panel(tabs, dashboard_tab, leaf_state, self)
+                create_dashboard_panel(self, dashboard_tab)
                 
                 # Other tab panels would follow...
                 with ui.tab_panel(config_tab):
                     # Configuration tab content
-                    await create_config_panel(self, tabs, config_tab)
-                    
-                with ui.tab_panel(docs_tab):
-                    # Documentation tab content
-                    create_docs_panel(tabs, docs_tab, self)
+                    await create_config_panel(self, config_tab)
 
                 with ui.tab_panel(logs_tab):
                     # Logs tab content
@@ -109,25 +122,28 @@ class LEAFGUI:
                     # Adapters tab content
                     await create_adapters_panel(tabs, adapters_tab, self)
             
+                with ui.tab_panel(docs_tab):
+                    # Documentation tab content
+                    create_docs_panel(tabs, docs_tab, self)
 
     def update_error_state(self, error, severity: SeverityLevel) -> None:
         """Update the UI state with new errors or warnings"""
         if severity in [SeverityLevel.CRITICAL, SeverityLevel.ERROR]:
-            leaf_state["errors"].append(str(error))
-            if len(leaf_state["errors"]) > 10:
-                leaf_state["errors"].pop(0)
+            self.leaf_state["errors"].append(str(error))
+            if len(self.leaf_state["errors"]) > 10:
+                self.leaf_state["errors"].pop(0)
         elif severity == SeverityLevel.WARNING:
-            leaf_state["warnings"].append(str(error))
-            if len(leaf_state["warnings"]) > 10:
-                leaf_state["warnings"].pop(0)
+            self.leaf_state["warnings"].append(str(error))
+            if len(self.leaf_state["warnings"]) > 10:
+                self.leaf_state["warnings"].pop(0)
     
     def update_status(self, status) -> None:
         """Update the UI status"""
-        leaf_state["status"] = status
+        self.leaf_state["status"] = status
 
     def update_adapters_count(self, count: int) -> None:
         """Update the active adapters count"""
-        leaf_state["active_adapters"] = count
+        self.leaf_state["active_adapters"] = count
 
     def run(self) -> None:
         """Start the NiceGUI interface"""
