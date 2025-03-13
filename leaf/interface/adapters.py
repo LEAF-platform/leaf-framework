@@ -19,33 +19,36 @@ async def create_adapters_panel(tabs, adapters_tab, self) -> None:
 
     if not installed_adapters:
         ui.label('No adapters found')
-        return
     # Display the adapters each as a button
     code_mirrors = {}
     with ui.row().style('width: 100%'):
         code_mirrors['code_block'] = ui.codemirror(value="# Click an adapter to view its example.yaml file", language='YAML').style('width: 45%')
         code_mirrors['placeholder'] = ui.codemirror(value="# Editor to create a new configuration...", language='YAML').style('width: 45%')
-    for name, installed_adapter in installed_adapters.items():
-        async def obtain_example(name: str=name, adapter: EquipmentAdapter=installed_adapter) -> None:
-            ui.notify(f'Selected adapter: {name}', color='positive')
-            # Read a file inside the adapter package
-            try:
-                # Get module location
-                module_name = installed_adapter.__module__
-                spec = importlib.util.find_spec(module_name)
-                if spec and spec.origin:
-                    package_dir = os.path.dirname(spec.origin)  # Get directory of the adapter module
-                    file_path = os.path.join(package_dir, "example.yaml")  # Correct way to join paths
-                    if os.path.exists(file_path):
-                        with open(file_path, "r") as f:
-                            code_mirrors["code_block"].value = f.read()
-                    else:
-                        ui.notify(f'No example.yaml file found at {file_path}', color='error')
-                        code_mirrors["code_block"].value = "# No example.yaml file found at {file_path}"
-            except Exception as e:
-                ui.notify(f'Error reading file: {e}', color='negative')
+    with ui.row().style('width: 100%'):
+        for name, installed_adapter in installed_adapters.items():
+            async def obtain_example(name: str=name, adapter: EquipmentAdapter=installed_adapter) -> None:
+                ui.notify(f'Selected adapter: {name}', color='positive')
+                # Read a file inside the adapter package
+                try:
+                    # Get module location
+                    module_name = adapter.__module__
+                    spec = importlib.util.find_spec(module_name)
+                    if spec and spec.origin:
+                        package_dir = os.path.dirname(spec.origin)  # Get directory of the adapter module
+                        file_path = os.path.join(package_dir, "example.yaml")  # Correct way to join paths
+                        if os.path.exists(file_path):
+                            with open(file_path, "r") as f:
+                                code_mirrors["code_block"].value = f.read()
+                        else:
+                            ui.notify(f'No example.yaml file found at {file_path}', color='error')
+                            code_mirrors["code_block"].value = "# No example.yaml file found at {file_path}"
+                except Exception as e:
+                    ui.notify(f'Error reading file: {e}', color='negative')
 
-        ui.button(name, on_click=obtain_example)
+            if installed_adapter:
+                ui.button(name, on_click=obtain_example)
+            else:
+                ui.button(name, on_click=obtain_example).disable()
 
     async def install_adapter() -> None:
         # Obtain adapters from marketplace
@@ -75,6 +78,8 @@ async def create_adapters_panel(tabs, adapters_tab, self) -> None:
                     command = [sys.executable, '-m','pip', 'install', repository]
                     subprocess.check_call(command)
                     ui.notify(f'Installed adapter: {adapter["name"]}', color='positive')
+                    global installed_adapters
+                    installed_adapters = register.load_adapters()
             with ui.dialog() as dialog, ui.card():
                 with ui.card():
                     ui.label('Available adapters').classes('text-xl font-bold')
@@ -86,4 +91,8 @@ async def create_adapters_panel(tabs, adapters_tab, self) -> None:
             ui.notify(f"Error: Unable to fetch data (Status Code: {response.status_code})", color='negative')
     # Install new adapter button only when not already installed
     # if installed_adapter['name']
-    ui.button("Install new adapter", on_click=install_adapter, color='green')
+    with ui.row().style('width: 100%'):
+        ui.button("Install new adapter", on_click=install_adapter, color='green')
+    with ui.row().style('width: 100%'):
+        # Write text to explain disabled adapter buttons
+        ui.label("Disabled adapters did not install successfully. Check logs for more details.").style('color: grey')
