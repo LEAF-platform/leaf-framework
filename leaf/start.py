@@ -26,7 +26,6 @@ from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
-from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.adapters.equipment_adapter import EquipmentAdapter
@@ -45,7 +44,9 @@ set_log_dir(error_log_dir)
 logger = get_logger(__name__, log_file="global.log",
                     error_log_file="global_error.log",
                     log_level=logging.INFO)
+
 adapters: list[Any] = []
+adapter_threads: list[Any] = []
 output_disable_time = 500
 
 # Global variables for the app
@@ -133,31 +134,25 @@ def stop_all_adapters() -> None:
             logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
-    # Delete all adapters
-    adapters.clear()
-    logger.info(f"All adapters cleared and {len(adapters)} still running.")
-    if global_gui:
-        global_gui.update_adapters_count(0)
-        global_gui.update_status("Stopped")
+    
+    for thread in adapter_threads:
+        thread.join()
 
 
 def _start_all_adapters_in_threads(adapters):
     """Start each adapter in a separate thread."""
-    adapter_threads = []
+    threads = []
     for adapter in adapters:
         logger.info(f"Starting adapter: {adapter}")
         thread = threading.Thread(target=adapter.start)
         thread.daemon = True
         thread.start()
-        adapter_threads.append(thread)
-    if global_gui:
-        global_gui.update_adapters_count(len(adapters))
-    return adapter_threads
+        threads.append(thread)
+    return threads
 
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
-
 
 def _get_existing_ids(output_module: MQTT,
                       time_to_sleep: int = 5) -> list[str]:
@@ -287,14 +282,27 @@ def handle_exception(exc_type: Type[BaseException], exc_value,
     stop_all_adapters()
 
 
+
+def error_shutdown(error,output,unhandled_errors=None):
+    logger.error(f"Critical error encountered: {error}. Shutting down.",
+                 exc_info=error)
+    # Any unhandled errors are outputed before failure.
+    for adapter in adapters:
+        if unhandled_errors is not None:
+            adapter.transmit_errors(unhandled_errors)
+            time.sleep(0.1)
+        adapter.transmit_errors()
+        time.sleep(0.1)
+    stop_all_adapters()
+    time.sleep(5)
+    output.disconnect()
+
+
 def run_adapters(equipment_instances, output, error_handler,
                  external_adapter=None) -> None:
     """Function to find and run a set of adapters defined within the config."""
-    adapter_threads = []
-    max_error_retries = 3
-    error_retry_count = 0
+    global adapter_threads
     cooldown_period_error = 5
-
     max_warning_retries = 2
     client_warning_retry_count = 0
     cooldown_period_warning = 1
@@ -336,55 +344,30 @@ def run_adapters(equipment_instances, output, error_handler,
             if all(not thread.is_alive() for thread in adapter_threads):
                 logger.info("All adapters have stopped.")
                 break
-            for error, tb in error_handler.get_unseen_errors():
-                if not isinstance(error, LEAFError):
-                    logger.error(
-                        f"{error} - only LEAF errors should be added to error holder",
-                        exc_info=error,
-                    )
-                    output.disconnect()
-                    stop_all_adapters()
-                    return
-                
-                for adapter in adapters:
-                    adapter.transmit_error(error)
-                    
-                # Add error to our GUI state if GUI is enabled
-                if global_gui:
-                    global_gui.update_error_state(error, error.severity)
-                
+            
+            cur_errors = error_handler.get_unseen_errors()
+            # Do a double iteration because want to ensure all errors are transmited.
+            # May be case that an error causes a change meaning 
+            # subsequent errors arent iterated and handled.
+            for adapter in adapters:
+                adapter.transmit_errors(cur_errors)
+                time.sleep(0.1)
+
+            for error,tb in cur_errors:                    
                 if error.severity == SeverityLevel.CRITICAL:
-                    logger.error(
-                        f"Critical error encountered: {error}. Shutting down.",
-                        exc_info=error,
-                    )
-                    output.disconnect()
-                    stop_all_adapters()
-                    return
+                    return error_shutdown(error,output,
+                                          error_handler.get_unseen_errors())
 
                 elif error.severity == SeverityLevel.ERROR:
-                    # Only retry if below max retries
-                    if error_retry_count < max_error_retries:
-                        error_retry_count += 1
-                        logger.error(
-                            f"Error, resetting adapters (attempt {error_retry_count}): {error}",
-                            exc_info=error,
-                        )
-                        # Need to consider whats best to be done here.
-                        #stop_all_adapters()
-
-                        output.disconnect()
-                        time.sleep(cooldown_period_error)
-                        output.connect()
-                        #adapter_threads = _start_all_adapters_in_threads(adapters)
-                    else:
-                        logger.error(
-                            f"Exceeded max retries, shutting down.", exc_info=error
-                        )
-                        output.disconnect()
-                        stop_all_adapters()
-                        return
-
+                    logger.error(
+                        f"Error, resetting adapters: {error}",
+                        exc_info=error,
+                    )
+                    error_shutdown(error,output)
+                    time.sleep(cooldown_period_error)
+                    output.connect()
+                    adapter_threads = _start_all_adapters_in_threads(adapters)
+                    
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
                         logger.warning(
@@ -424,8 +407,6 @@ def run_adapters(equipment_instances, output, error_handler,
         stop_all_adapters()
         logger.info("Proxy stopped.")
 
-    for thread in adapter_threads:
-        thread.join()
     logger.info("All adapter threads have been stopped.")
 
 
@@ -433,7 +414,8 @@ sys.excepthook = handle_exception
 
 def welcome_message() -> None:
     """Prints a welcome message."""
-    logger.info("""\n\n ##:::::::'########::::'###::::'########:
+    logger.info("""\n\n
+ ##:::::::'########::::'###::::'########:
  ##::::::: ##.....::::'## ##::: ##.....::
  ##::::::: ##::::::::'##:. ##:: ##:::::::
  ##::::::: ######:::'##:::. ##: ######:::

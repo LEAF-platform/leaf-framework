@@ -6,17 +6,13 @@ from threading import Event
 from typing import List, Optional, Union, Any
 
 from leaf_register.metadata import MetadataManager
-
+from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler import exceptions
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import LEAFError
 from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.process_modules.process_module import ProcessModule
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "device.json")
-
 
 class AbstractInterpreter(ABC):
     """
@@ -58,7 +54,7 @@ class AbstractInterpreter(ABC):
         Args:
             data (Any): The metadata from the InputModule.
         """
-        pass
+        return {self.TIMESTAMP_KEY : time.time()}
 
     @abstractmethod
     def measurement(self, data: Any) -> None:
@@ -211,15 +207,13 @@ class EquipmentAdapter(ABC):
                 time.sleep(1)
                 if self._error_holder is None:
                     continue
-                for error, tb in self._error_holder.get_unseen_errors():
-                    if not isinstance(error, LEAFError):
-                        self._logger.error(
-                            f"{error} added to error holder, only LEAF errors should be used.",
-                            exc_info=error,
-                        )
-                        return self.stop()
-
-                    self.transmit_error(error)
+                
+                cur_errors = self._error_holder.get_unseen_errors()
+                # Do a double iteration because want to ensure all errors are transmited.
+                # May be case that an error causes a change meaning 
+                # subsequent errors arent iterated and handled.
+                self.transmit_errors(cur_errors)
+                for error, tb in cur_errors:                    
                     if error.severity == exceptions.SeverityLevel.CRITICAL:
                         self._logger.error(
                             f"Critical error, shutting down this adapter: {error}",
@@ -314,17 +308,26 @@ class EquipmentAdapter(ABC):
         if self._watcher.is_running():
             self._watcher.stop()
 
-    def transmit_error(self, error: Exception) -> None:
+    def transmit_errors(self, errors: List[LEAFError] = None) -> None:
         """
         Transmit errors to the output channels of each process.
 
         Args:
             error (Exception): The error to transmit.
         """
-        for process in self._processes:
-            error_topic = self._metadata_manager.error()
-            process._output.transmit(error_topic, str(error))
-            return
+        if errors is None:
+            errors = self._error_holder.get_unseen_errors()
+        for error,tb in errors:
+            if not isinstance(error, LEAFError):
+                self._logger.error(
+                    f"{error} added to error holder, only LEAF errors should be used.",
+                    exc_info=error,
+                )
+                return self.stop()
+            error = error.to_json()
+            for process in self._processes:
+                process.transmit_error(error)
+                time.sleep(0.1)
 
     def _handle_exception(self, exception: Exception) -> None:
         """
