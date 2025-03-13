@@ -69,7 +69,6 @@ def load_adapters() -> dict[str, EquipmentAdapter]:
 
         except Exception as e:
             logger.error(f"Failed to load adapter from entry point {entry_point.name}: {e}")
-            # logging.error(exc_info=True)
     if not adapters:
         logger.warning(f"No adapters found. Adapters can be installed via pip. See http://leaf.systemsbiology.nl for more information.")
         return adapters

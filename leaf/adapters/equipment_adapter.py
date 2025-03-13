@@ -12,10 +12,6 @@ from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.error_handler.error_holder import ErrorHolder
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_fn = os.path.join(current_dir, "device.json")
-
-
 class AbstractInterpreter(ABC):
     """
     Abstract base class for interpreters.
