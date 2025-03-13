@@ -46,27 +46,6 @@ initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
 
-
-def _create_file(watch_file):
-    if os.path.isfile(watch_file):
-        os.remove(watch_file)
-    shutil.copyfile(initial_file, watch_file)
-    time.sleep(2)
-
-
-def _modify_file(watch_file):
-    with open(measurement_file, "r") as src:
-        content = src.read()
-    with open(watch_file, "a") as dest:
-        dest.write(content)
-    time.sleep(2)
-
-
-def _delete_file(watch_file):
-    if os.path.isfile(watch_file):
-        os.remove(watch_file)
-
-
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
         super().__init__()

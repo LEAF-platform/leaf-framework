@@ -109,14 +109,6 @@ class TestUploadAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
         self.temp_dir.cleanup()
 
-    def _get_measurements_run(self) -> dict[str, Any]:
-        with open(initial_file, "r", encoding="latin-1") as file:
-            data = list(csv.reader(file, delimiter=";"))
-        self._adapter._interpreter.metadata(data)
-        with open(measurement_file, "r", encoding="latin-1") as file:
-            data = list(csv.reader(file, delimiter=";"))
-        return self._adapter._interpreter.measurement(data)
-
     def _flush_topics(self) -> None:
         self.mock_client.flush(self.details_topic)
         self.mock_client.flush(self.start_topic)
