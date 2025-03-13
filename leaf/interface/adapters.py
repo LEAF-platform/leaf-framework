@@ -12,6 +12,27 @@ from leaf.adapters.equipment_adapter import EquipmentAdapter
 
 installed_adapters: dict[str, EquipmentAdapter] = register.load_adapters()
 
+
+async def pip_install(dialog: ui.dialog, adapter: dict[str, str]) -> None:
+    dialog.close()
+    ui.notify(f'Installing adapter: {adapter}', color='positive')
+    # Perform a pip install on a git url
+    if adapter['repository'].startswith('https://'):
+        repository = "git+" + adapter['repository']
+    elif adapter['repository'].startswith('git://'):
+        repository = adapter['repository']
+    else:
+        repository = None
+        ui.notify(f"Invalid repository URL: {adapter['repository']}", color='negative')
+    # Using the internal pip module
+    if repository:
+        # Identify location of pip
+        command = [sys.executable, '-m', 'pip', 'install', repository]
+        subprocess.check_call(command)
+        ui.notify(f'Installed adapter: {adapter["name"]}', color='positive')
+        global installed_adapters
+        installed_adapters = register.load_adapters()
+
 async def create_adapters_panel(tabs, adapters_tab, self) -> None:
     # Adapters tab
     ui.label('Installed adapters').classes('text-xl font-bold')
@@ -61,31 +82,12 @@ async def create_adapters_panel(tabs, adapters_tab, self) -> None:
             public_adapters = response.json()
             ui.notify(f'Available adapters: {len(public_adapters)}', color='positive')
             # Display the adapters
-            async def pip_install(dialog: ui.dialog, adapter: dict[str, str]) -> None:
-                dialog.close()
-                ui.notify(f'Installing adapter: {adapter}', color='positive')
-                # Perform a pip install on a git url
-                if adapter['repository'].startswith('https://'):
-                    repository = "git+" + adapter['repository']
-                elif adapter['repository'].startswith('git://'):
-                    repository = adapter['repository']
-                else:
-                    repository = None
-                    ui.notify(f"Invalid repository URL: {adapter['repository']}", color='negative')
-                # Using the internal pip module
-                if repository:
-                    # Identify location of pip
-                    command = [sys.executable, '-m','pip', 'install', repository]
-                    subprocess.check_call(command)
-                    ui.notify(f'Installed adapter: {adapter["name"]}', color='positive')
-                    global installed_adapters
-                    installed_adapters = register.load_adapters()
             with ui.dialog() as dialog, ui.card():
                 with ui.card():
                     ui.label('Available adapters').classes('text-xl font-bold')
                     for public_adapter in public_adapters:
                         # Currently no way to check if an adapter is already installed with the information provided
-                        ui.button(public_adapter['name'], on_click=functools.partial(pip_install, dialog, public_adapter))
+                        ui.button(public_adapter['name'], on_click=lambda e: pip_install(dialog, public_adapter))
                 dialog.open()
         else:
             ui.notify(f"Error: Unable to fetch data (Status Code: {response.status_code})", color='negative')
