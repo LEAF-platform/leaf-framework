@@ -20,7 +20,7 @@ class MeasurePhase(PhaseModule):
     def __init__(
         self,
         metadata_manager: Optional[MetadataManager] = None,
-        maximum_message_size: Optional[int] = 1,
+        maximum_message_size: int = 1,
         error_holder: Optional[ErrorHolder] = None,
     ) -> None:
         """

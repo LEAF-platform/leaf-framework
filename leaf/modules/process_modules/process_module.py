@@ -40,7 +40,7 @@ class ProcessModule:
         self._error_holder = error_holder
         self._metadata_manager = metadata_manager
 
-    def transmit_error(self,error:Dict) -> None:
+    def transmit_error(self,error: dict[str, Any]) -> None:
         error_topic = self._metadata_manager.error()
         self._output.transmit(error_topic, error)
         
@@ -54,7 +54,7 @@ class ProcessModule:
                 self._output.flush(term)
                 time.sleep(0.1)
 
-    def process_input(self, topic: str, data: dict) -> None:
+    def process_input(self, topic: str, data: dict[str, Any]) -> None:
         """
         Process input data by passing it to the appropriate phase.
 

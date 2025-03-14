@@ -54,6 +54,15 @@ global_config = None
 # global_external_adapter = None
 global_gui = None
 global_args = None
+
+# Generic configuration file
+# Create configuration folder to store the config file in
+# Obtain script directory
+script_dir = os.path.dirname(os.path.realpath(__file__))
+# Create config directory
+global_configuration = os.path.join(script_dir, "config", "configuration.yaml")
+
+
 ##################################
 #
 #            FUNCTIONS
@@ -123,7 +132,7 @@ def substitute_env_vars(config: Any):
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
-    logger.info("Stopping all adapters.")
+    logger.info(f"Stopping all {len(adapters)} adapters.")
     if global_gui:
         global_gui.update_status("Stopping")
     for adapter in adapters:
@@ -134,10 +143,15 @@ def stop_all_adapters() -> None:
             logging.error(f"Error stopping adapter: {e}")
     
     for thread in adapter_threads:
-        logger.info(f"Stopping {thread} adapter.")
+        logger.info(f"Stopping {thread} adapter thread.")
         thread.join()
-        logger.info(f"Adapter for {thread} stopped successfully.")
+        logger.info(f"Stopping thread for {thread} stopped successfully.")
     logger.info("All adapters stopped.")
+
+    # Reset adapter and thread lists
+    adapters.clear()
+    adapter_threads.clear()
+
 
 
 def _start_all_adapters_in_threads(adapters):
@@ -454,6 +468,24 @@ def main(args=None) -> None:
         logger.debug("Debug logging enabled.")
         logger.setLevel(logging.DEBUG)
 
+    # Create configuration folder to store the config file in
+    # Obtain script directory
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    # Create config directory
+    if not os.path.exists(os.path.join(script_dir, "config")):
+        os.makedirs(os.path.join(script_dir, "config"))
+    # Check if a config file is provided
+    if args.config is not None:
+        # Check if the config file exists
+        if os.path.exists(args.config):
+            # Copy to the config directory
+            with open(os.path.join(script_dir, "config", "configuration.yaml"), "w") as f:
+                with open(args.config, "r") as f2:
+                    f.write(f2.read())
+
+    # Fixed path to the configuration file
+    args.config = os.path.join(script_dir, "config", "configuration.yaml")
+
     # If GUI is enabled, run NiceGUI as the main application
     import threading
     import time
@@ -495,7 +527,7 @@ def main(args=None) -> None:
                 global_error_handler = general_error_holder
                 output = _get_output_module(config, general_error_holder)
                 global_output = output
-                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=global_external_adapter)
+                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=None)
 
         # Start the background tasks (adapter setup) in a separate thread
         background_thread = threading.Thread(target=run_background_tasks, daemon=True)
