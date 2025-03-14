@@ -2,19 +2,18 @@ import asyncio
 import logging
 import os
 import signal
-import sys
 import threading
 from datetime import datetime
 from typing import Callable, Any
 
 from nicegui import ui
 
-from leaf.error_handler.exceptions import SeverityLevel
 from leaf.interface.adapters import create_adapters_panel
 from leaf.interface.config import create_config_panel
 from leaf.interface.dashboard import create_dashboard_panel
 from leaf.interface.docs import create_docs_panel
 from leaf.interface.logs import create_logs_panel
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 
@@ -24,9 +23,6 @@ class LEAFGUI:
         self.global_config = None
         self.global_output = None
         self.global_error_handler = None
-        # self.global_external_adapter = None
-        self.start_adapters_func = None
-        self.stop_adapters_func = None
         self.global_args = None
         self.leaf_state: dict[str, Any] = {
             "status": "Initializing",
@@ -36,15 +32,15 @@ class LEAFGUI:
         }
         
     def register_callbacks(self, 
-                          start_adapters_func: Callable,
-                          stop_adapters_func: Callable) -> None:
+                          start_adapters_func: Callable[[], None],
+                          stop_adapters_func: Callable[[], None]) -> None:
         """Register callback functions from main module"""
         self.start_adapters_func = start_adapters_func
         self.stop_adapters_func = stop_adapters_func
         
     def start_adapters_background(self) -> bool:
         """Start all adapters using the global variables."""
-        if self.global_output and self.global_config and self.start_adapters_func:
+        if self.global_output and self.global_config:
             ui.notify("Starting LEAF adapters...")
             # Run in a background task to avoid blocking the UI
             run_thread = threading.Thread(
@@ -73,7 +69,7 @@ class LEAFGUI:
             # Main layout
 
             # Header layout
-            async def confirm_exit(self) -> None:
+            async def confirm_exit() -> None:
                 # TODO not working properly yet
                 with ui.dialog() as dialog, ui.card():
                     ui.label("Are you sure you want to turn off?").classes('text-lg font-bold')
@@ -100,9 +96,9 @@ class LEAFGUI:
             with ui.tabs().classes('w-full') as tabs:
                 dashboard_tab = ui.tab('Dashboard')
                 config_tab = ui.tab('Configuration')
-                docs_tab = ui.tab('Documentation')
                 logs_tab = ui.tab('Logs')
                 adapters_tab = ui.tab('Adapters')
+                docs_tab = ui.tab('Documentation')
 
             # Main content for all tabs
             with ui.tab_panels(tabs, value=dashboard_tab).classes('w-full'):
@@ -116,7 +112,7 @@ class LEAFGUI:
 
                 with ui.tab_panel(logs_tab):
                     # Logs tab content
-                    create_logs_panel(tabs, logs_tab, self)
+                    create_logs_panel()
 
                 with ui.tab_panel(adapters_tab):
                     # Adapters tab content
@@ -126,24 +122,24 @@ class LEAFGUI:
                     # Documentation tab content
                     create_docs_panel(tabs, docs_tab, self)
 
-    def update_error_state(self, error, severity: SeverityLevel) -> None:
-        """Update the UI state with new errors or warnings"""
-        if severity in [SeverityLevel.CRITICAL, SeverityLevel.ERROR]:
-            self.leaf_state["errors"].append(str(error))
-            if len(self.leaf_state["errors"]) > 10:
-                self.leaf_state["errors"].pop(0)
-        elif severity == SeverityLevel.WARNING:
-            self.leaf_state["warnings"].append(str(error))
-            if len(self.leaf_state["warnings"]) > 10:
-                self.leaf_state["warnings"].pop(0)
+    # def update_error_state(self, error, severity: SeverityLevel) -> None:
+    #     """Update the UI state with new errors or warnings"""
+    #     if severity in [SeverityLevel.CRITICAL, SeverityLevel.ERROR]:
+    #         self.leaf_state["errors"].append(str(error))
+    #         if len(self.leaf_state["errors"]) > 10:
+    #             self.leaf_state["errors"].pop(0)
+    #     elif severity == SeverityLevel.WARNING:
+    #         self.leaf_state["warnings"].append(str(error))
+    #         if len(self.leaf_state["warnings"]) > 10:
+    #             self.leaf_state["warnings"].pop(0)
     
-    def update_status(self, status) -> None:
+    def update_status(self, status: str) -> None:
         """Update the UI status"""
         self.leaf_state["status"] = status
 
-    def update_adapters_count(self, count: int) -> None:
-        """Update the active adapters count"""
-        self.leaf_state["active_adapters"] = count
+    # def update_adapters_count(self, count: int) -> None:
+    #     """Update the active adapters count"""
+    #     self.leaf_state["active_adapters"] = count
 
     def run(self) -> None:
         """Start the NiceGUI interface"""

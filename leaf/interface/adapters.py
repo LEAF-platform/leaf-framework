@@ -12,7 +12,6 @@ from leaf.adapters.equipment_adapter import EquipmentAdapter
 
 installed_adapters: dict[str, EquipmentAdapter] = register.load_adapters()
 
-
 async def pip_install(dialog: ui.dialog, adapter: dict[str, str]) -> None:
     dialog.close()
     ui.notify(f'Installing adapter: {adapter}', color='positive')
@@ -45,7 +44,7 @@ async def create_adapters_panel(tabs, adapters_tab, self) -> None:
     with ui.row().style('width: 100%'):
         code_mirrors['code_block'] = ui.codemirror(value="# Click an adapter to view its example.yaml file", language='YAML').style('width: 45%')
         code_mirrors['placeholder'] = ui.codemirror(value="# Editor to create a new configuration...", language='YAML').style('width: 45%')
-    with ui.row().style('width: 100%'):
+    with ui.row().style('width: 45%'):
         for name, installed_adapter in installed_adapters.items():
             async def obtain_example(name: str=name, adapter: EquipmentAdapter=installed_adapter) -> None:
                 ui.notify(f'Selected adapter: {name}', color='positive')

@@ -79,8 +79,7 @@ def create_dashboard_panel(self, dashboard_tab) -> None:
                     # Actions
                     with ui.row():
                         def restart_adapters() -> None:
-                            if self.stop_adapters_func:
-                                self.stop_adapters_func()
+                            self.stop_adapters_func()
                             # Start adapters again
                             self.start_adapters_background()
                             ui.notify('Restart operation triggered')
@@ -88,11 +87,8 @@ def create_dashboard_panel(self, dashboard_tab) -> None:
                         ui.button('Start/Restart Adapters', on_click=restart_adapters).classes('bg-blue-500')
 
                         def stop_system() -> None:
-                            if self.stop_adapters_func:
-                                self.stop_adapters_func()
-                                ui.notify('System stopped')
-                                logging.info('System stopped')
-                            else:
-                                ui.notify('Stop function not registered', color='negative')
+                            self.stop_adapters_func()
+                            ui.notify('System stopped')
+                            logging.info('System stopped')
 
                         ui.button('Stop System', on_click=stop_system).classes('bg-red-500')
