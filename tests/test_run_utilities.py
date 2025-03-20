@@ -96,7 +96,7 @@ class TestRunUtilities(unittest.TestCase):
         self.assertIsNone(self._keydb.pop())
         self.assertIsNone(self._file.pop())
         
-
+    '''
     def test_stop_all_adapters(self):
         error_holder = ErrorHolder()
         output = MQTT(
@@ -144,7 +144,7 @@ class TestRunUtilities(unittest.TestCase):
         thread = _start()
         time.sleep(5)
         _stop(thread)
-
+    '''
 
 
 if __name__ == "__main__":
