@@ -83,7 +83,3 @@ class ContinuousExperimentAdapter(EquipmentAdapter):
         self._control_process.process_input(start_topic,{})
         time.sleep(1)
         super().start()
-        time.sleep(1)
-        # Send stop message
-        stop_topic = self._metadata_manager.experiment.stop
-        self._control_process.process_input(stop_topic,{})

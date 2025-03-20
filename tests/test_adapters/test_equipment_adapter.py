@@ -327,7 +327,9 @@ class TestEquipmentAdapter(unittest.TestCase):
                         ):
                             expected_exceptions.remove(exp_exc)
                 time.sleep(0.1)
-            self.assertEqual(list(mock_client.messages.keys()), [_adapter._metadata_manager.details()])
+            print(mock_client.messages.keys())
+            self.assertEqual(list(mock_client.messages.keys()), [_adapter._metadata_manager.details(),
+                                                                 _adapter._metadata_manager.experiment.start()])
             _adapter.stop()
             mthread.join()
             if len(expected_exceptions) > 0:
