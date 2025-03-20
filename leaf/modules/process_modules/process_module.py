@@ -44,15 +44,23 @@ class ProcessModule:
         error_topic = self._metadata_manager.error()
         self._output.transmit(error_topic, error)
         
-    def stop(self) -> None:
+    def withdraw(self) -> None:
         """
         Stop all phases by flushing their respective terms if they are complete.
         """
         for phase in self._phases:
             term = phase.get_term()
             if topic_utilities.is_complete_topic(term):
+                if not hasattr(self._output,"flush"):
+                    continue
                 self._output.flush(term)
                 time.sleep(0.1)
+
+    def stop(self) -> None:
+        """
+        Disconnects the attached output module.
+        """
+        self._output.disconnect()
 
     def process_input(self, topic: str, data: dict) -> None:
         """
