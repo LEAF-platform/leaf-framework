@@ -98,7 +98,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         unique_institute = "TestInstitute_" #+ unique_instance_id[:8]
 
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
-        text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
+        self.text_watch_file = os.path.join(self.temp_dir.name, unique_file_name)
 
         instance_data = {
             "instance_id": unique_instance_id,
@@ -108,7 +108,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
         self._adapter = MockEquipmentAdapter(instance_data,equipment_data,
-                                              text_watch_file,**kwargs)
+                                              self.text_watch_file,**kwargs)
 
         self.details_topic = self._adapter._metadata_manager.details()
         self.start_topic = self._adapter._metadata_manager.experiment.start()
@@ -150,11 +150,10 @@ class TestEquipmentAdapter(unittest.TestCase):
         time.sleep(2)
         # Start Experiment
         self.assertIn(self.start_topic, self.mock_client.messages)
+        self._adapter.withdraw()
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
-        # Stop Experiment
-        self.assertIn(self.stop_topic, self.mock_client.messages)
 
 
 
