@@ -143,7 +143,6 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.assertIn(self.details_topic, self.mock_client.messages)
         self.assertEqual(len(self.mock_client.messages[self.details_topic]),1)
 
-    '''
     def test_running(self):
         self.initialize_experiment()
         mthread = Thread(target=self._adapter.start)
@@ -155,8 +154,6 @@ class TestEquipmentAdapter(unittest.TestCase):
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
-
-    '''
 
 
 
