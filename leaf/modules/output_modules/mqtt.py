@@ -240,6 +240,7 @@ class MQTT(OutputModule):
             return
         try:
             result = self.client.publish(topic=topic, payload=None, qos=0, retain=True)
+            result.wait_for_publish()
             error = self._handle_return_code(result.rc)
             if error is not None:
                 logger.error(
