@@ -1,10 +1,12 @@
 import os
 import sys
-import unittest
-import yaml
 import time
-import json
+import uuid
 import tempfile
+import unittest
+from threading import Thread
+import tempfile
+import yaml
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -15,8 +17,12 @@ from leaf.modules.output_modules.keydb_client import KEYDB
 from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
-
 from leaf.utility.running_utilities import handle_disabled_modules
+from leaf.start import stop_all_adapters
+from leaf.start import run_adapters
+from leaf import start
+from leaf.error_handler.error_holder import ErrorHolder
+
 
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
@@ -32,8 +38,11 @@ except KeyError:
     un = None
     pw = None
 
-db_host = "localhost"
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+mock_functional_adapter_path = os.path.join(curr_dir,
+                                            "mock_functional_adapter")
 
+db_host = "localhost"
 
 class TestRunUtilities(unittest.TestCase):
     def setUp(self) -> None:
@@ -86,7 +95,57 @@ class TestRunUtilities(unittest.TestCase):
             self.assertEqual(v,inp_messages[k])
         self.assertIsNone(self._keydb.pop())
         self.assertIsNone(self._file.pop())
+    
+    '''
+    def test_stop_all_adapters(self):
+        error_holder = ErrorHolder()
+        output = MQTT(
+            broker,
+            port,
+            username=un,
+            password=pw,
+            clientid=None,
+            error_holder=error_holder,
+        )
         
+        #output = FILE("Tst.tmp")
+
+        write_dir = "test"
+        if not os.path.isdir(write_dir):
+            os.mkdir(write_dir)
+        write_file = os.path.join(write_dir, "tmp1.csv")
+
+        ins = [
+            {
+                "equipment": {
+                    "adapter": "MockFunctionalAdapter",
+                    "data": {
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
+                    },
+                    "requirements": {"write_file": write_file},
+                }
+            }
+        ]
+
+        def _start() -> Thread:
+            mthread = Thread(
+                target=run_adapters,
+                args=[ins, output, error_holder],
+                kwargs={"external_adapter": mock_functional_adapter_path},
+            )
+            mthread.start()
+            return mthread
+
+        def _stop(thread: Thread) -> None:
+            stop_all_adapters()
+            time.sleep(10)
+
+        thread = _start()
+        time.sleep(5)
+        _stop(thread)
+    '''
+
 
 if __name__ == "__main__":
     unittest.main()

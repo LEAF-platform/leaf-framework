@@ -7,33 +7,27 @@
 ###################################
 
 import argparse
-import inspect
 import logging
 import os
 import signal
 import sys
-import threading
 import time
 from typing import Any, Type
 
 import yaml
 
 from leaf import register
-from leaf_register.topic_utilities import topic_utilities
-
-from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir
-
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.modules.output_modules.mqtt import MQTT
-from leaf.adapters.equipment_adapter import EquipmentAdapter
-
 from leaf.utility.running_utilities import handle_disabled_modules
-
+from leaf.utility.running_utilities import get_output_module
+from leaf.utility.running_utilities import process_instance
+from leaf.utility.running_utilities import start_all_adapters_in_threads
+from leaf.utility.running_utilities import run_simulation_in_thread
 ##################################
 #
 #            VARIABLES
@@ -94,6 +88,9 @@ def signal_handler(signal_received, frame) -> None:
     stop_all_adapters()
     sys.exit(0)
 
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
 def substitute_env_vars(config: Any):
     """Recursively replace placeholders in a (yaml) dictionary with environment variables."""
     if isinstance(config, dict):
@@ -113,148 +110,26 @@ def substitute_env_vars(config: Any):
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
     logger.info("Stopping all adapters.")
+    adapter_timeout = 10
+    count = 0
+    while len(adapters) == 0:
+        time.sleep(0.5)
+        count += 1
+        if count >= adapter_timeout:
+            raise AdapterBuildError(f"Cant stop adapter, likely because it hasn't started fully before shutdown.")
+    for adapter in adapters:
+        if adapter.is_running():
+            adapter.withdraw()
     for adapter in adapters:
         try:
-            adapter.stop()
-            logger.info(f"Adapter for {adapter} stopped successfully.")
+            if adapter.is_running():
+                adapter.stop()
+                logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
     
     for thread in adapter_threads:
         thread.join()
-
-
-def _start_all_adapters_in_threads(adapters):
-    """Start each adapter in a separate thread."""
-    threads = []
-    for adapter in adapters:
-        logger.info(f"Starting adapter: {adapter}")
-        thread = threading.Thread(target=adapter.start)
-        thread.daemon = True
-        thread.start()
-        threads.append(thread)
-    return threads
-
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
-
-def _get_existing_ids(output_module: MQTT,
-                      time_to_sleep: int = 5) -> list[str]:
-    """Returns IDS of equipment already in the system."""
-    topic = topic_utilities.details()
-    logger.debug(f"Setting up subscription to {topic}")
-    output_module.subscribe(topic)
-    time.sleep(time_to_sleep)
-    output_module.unsubscribe(topic)
-
-    ids: list[str] = []
-    for k, v in output_module.messages.items():
-        if topic_utilities.is_instance(k, topic):
-            ids.append(topic_utilities.parse_topic(k).instance_id)
-    output_module.reset_messages()
-    return ids
-
-
-def _get_output_module(config, error_holder: ErrorHolder) -> Any:
-    """Finds, initialises and connects all desired output
-        adapters defined within the config"""
-    outputs = config["OUTPUTS"]
-    output_objects = {}
-    fallback_codes = set()
-
-    for out_data in outputs:
-        output_code = out_data.pop("plugin")
-        fallback_code = out_data.pop("fallback", None)
-        if fallback_code:
-            fallback_codes.add(fallback_code)
-        output_objects[output_code] = {
-            "data": out_data,
-            "fallback_code": fallback_code,
-            "output": None
-        }
-
-    for code, out_data in output_objects.items():
-        try:
-            output_objects[code]["output"] = register.get_output_adapter(code)(
-                fallback=None, error_holder=error_holder, **out_data["data"])
-        except TypeError as ex:
-            raise AdapterBuildError(f"code missing parameters ({ex.args})")
-
-    for code, out_data in output_objects.items():
-        if out_data["fallback_code"]:
-            fallback_code = out_data["fallback_code"]
-            if fallback_code not in output_objects:
-                raise AdapterBuildError(f"Can't find output: {fallback_code}")
-
-            output_objects[code]["output"].set_fallback(output_objects[fallback_code]["output"])
-
-    for code, out_data in output_objects.items():
-        if code not in fallback_codes:
-            return out_data["output"]
-
-    return None
-
-
-def _process_instance(instance: dict[str, Any],
-                      output: MQTT,external_adapter=None) -> EquipmentAdapter:
-    """Finds and initialises an adapter from the config."""
-    equipment_code = instance["adapter"]
-    instance_data = instance["data"]
-    requirements = instance["requirements"]
-    adapter = register.get_equipment_adapter(equipment_code,
-                                             external_adapter=external_adapter)
-    try:
-        instance_id = instance_data["instance_id"]
-    except KeyError:
-        raise AdapterBuildError(f"Missing instance ID.")
-    if instance_id in _get_existing_ids(output):
-        logger.warning(f"ID: {instance_id} is taken.")
-    adapter_params = inspect.signature(adapter).parameters
-    adapter_param_names = set(adapter_params.keys())
-    fixed_params = {"instance_data", "output", "error_holder"}
-    optional_params = {"maximum_message_size","experiment_timeout"}
-    required_params = {
-        name
-        for name, param in adapter_params.items()
-        if name not in fixed_params and
-        param.default == inspect.Parameter.empty
-    }
-    provided_keys = set(requirements.keys())
-    missing_keys = required_params - provided_keys
-    unexpected_keys = provided_keys - adapter_param_names - optional_params
-
-    if missing_keys:
-        raise AdapterBuildError(
-            f"Missing required keys for {equipment_code}: {missing_keys}"
-        )
-    if unexpected_keys:
-        logger.warning(
-            f"Unexpected keys provided for {equipment_code}: {unexpected_keys}"
-        )
-    try:
-        error_holder = ErrorHolder(instance_id)
-        return adapter(instance_data, output,
-                       error_holder=error_holder, **requirements)
-    except ValueError as ex:
-        raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
-
-
-def _run_simulation_in_thread(adapter, **kwargs) -> threading.Thread:
-    """Run the adapter's simulate function in a separate thread."""
-    logger.info(f"Running simulation: {adapter}")
-
-    def simulation() -> None:
-        logger.info(
-            f"Starting simulation using data {str(kwargs)}."
-        )
-        adapter.simulate(**kwargs)
-
-    thread = threading.Thread(target=simulation)
-    thread.daemon = True
-    thread.start()
-    return thread
-
 
 def handle_exception(exc_type: Type[BaseException], exc_value, 
                      exc_traceback) -> None:
@@ -300,7 +175,7 @@ def run_adapters(equipment_instances, output, error_handler,
             if "simulation" in equipment_instance:
                 simulated = equipment_instance.pop("simulation")
 
-            adapter = _process_instance(equipment_instance, output,
+            adapter = process_instance(equipment_instance, output,
                                         external_adapter=external_adapter)
             if adapter is None:
                 continue
@@ -313,11 +188,11 @@ def run_adapters(equipment_instances, output, error_handler,
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
                 logger.info(f"Simulator started for instance {instance_id}.")
-                thread = _run_simulation_in_thread(adapter, **simulated)
+                thread = run_simulation_in_thread(adapter, **simulated)
                 adapter_threads.append(thread)
             else:
                 logger.info(f"Proxy started for instance {instance_id}.")
-                thread = _start_all_adapters_in_threads([adapter])[0]
+                thread = start_all_adapters_in_threads([adapter])[0]
                 adapter_threads.append(thread)
 
         while True:
@@ -347,7 +222,7 @@ def run_adapters(equipment_instances, output, error_handler,
                     error_shutdown(error,output)
                     time.sleep(cooldown_period_error)
                     output.connect()
-                    adapter_threads = _start_all_adapters_in_threads(adapters)
+                    adapter_threads = start_all_adapters_in_threads(adapters)
                     
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
@@ -444,7 +319,7 @@ def main(args=None) -> None:
 
     logger.info(f"Configuration: {args.config} loaded.")
     general_error_holder = ErrorHolder()
-    output = _get_output_module(config, general_error_holder)
+    output = get_output_module(config, general_error_holder)
     run_adapters(config["EQUIPMENT_INSTANCES"], output, 
                  general_error_holder,external_adapter=external_adapter)
 

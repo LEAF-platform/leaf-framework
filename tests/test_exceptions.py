@@ -28,8 +28,8 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.modules.process_modules.continous_module import ContinousProcess
-from leaf.start import _process_instance
-from leaf.start import _get_output_module
+from leaf.start import process_instance
+from leaf.start import get_output_module
 from leaf.start import run_adapters
 from leaf.start import stop_all_adapters
 from leaf import start
@@ -131,7 +131,7 @@ class TestExceptionsInit(unittest.TestCase):
             ],
         }
         with self.assertRaises(AdapterBuildError):
-            _get_output_module(config, None)
+            get_output_module(config, None)
 
     def test_start_get_output_fallback_not_found(self) -> None:
         config = {
@@ -153,7 +153,7 @@ class TestExceptionsInit(unittest.TestCase):
             ],
         }
         with self.assertRaises(AdapterBuildError):
-            _get_output_module(config, None)
+            get_output_module(config, None)
 
     def test_start_get_output_invalid_params(self) -> None:
         config = {
@@ -174,9 +174,9 @@ class TestExceptionsInit(unittest.TestCase):
             ],
         }
         with self.assertRaises(AdapterBuildError):
-            _get_output_module(config, None)
+            get_output_module(config, None)
 
-    def test_start_process_instance_not_found(self) -> None:
+    def test_startprocess_instance_not_found(self) -> None:
         config = {
             "adapter": "BioLector123",
             "data": {"instance_id": "biolector_devonshire10", "institute": "NCL"},
@@ -184,9 +184,9 @@ class TestExceptionsInit(unittest.TestCase):
         }
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         with self.assertRaises(AdapterBuildError):
-            _process_instance(config, output)
+            process_instance(config, output)
 
-    def test_start_process_instance_no_requirements(self) -> None:
+    def test_startprocess_instance_no_requirements(self) -> None:
         config = {
             "adapter": "BioLector1",
             "data": {"instance_id": "biolector_devonshire10", "institute": "NCL"},
@@ -194,9 +194,9 @@ class TestExceptionsInit(unittest.TestCase):
         }
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         with self.assertRaises(AdapterBuildError):
-            _process_instance(config, output)
+            process_instance(config, output)
 
-    def test_start_process_instance_missing_id(self) -> None:
+    def test_startprocess_instance_missing_id(self) -> None:
         config = {
             "adapter": "BioLector1",
             "data": {"institute": "NCL"},
@@ -204,7 +204,7 @@ class TestExceptionsInit(unittest.TestCase):
         }
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         with self.assertRaises(AdapterBuildError):
-            _process_instance(config, output)
+            process_instance(config, output)
 
     def test_file_watcher_invalid_filepath(self) -> None:
         filepath = None
