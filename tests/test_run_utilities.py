@@ -5,7 +5,6 @@ import uuid
 import tempfile
 import unittest
 from threading import Thread
-import tempfile
 import yaml
 
 sys.path.insert(0, os.path.join(".."))
@@ -96,6 +95,7 @@ class TestRunUtilities(unittest.TestCase):
         self.assertIsNone(self._keydb.pop())
         self.assertIsNone(self._file.pop())
     
+
     '''
     def test_stop_all_adapters(self):
         error_holder = ErrorHolder()
@@ -110,10 +110,8 @@ class TestRunUtilities(unittest.TestCase):
         
         #output = FILE("Tst.tmp")
 
-        write_dir = "test"
-        if not os.path.isdir(write_dir):
-            os.mkdir(write_dir)
-        write_file = os.path.join(write_dir, "tmp1.csv")
+        write_dir = tempfile.TemporaryDirectory()
+        write_file = os.path.join(write_dir.name, "tmp1.csv")
 
         ins = [
             {
@@ -144,6 +142,7 @@ class TestRunUtilities(unittest.TestCase):
         thread = _start()
         time.sleep(5)
         _stop(thread)
+'
     '''
 
 
