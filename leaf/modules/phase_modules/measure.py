@@ -83,6 +83,7 @@ class MeasurePhase(PhaseModule):
                 self._handle_exception(excp)
                 return None
             if isinstance(result, (set, list, tuple)):
+                result = list(result)
                 chunks = [
                     result[i : i + self._maximum_message_size]
                     for i in range(0, len(result), self._maximum_message_size)
