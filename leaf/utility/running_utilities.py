@@ -53,8 +53,6 @@ def get_existing_ids(output_module: MQTT,
     """Returns IDS of equipment already in the system."""
     topic = topic_utilities.details()
     logger.debug(f"Setting up subscription to {topic}")
-    if not hasattr(output_module,"subscribe"):
-        return []
     output_module.subscribe(topic)
     time.sleep(time_to_sleep)
     output_module.unsubscribe(topic)

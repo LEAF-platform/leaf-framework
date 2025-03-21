@@ -51,8 +51,6 @@ class ProcessModule:
         for phase in self._phases:
             term = phase.get_term()
             if topic_utilities.is_complete_topic(term):
-                if not hasattr(self._output,"flush"):
-                    continue
                 self._output.flush(term)
                 time.sleep(0.1)
 

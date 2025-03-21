@@ -90,6 +90,20 @@ class OutputModule(ABC):
         """
         pass
 
+    def flush(self,topic:str) -> bool:
+        """
+        Flush any held transient data within the output module.
+        """
+        if self._fallback is not None:
+            self._fallback.flush(topic)
+
+    def subscribe(self,topic:str) -> bool:
+        """
+        Listens on any routes where available.
+        """
+        if self._fallback is not None:
+            self._fallback.subscribe(topic)
+
     def fallback(self, topic: str, data: str) -> bool:
         """
         Transmit the data using the fallback OutputModule 
