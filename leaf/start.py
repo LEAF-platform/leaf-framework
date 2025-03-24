@@ -13,6 +13,8 @@ import signal
 import sys
 import time
 from typing import Any, Type
+import threading
+import time
 
 import yaml
 
@@ -43,6 +45,15 @@ logger = get_logger(__name__, log_file="global.log",
 adapters: list[Any] = []
 adapter_threads: list[Any] = []
 output_disable_time = 500
+
+# Global variables for the app
+global_output = None
+global_error_handler = None
+global_config = None
+# global_external_adapter = None
+global_gui = None
+global_args = None
+
 ##################################
 #
 #            FUNCTIONS
@@ -54,6 +65,13 @@ def parse_args(args=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
     )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="The port to run the NiceGUI web interface on.",
+    )
+
     parser.add_argument(
         "-d",
         "--delay",
@@ -292,37 +310,109 @@ def welcome_message() -> None:
 #
 ###################################
 def main(args=None) -> None:
+    global global_gui, global_output, global_error_handler, global_config, global_external_adapter
     welcome_message()
-    register.load_adapters()
+
+    # register.load_adapters()
 
     """Main function as a wrapper for all steps."""
     logger.info("Starting the proxy.")
     args = parse_args(args)
+    global_args = args
 
     if args.debug:
         logger.debug("Debug logging enabled.")
         logger.setLevel(logging.DEBUG)
 
-    if args.config is None:
-        logger.error("No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
-        if os.path.isfile("config/config.yaml"):
-            logger.info("An example of a config file if needed:")
-            with open("config/config.yaml", "r") as file:
-                logger.info("\n"+file.read())
-        return
+    # Create configuration folder to store the config file in
+    # Obtain script directory
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    # Create config directory
+    if not os.path.exists(os.path.join(script_dir, "config")):
+        os.makedirs(os.path.join(script_dir, "config"))
+    # Check if a config file is provided
+    if args.config is not None:
+        # Check if the config file exists
+        if os.path.exists(args.config):
+            # Copy to the config directory
+            with open(os.path.join(script_dir, "config", "configuration.yaml"), "w") as f:
+                with open(args.config, "r") as f2:
+                    f.write(f2.read())
+    # Fixed path to the configuration file
+    args.config = os.path.join(script_dir, "config", "configuration.yaml")
 
-    external_adapter = args.path
-    logger.debug(f"Loading configuration file: {args.config}")
+    # if args.config is None:
+    #     logger.error("No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
+    #     if os.path.isfile("config/config.yaml"):
+    #         logger.info("An example of a config file if needed:")
+    #         with open("config/config.yaml", "r") as file:
+    #             logger.info("\n"+file.read())
+    #     return
 
-    with open(args.config, "r") as file:
-        config = yaml.safe_load(file)
+    # external_adapter = args.path
+    # logger.debug(f"Loading configuration file: {args.config}")
+    #
+    # with open(args.config, "r") as file:
+    #     config = yaml.safe_load(file)
+    #
+    # logger.info(f"Configuration: {args.config} loaded.")
+    # general_error_holder = ErrorHolder()
+    # output = get_output_module(config, general_error_holder)
+    # run_adapters(config["EQUIPMENT_INSTANCES"], output,
+    #              general_error_holder,external_adapter=external_adapter)
 
-    logger.info(f"Configuration: {args.config} loaded.")
-    general_error_holder = ErrorHolder()
-    output = get_output_module(config, general_error_holder)
-    run_adapters(config["EQUIPMENT_INSTANCES"], output, 
-                 general_error_holder,external_adapter=external_adapter)
+    # If GUI is enabled, run NiceGUI as the main application
+    import threading
+    import time
+    # if args.guidisable:
+    logger.info(f"Starting NiceGUI web interface on port {args.port}")
+    # Create GUI instance
+    from leaf.interface.main import create_gui
+    global_gui = create_gui(args.port)
+    # Set global variables
+    global_gui.global_args = global_args
+    global_gui.global_config = global_config
+    # Register callbacks for GUI to use
+    global_gui.register_callbacks(
+        start_adapters_func=run_adapters,
+        stop_adapters_func=stop_all_adapters
+    )
+
+    # Function to run background tasks (adapter setup)
+    def run_background_tasks():
 
 
-if __name__ == "__main__":
+        global_external_adapter = args.path
+        logger.debug(f"Loading configuration file: {args.config}")
+
+        # Load the configuration file
+        if args.config is None or not os.path.exists(args.config):
+            logger.error(
+                "No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
+            global_config: str = "No configuration file provided."
+            config = None
+        else:
+            with open(args.config, "r") as file:
+                config = yaml.safe_load(file)
+                global_config: str = yaml.dump(config, indent=4)
+
+            logger.info(f"Configuration: {args.config} loaded.")
+            logger.info(f"\n{global_config}\n")
+
+            general_error_holder = ErrorHolder()
+            global_error_handler = general_error_holder
+            output = get_output_module(config, general_error_holder)
+            global_output = output
+            run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=None)
+
+    # Start the background tasks (adapter setup) in a separate thread
+    background_thread = threading.Thread(target=run_background_tasks, daemon=True)
+    background_thread.start()
+
+    # Run the GUI in the main thread
+    global_gui.run()
+
+
+
+if __name__ in {"__main__", "__mp_main__"}:
     main()

@@ -1,16 +1,18 @@
 import logging
 import os
 import time
-from threading import Event
 from abc import ABC, abstractmethod
+from threading import Event
 from typing import List, Optional, Union, Any
+
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler import exceptions
-from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.input_modules.event_watcher import EventWatcher
-from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import LEAFError
+from leaf.modules.input_modules.event_watcher import EventWatcher
+from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.process_modules.process_module import ProcessModule
 
 class AbstractInterpreter(ABC):
     """
