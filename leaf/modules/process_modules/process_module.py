@@ -40,11 +40,11 @@ class ProcessModule:
         self._error_holder = error_holder
         self._metadata_manager = metadata_manager
 
-    def transmit_error(self,error: dict[str, Any]) -> None:
+    def transmit_error(self,error:Dict) -> None:
         error_topic = self._metadata_manager.error()
         self._output.transmit(error_topic, error)
         
-    def stop(self) -> None:
+    def withdraw(self) -> None:
         """
         Stop all phases by flushing their respective terms if they are complete.
         """
@@ -54,7 +54,13 @@ class ProcessModule:
                 self._output.flush(term)
                 time.sleep(0.1)
 
-    def process_input(self, topic: str, data: dict[str, Any]) -> None:
+    def stop(self) -> None:
+        """
+        Disconnects the attached output module.
+        """
+        self._output.disconnect()
+
+    def process_input(self, topic: str, data: dict) -> None:
         """
         Process input data by passing it to the appropriate phase.
 

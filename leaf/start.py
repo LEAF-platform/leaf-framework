@@ -1,3 +1,5 @@
+""" LEAF: start.py """
+
 ##################################
 #
 #            PACKAGES
@@ -5,32 +7,27 @@
 ###################################
 
 import argparse
-import inspect
 import logging
 import os
 import signal
 import sys
-import threading
 import time
 from typing import Any, Type
 
 import yaml
 
 from leaf import register
-from leaf_register.topic_utilities import topic_utilities
-
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir
-
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.modules.output_modules.mqtt import MQTT
-from leaf.adapters.equipment_adapter import EquipmentAdapter
-
 from leaf.utility.running_utilities import handle_disabled_modules
-
+from leaf.utility.running_utilities import get_output_module
+from leaf.utility.running_utilities import process_instance
+from leaf.utility.running_utilities import start_all_adapters_in_threads
+from leaf.utility.running_utilities import run_simulation_in_thread
 ##################################
 #
 #            VARIABLES
@@ -46,23 +43,6 @@ logger = get_logger(__name__, log_file="global.log",
 adapters: list[Any] = []
 adapter_threads: list[Any] = []
 output_disable_time = 500
-
-# Global variables for the app
-global_output = None
-global_error_handler = None
-global_config = None
-# global_external_adapter = None
-global_gui = None
-global_args = None
-
-# Generic configuration file
-# Create configuration folder to store the config file in
-# Obtain script directory
-script_dir = os.path.dirname(os.path.realpath(__file__))
-# Create config directory
-global_configuration = os.path.join(script_dir, "config", "configuration.yaml")
-
-
 ##################################
 #
 #            FUNCTIONS
@@ -99,12 +79,6 @@ def parse_args(args=None) -> argparse.Namespace:
         help="The path to the directory of the adapter to use.",
         default=None
     )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8080,
-        help="The port to run the NiceGUI web interface on.",
-    )
     return parser.parse_args(args=args)
 
 
@@ -113,6 +87,9 @@ def signal_handler(signal_received, frame) -> None:
     logger.info("Shutting down gracefully.")
     stop_all_adapters()
     sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 def substitute_env_vars(config: Any):
     """Recursively replace placeholders in a (yaml) dictionary with environment variables."""
@@ -132,162 +109,27 @@ def substitute_env_vars(config: Any):
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
-    logger.info(f"Stopping all {len(adapters)} adapters.")
-    if global_gui:
-        global_gui.update_status("Stopping")
+    logger.info("Stopping all adapters.")
+    adapter_timeout = 10
+    count = 0
+    while len(adapters) == 0:
+        time.sleep(0.5)
+        count += 1
+        if count >= adapter_timeout:
+            raise AdapterBuildError(f"Cant stop adapter, likely because it hasn't started fully before shutdown.")
+    for adapter in adapters:
+        if adapter.is_running():
+            adapter.withdraw()
     for adapter in adapters:
         try:
-            adapter.stop()
-            logger.info(f"Adapter for {adapter} stopped successfully.")
+            if adapter.is_running():
+                adapter.stop()
+                logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
     
     for thread in adapter_threads:
-        logger.info(f"Stopping {thread} adapter thread.")
         thread.join()
-        logger.info(f"Stopping thread for {thread} stopped successfully.")
-    logger.info("All adapters stopped.")
-
-    # Reset adapter and thread lists
-    adapters.clear()
-    adapter_threads.clear()
-
-
-
-def _start_all_adapters_in_threads(adapters):
-    """Start each adapter in a separate thread."""
-    threads = []
-    for adapter in adapters:
-        logger.info(f"Starting adapter: {adapter}")
-        thread = threading.Thread(target=adapter.start)
-        thread.daemon = True
-        thread.start()
-        threads.append(thread)
-    # Update the global state with the number of active adapters for the GUI
-    if global_gui:
-        global_gui.leaf_state['active_adapters'] = len(adapters)
-    return threads
-
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
-
-def _get_existing_ids(output_module: MQTT,
-                      time_to_sleep: int = 5) -> list[str]:
-    """Returns IDS of equipment already in the system."""
-    topic = topic_utilities.details()
-    logger.debug(f"Setting up subscription to {topic}")
-    output_module.subscribe(topic)
-    time.sleep(time_to_sleep)
-    output_module.unsubscribe(topic)
-
-    ids: list[str] = []
-    for k, v in output_module.messages.items():
-        if topic_utilities.is_instance(k, topic):
-            ids.append(topic_utilities.parse_topic(k).instance_id)
-    output_module.reset_messages()
-    return ids
-
-
-def _get_output_module(config: dict[Any], error_holder: ErrorHolder) -> Any:
-    """Finds, initialises and connects all desired output
-        adapters defined within the config"""
-    outputs = config["OUTPUTS"]
-    output_objects = {}
-    fallback_codes = set()
-
-    for out_data in outputs:
-        output_code = out_data.pop("plugin")
-        fallback_code = out_data.pop("fallback", None)
-        if fallback_code:
-            fallback_codes.add(fallback_code)
-        output_objects[output_code] = {
-            "data": out_data,
-            "fallback_code": fallback_code,
-            "output": None
-        }
-
-    for code, out_data in output_objects.items():
-        try:
-            output_objects[code]["output"] = register.get_output_adapter(code)(
-                fallback=None, error_holder=error_holder, **out_data["data"])
-        except TypeError as ex:
-            raise AdapterBuildError(f"code missing parameters ({ex.args})")
-
-    for code, out_data in output_objects.items():
-        if out_data["fallback_code"]:
-            fallback_code = out_data["fallback_code"]
-            if fallback_code not in output_objects:
-                raise AdapterBuildError(f"Can't find output: {fallback_code}")
-
-            output_objects[code]["output"].set_fallback(output_objects[fallback_code]["output"])
-
-    for code, out_data in output_objects.items():
-        if code not in fallback_codes:
-            return out_data["output"]
-
-    return None
-
-
-def _process_instance(instance: dict[str, Any],
-                      output: MQTT,external_adapter=None) -> EquipmentAdapter:
-    """Finds and initialises an adapter from the config."""
-    equipment_code = instance["adapter"]
-    instance_data = instance["data"]
-    requirements = instance["requirements"]
-    adapter = register.get_equipment_adapter(equipment_code,
-                                             external_adapter=external_adapter)
-    try:
-        instance_id = instance_data["instance_id"]
-    except KeyError:
-        raise AdapterBuildError(f"Missing instance ID.")
-    if instance_id in _get_existing_ids(output):
-        logger.warning(f"ID: {instance_id} is taken.")
-    adapter_params = inspect.signature(adapter).parameters
-    adapter_param_names = set(adapter_params.keys())
-    fixed_params = {"instance_data", "output", "error_holder"}
-    optional_params = {"maximum_message_size","experiment_timeout"}
-    required_params = {
-        name
-        for name, param in adapter_params.items()
-        if name not in fixed_params and
-        param.default == inspect.Parameter.empty
-    }
-    provided_keys = set(requirements.keys())
-    missing_keys = required_params - provided_keys
-    unexpected_keys = provided_keys - adapter_param_names - optional_params
-
-    if missing_keys:
-        raise AdapterBuildError(
-            f"Missing required keys for {equipment_code}: {missing_keys}"
-        )
-    if unexpected_keys:
-        logger.warning(
-            f"Unexpected keys provided for {equipment_code}: {unexpected_keys}"
-        )
-    try:
-        error_holder = ErrorHolder(instance_id)
-        return adapter(instance_data, output,
-                       error_holder=error_holder, **requirements)
-    except ValueError as ex:
-        raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
-
-
-def _run_simulation_in_thread(adapter, **kwargs) -> threading.Thread:
-    """Run the adapter's simulate function in a separate thread."""
-    logger.info(f"Running simulation: {adapter}")
-
-    def simulation() -> None:
-        logger.info(
-            f"Starting simulation using data {str(kwargs)}."
-        )
-        adapter.simulate(**kwargs)
-
-    thread = threading.Thread(target=simulation)
-    thread.daemon = True
-    thread.start()
-    return thread
-
 
 def handle_exception(exc_type: Type[BaseException], exc_value, 
                      exc_traceback) -> None:
@@ -324,10 +166,6 @@ def run_adapters(equipment_instances, output, error_handler,
     max_warning_retries = 2
     client_warning_retry_count = 0
     cooldown_period_warning = 1
-    
-    if global_gui:
-        global_gui.update_status("Running")
-    
     try:
         # Initialize and start all adapters
         for equipment_instance in equipment_instances:
@@ -337,7 +175,7 @@ def run_adapters(equipment_instances, output, error_handler,
             if "simulation" in equipment_instance:
                 simulated = equipment_instance.pop("simulation")
 
-            adapter = _process_instance(equipment_instance, output,
+            adapter = process_instance(equipment_instance, output,
                                         external_adapter=external_adapter)
             if adapter is None:
                 continue
@@ -350,11 +188,11 @@ def run_adapters(equipment_instances, output, error_handler,
                     raise AdapterBuildError(f"Adapter does not support simulation.")
 
                 logger.info(f"Simulator started for instance {instance_id}.")
-                thread = _run_simulation_in_thread(adapter, **simulated)
+                thread = run_simulation_in_thread(adapter, **simulated)
                 adapter_threads.append(thread)
             else:
                 logger.info(f"Proxy started for instance {instance_id}.")
-                thread = _start_all_adapters_in_threads([adapter])[0]
+                thread = start_all_adapters_in_threads([adapter])[0]
                 adapter_threads.append(thread)
 
         while True:
@@ -384,7 +222,7 @@ def run_adapters(equipment_instances, output, error_handler,
                     error_shutdown(error,output)
                     time.sleep(cooldown_period_error)
                     output.connect()
-                    adapter_threads = _start_all_adapters_in_threads(adapters)
+                    adapter_threads = start_all_adapters_in_threads(adapters)
                     
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
@@ -432,8 +270,7 @@ sys.excepthook = handle_exception
 
 def welcome_message() -> None:
     """Prints a welcome message."""
-    logger.info("""\n\n
- ##:::::::'########::::'###::::'########:
+    logger.info("""\n\n ##:::::::'########::::'###::::'########:
  ##::::::: ##.....::::'## ##::: ##.....::
  ##::::::: ##::::::::'##:. ##:: ##:::::::
  ##::::::: ######:::'##:::. ##: ######:::
@@ -455,87 +292,37 @@ def welcome_message() -> None:
 #
 ###################################
 def main(args=None) -> None:
-    global global_gui, global_output, global_error_handler, global_config, global_external_adapter
-    
     welcome_message()
-    # register.load_adapters()
+    register.load_adapters()
 
     """Main function as a wrapper for all steps."""
     logger.info("Starting the proxy.")
     args = parse_args(args)
-    global_args = args
+
     if args.debug:
         logger.debug("Debug logging enabled.")
         logger.setLevel(logging.DEBUG)
 
-    # Create configuration folder to store the config file in
-    # Obtain script directory
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    # Create config directory
-    if not os.path.exists(os.path.join(script_dir, "config")):
-        os.makedirs(os.path.join(script_dir, "config"))
-    # Check if a config file is provided
-    if args.config is not None:
-        # Check if the config file exists
-        if os.path.exists(args.config):
-            # Copy to the config directory
-            with open(os.path.join(script_dir, "config", "configuration.yaml"), "w") as f:
-                with open(args.config, "r") as f2:
-                    f.write(f2.read())
+    if args.config is None:
+        logger.error("No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
+        if os.path.isfile("config/config.yaml"):
+            logger.info("An example of a config file if needed:")
+            with open("config/config.yaml", "r") as file:
+                logger.info("\n"+file.read())
+        return
 
-    # Fixed path to the configuration file
-    args.config = os.path.join(script_dir, "config", "configuration.yaml")
+    external_adapter = args.path
+    logger.debug(f"Loading configuration file: {args.config}")
 
-    # If GUI is enabled, run NiceGUI as the main application
-    import threading
-    import time
+    with open(args.config, "r") as file:
+        config = yaml.safe_load(file)
 
-    if args.guidisable:
-        logger.info(f"Starting NiceGUI web interface on port {args.port}")
-        # Create GUI instance
-        from leaf.interface.main import create_gui
-        global_gui = create_gui(args.port)
-        # Set global variables
-        global_gui.global_args = global_args
-        global_gui.global_config = global_config
-        # Register callbacks for GUI to use
-        global_gui.register_callbacks(
-            start_adapters_func=run_adapters,
-            stop_adapters_func=stop_all_adapters
-        )
-
-        # Function to run background tasks (adapter setup)
-        def run_background_tasks():
-            global_external_adapter = args.path
-            logger.debug(f"Loading configuration file: {args.config}")
-
-            # Load the configuration file
-            if args.config is None or not os.path.exists(args.config):
-                logger.error(
-                    "No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
-                global_config: str = "No configuration file provided."
-                config = None
-            else:
-                with open(args.config, "r") as file:
-                    config = yaml.safe_load(file)
-                    global_config: str = yaml.dump(config, indent=4)
-
-                logger.info(f"Configuration: {args.config} loaded.")
-                logger.info(f"\n{global_config}\n")
-
-                general_error_holder = ErrorHolder()
-                global_error_handler = general_error_holder
-                output = _get_output_module(config, general_error_holder)
-                global_output = output
-                run_adapters(config["EQUIPMENT_INSTANCES"], output, general_error_holder, external_adapter=None)
-
-        # Start the background tasks (adapter setup) in a separate thread
-        background_thread = threading.Thread(target=run_background_tasks, daemon=True)
-        background_thread.start()
-
-        # Run the GUI in the main thread
-        global_gui.run()
+    logger.info(f"Configuration: {args.config} loaded.")
+    general_error_holder = ErrorHolder()
+    output = get_output_module(config, general_error_holder)
+    run_adapters(config["EQUIPMENT_INSTANCES"], output, 
+                 general_error_holder,external_adapter=external_adapter)
 
 
-if __name__ in {"__main__", "__mp_main__"}:
-    main(["-c", "/Users/koeho006/git/leaf/leaf/venv/lib/python3.12/site-packages/leaf_hello_world/example.yaml"])
+if __name__ == "__main__":
+    main()

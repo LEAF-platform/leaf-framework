@@ -184,6 +184,12 @@ class EquipmentAdapter(ABC):
             )
             self._handle_exception(excp)
 
+    def is_running(self) -> None:
+        """
+        Displays whether the adapter is running on not.
+        """
+        return not self._stop_event.is_set()
+    
     def start(self) -> None:
         """
         Start the equipment adapter process.
@@ -296,17 +302,29 @@ class EquipmentAdapter(ABC):
             self._watcher.stop()
             self.stop()
 
+
+    def withdraw(self) -> None:
+        """
+        Instructs all processes to stop 
+        being visible where appropriate.
+        Essentially withdraws the adapter from 
+        being visible but still keeps running.
+        """
+        for process in self._processes:
+            process.withdraw()
+                
     def stop(self) -> None:
         """
         Stop the equipment adapter process.
 
         Stops the watcher and flushes all output channels.
         """
-        for process in self._processes:
-            process.stop()
         self._stop_event.set()
         if self._watcher.is_running():
             self._watcher.stop()
+
+        for process in self._processes:
+            process.stop()
 
     def transmit_errors(self, errors: List[LEAFError] = None) -> None:
         """
