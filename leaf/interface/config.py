@@ -48,7 +48,11 @@ async def create_config_panel(self, config_tab) -> None:
                         ui.notify(f'File not found', color='negative')
 
             # Configuration form
-            ui.input(label='Load configuration from file path', value=self.global_args.config).style('width: 100%').on_value_change(load_config)
+            try:
+                ui.input(label='Load configuration from file path', value=self.global_args.config).style('width: 100%').on_value_change(load_config)
+            except Exception as e:
+                # TODO ensure global_args is not None
+                ui.input(label='Load configuration from file path', value="").style('width: 100%').on_value_change(load_config)
 
             # Check for yaml files in current directory
             yaml_files = existing_yamls()
