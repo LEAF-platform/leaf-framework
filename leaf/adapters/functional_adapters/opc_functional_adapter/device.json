@@ -1,0 +1,19 @@
+{
+  "adapter_id": "MBPOPC",
+  "equipment_data": {
+    "version": "1.0",
+    "manufacturer": "BearTree",
+    "device_type": "Bioreactor",
+    "application": "OPC Data logger for the BearTree Bioreactor"
+  },
+  "requirements": {
+    "interval": "int",
+    "host": "str",
+    "port": "int",
+    "topics": [
+      "temperature",
+      "pressure"
+    ]
+  },
+  "adapter_data": {}
+}

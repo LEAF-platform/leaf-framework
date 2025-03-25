@@ -1,0 +1,42 @@
+# LEAF Configuration
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: MBPOPC
+      data:
+        instance_id: datalogger1
+        institute: unlock
+        department: mbp
+      requirements:
+        interval: 10
+        host: 10.22.196.201
+        port: 49580
+        topics:
+          - R1_Effluent Pump Main.R1_Effluent Pump Main_state
+          - R1_O2 MFC SP.R1_O2 MFC SP_sp
+          - R1_pH Control.R1_pH Control_state
+          - R1_pH1 Pump Main.R1_pH1 Pump Main_sp
+          - R1_Conductivity.R1_Conductivity_pv
+          - R1_Influent Pump Main.R1_Influent Pump Main_state
+          - R1_Influent 2 Pump Main.R1_Influent 2 Pump Main_state
+          - R2_Scale.R2_Scale_pv
+          - R1_MFC SP.R1_MFC SP_sp
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: localhost
+    port: 1883
+#    username: unlock
+#    password: rUX5Q9zps4gKBHVdvTq7F3xf6GuJSPRZjeb
+#    transport: websockets
+#    protocol: v5
+#    tls: true
+#    clientid: leaf_mbp_opc_datalogger_x
+#  - plugin: MQTT
+#    broker: mqtt.wide-unlock-acc.wide.wur.nl
+#    port: 443
+#    username: unlock
+#    password: rUX5Q9zps4gKBHVdvTq7F3xf6GuJSPRZjeb
+#    transport: websockets
+#    protocol: v5
+#    tls: true
+#    clientid: leaf_mbp_opc_datalogger_x

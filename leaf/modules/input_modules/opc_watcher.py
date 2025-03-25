@@ -1,3 +1,4 @@
+import time
 from typing import Optional, Callable, List, Set
 
 from leaf_register.metadata import MetadataManager
@@ -29,7 +30,8 @@ class OPCWatcher(EventWatcher):
             error_holder (Optional[ErrorHolder]): Optional object to manage errors.
         """
         # Can't populate yet in this situation
-        term_map = {}
+        term_map = {"term":"map"}
+
         super().__init__(term_map, metadata_manager,
                          callbacks=callbacks,
                          error_holder=error_holder)
@@ -46,7 +48,7 @@ class OPCWatcher(EventWatcher):
 
         # This is under the impression that the watcher will only ever express measurements.
         # Not control information such as when experiments start.
-        self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
+        # self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
 
         '''
         If you do have other actions, then youd add more handlers i think, like below.
@@ -61,7 +63,7 @@ class OPCWatcher(EventWatcher):
         # If they are gonna always be different types of measurements then youd probably want to create a merged dict.
         # If it can describe actions, experiment start, stop, measurement etc then more complex behaviour is needed.
         # Perhaps a SubHandler for each type of action in the term_map
-        self._dispatch_callback(self.datachange_notification, data)
+        self._dispatch_callback(self.datachange_notification, {node.nodeid: val})
 
     def start(self) -> None:
         """
@@ -71,22 +73,27 @@ class OPCWatcher(EventWatcher):
         self._client = Client(f"opc.tcp://{self._host}:{self._port}")
         self._client.connect()
 
-        # Not sure whats going on here. Could be changed to allow user defined topics etc.
+        # Not sure what's going on here. Could be changed to allow user defined topics etc.
         # Are they all different measurements?
         root = self._client.get_root_node()
         objects_node = root.get_child(["0:Objects"])
         # Automatically browse and read nodes to obtain topics user could provide a list of topics.
         self._topics = self._browse_and_read(objects_node)
+        print(f"Number of topics: {len(self._topics)}")
+
+        # Subscribe to topics
         self._subscribe_to_topics()
 
-        try:
-            while self._running:
-                time.sleep(1)
-        finally:
-            for handle in self._handles:
-                self._sub.unsubscribe(handle)
-            self._sub.delete()
-            self._client.disconnect()
+        # When enabling this section we obtain a ServiceFault error.
+        # Keep the watcher running
+        # try:
+        #     while self._running:
+        #         time.sleep(1)
+        # finally:
+        #     for handle in self._handles:
+        #         self._sub.unsubscribe(handle)
+        #     self._sub.delete()
+        #     self._client.disconnect()
 
     def _browse_and_read(self, node) -> Set[str]:
         """
@@ -116,16 +123,22 @@ class OPCWatcher(EventWatcher):
         if not self._client:
             print("Client is not connected.")
             return
-
-        self._sub = self._client.create_subscription(1000, self)  # 1s interval
-        for topic in self._topics:
-            try:
-                node = self._client.get_node(f"ns=2;s={topic}")  # Adjust namespace
-                handle = self._sub.subscribe_data_change(node)
-                self._handles.append(handle)
-                print(f"Subscribed to: {topic}")
-            except Exception as e:
-                print(f"Failed to subscribe to {topic}: {e}")
+        try:
+            self._sub = self._client.create_subscription(1000, self)  # 1s interval
+            for topic in self._topics:
+                try:
+                    node = self._client.get_node(f"ns=2;s={topic}")  # Adjust namespace
+                    handle = self._sub.subscribe_data_change(node)
+                    self._handles.append(handle)
+                    print(f"Subscribed to: {topic}")
+                except Exception as e:
+                    print(f"Failed to subscribe to {topic}: {e}")
+                    if "ServiceFault" in str(e):
+                        print("Retrying in 5 seconds...")
+                        time.sleep(5)
+                        continue  # Try the next topic
+        except Exception as e:
+            print(f"Failed to create subscription: {e}")
 
 
 if __name__ == "__main__":
