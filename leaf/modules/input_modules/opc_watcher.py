@@ -99,7 +99,7 @@ class OPCWatcher(PollingWatcher):
             except Exception as e:
                 print(f"Failed to subscribe to {topic}: {e}")
 
-    def _fetch_data(self) -> Dict[str, Dict[str, str]] -> dict[str, str]:
+    def _fetch_data(self) -> Dict[str, Dict[str, str]]:
         """
         Fetch dummy data for testing and triggering callbacks.
 
