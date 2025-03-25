@@ -1,16 +1,12 @@
-from typing import Optional, Callable, List, Dict, Set
+
+from typing import Optional, Callable, List, Dict, Set, Any
+
 from leaf_register.metadata import MetadataManager
-from opcua import Client, ua
-from leaf.modules.input_modules.polling_watcher import PollingWatcher
+from opcua import Client, Node
+from opcua.common.subscription import DataChangeNotif
+
 from leaf.error_handler.error_holder import ErrorHolder
-
-
-class SubHandler:
-    """Handles OPC UA data change notifications."""
-
-    def datachange_notification(self, node, val, data) -> None:
-        print(f"Value changed: {node.nodeid}: {val}")
-
+from leaf.modules.input_modules.polling_watcher import PollingWatcher
 
 class OPCWatcher(PollingWatcher):
     """
@@ -40,7 +36,10 @@ class OPCWatcher(PollingWatcher):
         self._metadata_manager = metadata_manager
         self.client = None
         self.sub = None
-        self.handler = SubHandler()
+
+    def datachange_notification(self, node: Node, val: Any, data: DataChangeNotif) -> None:
+        print(f"XXX_Value changed: {node.nodeid}: {val}")
+        # Perform the callback function so the message(s) are processed
 
     def tester(self) -> None:
         """
@@ -62,7 +61,7 @@ class OPCWatcher(PollingWatcher):
         # Subscribe to topics
         self.subscribe_to_topics()
 
-    def browse_and_read(self, node) -> Set[str]:
+    def browse_and_read(self, node: Node) -> Set[str]:
         """
         Recursively browse and read OPC UA nodes to obtain topics.
 
@@ -91,7 +90,7 @@ class OPCWatcher(PollingWatcher):
             print("Client is not connected.")
             return
 
-        self.sub = self.client.create_subscription(1000, self.handler)  # 1s interval
+        self.sub = self.client.create_subscription(1000, self)  # 1s interval
         for topic in self.topics:
             try:
                 node = self.client.get_node(f"ns=2;s={topic}")  # Adjust namespace
@@ -100,7 +99,7 @@ class OPCWatcher(PollingWatcher):
             except Exception as e:
                 print(f"Failed to subscribe to {topic}: {e}")
 
-    def _fetch_data(self) -> Dict[str, Dict[str, str]]:
+    def _fetch_data(self) -> Dict[str, Dict[str, str]] -> dict[str, str]:
         """
         Fetch dummy data for testing and triggering callbacks.
 
