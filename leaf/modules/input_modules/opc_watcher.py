@@ -1,22 +1,23 @@
-
-from typing import Optional, Callable, List, Dict, Set, Any
+from typing import Optional, Callable, List, Set
 
 from leaf_register.metadata import MetadataManager
-from opcua import Client, Node
-from opcua.common.subscription import DataChangeNotif
+from opcua import Client
 
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.modules.input_modules.polling_watcher import PollingWatcher
+from leaf.modules.input_modules.event_watcher import EventWatcher
 
-class OPCWatcher(PollingWatcher):
+
+class OPCWatcher(EventWatcher):
     """
-    A concrete implementation of PollingWatcher that uses
+    A concrete implementation of EventWatcher that uses
     predefined fetchers to retrieve and monitor data.
     """
 
     def __init__(self,
                  metadata_manager: MetadataManager,
-                 interval: int,
+                 host: str,
+                 port: int,
+                 topics: Optional[List[str]] = None,
                  callbacks: Optional[List[Callable]] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -24,44 +25,70 @@ class OPCWatcher(PollingWatcher):
 
         Args:
             metadata_manager (MetadataManager): Manages equipment metadata.
-            interval (int): Polling interval in seconds.
             callbacks (Optional[List[Callable]]): Callbacks for event updates.
             error_holder (Optional[ErrorHolder]): Optional object to manage errors.
         """
-        super().__init__(interval, metadata_manager,
+        # Can't populate yet in this situation
+        term_map = {}
+        super().__init__(term_map, metadata_manager,
                          callbacks=callbacks,
                          error_holder=error_holder)
 
-        self._interval = interval
+        self._host = host
+        self._port = port
+        self._topics = topics
+
         self._metadata_manager = metadata_manager
-        self.client = None
-        self.sub = None
+        self._client = None
+        self._sub = None
+        self._handler = self._dispatch_callback
+        self._handles = []
 
-    def datachange_notification(self, node: Node, val: Any, data: DataChangeNotif) -> None:
-        print(f"XXX_Value changed: {node.nodeid}: {val}")
-        # Perform the callback function so the message(s) are processed
+        # This is under the impression that the watcher will only ever express measurements.
+        # Not control information such as when experiments start.
+        self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
 
-    def tester(self) -> None:
+        '''
+        If you do have other actions, then youd add more handlers i think, like below.
+        But your OPC subscription system would need to subscribe to the correct topics using the appropriate handlers.
+        self._start_handler = SubHandler(self._dispatch_callback)
+        self._term_map[self._start_handler.datachange_notification] = metadata_manager.experiment.start'
+        '''
+
+    def datachange_notification(self, node, val, data) -> None:
+        print(f"Value changed: {node.nodeid}: {val}")
+        # I dont know what node, val and data pertain to.
+        # If they are gonna always be different types of measurements then youd probably want to create a merged dict.
+        # If it can describe actions, experiment start, stop, measurement etc then more complex behaviour is needed.
+        # Perhaps a SubHandler for each type of action in the term_map
+        self._watcher_callback(self.datachange_notification, data)
+
+    def start(self) -> None:
         """
-        Test the OPCWatcher class by connecting and subscribing to topics.
+        Start the OPCWatcher
         """
-        self.host = '10.22.196.201'
-        self.port = 49580
-        print("Initializing MBP OPC Interpreter")
+        print(f"Starting OPCWatcher on {self._host}:{self._port}")
+        self._client = Client(f"opc.tcp://{self._host}:{self._port}")
+        self._client.connect()
 
-        self.client = Client(f"opc.tcp://{self.host}:{self.port}")
-        self.client.connect()
-        print("Connected to MBP OPC Server")
-
-        # Browse for available nodes
-        root = self.client.get_root_node()
+        # Not sure whats going on here. Could be changed to allow user defined topics etc.
+        # Are they all different measurements?
+        root = self._client.get_root_node()
         objects_node = root.get_child(["0:Objects"])
-        self.topics = self.browse_and_read(objects_node)
+        # Automatically browse and read nodes to obtain topics user could provide a list of topics.
+        self._topics = self._browse_and_read(objects_node)
+        self._subscribe_to_topics()
 
-        # Subscribe to topics
-        self.subscribe_to_topics()
+        try:
+            while self._running:
+                time.sleep(1)
+        finally:
+            for handle in self._handles:
+                self._sub.unsubscribe(handle)
+            self._sub.delete()
+            self._client.disconnect()
 
-    def browse_and_read(self, node: Node) -> Set[str]:
+    def _browse_and_read(self, node) -> Set[str]:
         """
         Recursively browse and read OPC UA nodes to obtain topics.
 
@@ -79,36 +106,31 @@ class OPCWatcher(PollingWatcher):
             except Exception:
                 pass
             if len(nodes_data) > 10: return nodes_data
-            nodes_data.update(self.browse_and_read(child))  # Recursive call
+            nodes_data.update(self._browse_and_read(child))  # Recursive call
         return nodes_data
 
-    def subscribe_to_topics(self) -> None:
+    def _subscribe_to_topics(self) -> None:
         """
         Subscribe to OPC UA nodes and monitor data changes.
         """
-        if not self.client:
+        if not self._client:
             print("Client is not connected.")
             return
 
-        self.sub = self.client.create_subscription(1000, self)  # 1s interval
-        for topic in self.topics:
+        self._sub = self._client.create_subscription(1000, self)  # 1s interval
+        for topic in self._topics:
             try:
-                node = self.client.get_node(f"ns=2;s={topic}")  # Adjust namespace
-                self.sub.subscribe_data_change(node)
+                node = self._client.get_node(f"ns=2;s={topic}")  # Adjust namespace
+                handle = self._sub.subscribe_data_change(node)
+                self._handles.append(handle)
                 print(f"Subscribed to: {topic}")
             except Exception as e:
                 print(f"Failed to subscribe to {topic}: {e}")
 
-    def _fetch_data(self) -> Dict[str, Dict[str, str]]:
-        """
-        Fetch dummy data for testing and triggering callbacks.
-
-        Returns:
-            Dict[str, Dict[str, str]]: Example data to
-                                       simulate event triggers.
-        """
-        return {"measurement": {"data": "data"}}
 
 if __name__ == "__main__":
-    watcher = OPCWatcher(MetadataManager(), 10)
-    watcher.tester()
+    host = '10.22.196.201'
+    port = 49580
+    watcher = OPCWatcher(MetadataManager(), host=host, port=port)
+    watcher.start()
+    # watcher.tester()
