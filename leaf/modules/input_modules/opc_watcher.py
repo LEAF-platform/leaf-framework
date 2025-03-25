@@ -61,7 +61,7 @@ class OPCWatcher(EventWatcher):
         # If they are gonna always be different types of measurements then youd probably want to create a merged dict.
         # If it can describe actions, experiment start, stop, measurement etc then more complex behaviour is needed.
         # Perhaps a SubHandler for each type of action in the term_map
-        self._watcher_callback(self.datachange_notification, data)
+        self._dispatch_callback(self.datachange_notification, data)
 
     def start(self) -> None:
         """
