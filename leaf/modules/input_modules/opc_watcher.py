@@ -2,7 +2,8 @@ import time
 from typing import Optional, Callable, List, Set
 
 from leaf_register.metadata import MetadataManager
-from opcua import Client
+from opcua import Client, Node
+from opcua.ua import DataChangeNotification
 
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.input_modules.event_watcher import EventWatcher
@@ -30,7 +31,7 @@ class OPCWatcher(EventWatcher):
             error_holder (Optional[ErrorHolder]): Optional object to manage errors.
         """
         # Can't populate yet in this situation
-        term_map = {"term":"map"}
+        term_map = {}
 
         super().__init__(term_map, metadata_manager,
                          callbacks=callbacks,
@@ -48,7 +49,7 @@ class OPCWatcher(EventWatcher):
 
         # This is under the impression that the watcher will only ever express measurements.
         # Not control information such as when experiments start.
-        # self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
+        self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
 
         '''
         If you do have other actions, then youd add more handlers i think, like below.
@@ -57,13 +58,9 @@ class OPCWatcher(EventWatcher):
         self._term_map[self._start_handler.datachange_notification] = metadata_manager.experiment.start'
         '''
 
-    def datachange_notification(self, node, val, data) -> None:
-        print(f"Value changed: {node.nodeid}: {val}")
-        # I dont know what node, val and data pertain to.
-        # If they are gonna always be different types of measurements then youd probably want to create a merged dict.
-        # If it can describe actions, experiment start, stop, measurement etc then more complex behaviour is needed.
-        # Perhaps a SubHandler for each type of action in the term_map
-        self._dispatch_callback(self.datachange_notification, {node.nodeid: val})
+    def datachange_notification(self, node: Node, val: [int,str,float], data: DataChangeNotification) -> None:
+        # print(f"Value changed: {node.nodeid}: {val} at {data.monitored_item.Value.SourceTimestamp}")
+        self._dispatch_callback(self.datachange_notification, {"node":node.nodeid.Identifier, "value":val, "timestamp":data.monitored_item.Value.SourceTimestamp, "data":data})
 
     def start(self) -> None:
         """
@@ -78,22 +75,16 @@ class OPCWatcher(EventWatcher):
         root = self._client.get_root_node()
         objects_node = root.get_child(["0:Objects"])
         # Automatically browse and read nodes to obtain topics user could provide a list of topics.
-        self._topics = self._browse_and_read(objects_node)
+        if self._topics is None or len(self._topics) == 0:
+            print("No topics provided. Browsing and reading all nodes.")
+            self._topics = self._browse_and_read(objects_node)
+            for topic in self._topics:
+                print(f"Found topic: {topic}")
+
         print(f"Number of topics: {len(self._topics)}")
 
         # Subscribe to topics
         self._subscribe_to_topics()
-
-        # When enabling this section we obtain a ServiceFault error.
-        # Keep the watcher running
-        # try:
-        #     while self._running:
-        #         time.sleep(1)
-        # finally:
-        #     for handle in self._handles:
-        #         self._sub.unsubscribe(handle)
-        #     self._sub.delete()
-        #     self._client.disconnect()
 
     def _browse_and_read(self, node) -> Set[str]:
         """
@@ -112,7 +103,6 @@ class OPCWatcher(EventWatcher):
                 nodes_data.add(child.nodeid.Identifier)
             except Exception:
                 pass
-            if len(nodes_data) > 10: return nodes_data
             nodes_data.update(self._browse_and_read(child))  # Recursive call
         return nodes_data
 
@@ -139,11 +129,3 @@ class OPCWatcher(EventWatcher):
                         continue  # Try the next topic
         except Exception as e:
             print(f"Failed to create subscription: {e}")
-
-
-if __name__ == "__main__":
-    host = '10.22.196.201'
-    port = 49580
-    watcher = OPCWatcher(MetadataManager(), host=host, port=port)
-    watcher.start()
-    # watcher.tester()
