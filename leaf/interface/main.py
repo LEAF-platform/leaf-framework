@@ -145,7 +145,7 @@ class LEAFGUI:
         """Start the NiceGUI interface"""
         # self.setup_nicegui()
         asyncio.run(self.setup_nicegui())  # ✅ Run the async function properly
-        ui.run(port=self.port, title="LEAF Monitoring System")
+        ui.run(port=self.port, title="LEAF Monitoring System", show=False)
 
 
 # Function to create and return a GUI instance
