@@ -11,25 +11,24 @@ import logging
 import os
 import signal
 import sys
-import time
-from typing import Any, Type
 import threading
 import time
+from typing import Any, Type
 
 import yaml
 
-from leaf import register
-from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.utility.running_utilities import handle_disabled_modules
+from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.utility.running_utilities import get_output_module
+from leaf.utility.running_utilities import handle_disabled_modules
 from leaf.utility.running_utilities import process_instance
-from leaf.utility.running_utilities import start_all_adapters_in_threads
 from leaf.utility.running_utilities import run_simulation_in_thread
+from leaf.utility.running_utilities import start_all_adapters_in_threads
+
 ##################################
 #
 #            VARIABLES
@@ -71,14 +70,6 @@ def parse_args(args=None) -> argparse.Namespace:
         default=8080,
         help="The port to run the NiceGUI web interface on.",
     )
-
-    parser.add_argument(
-        "-d",
-        "--delay",
-        type=int,
-        default=0,
-        help="A delay in seconds before the proxy begins.",
-    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
     parser.add_argument(
         "-c",
@@ -86,9 +77,6 @@ def parse_args(args=None) -> argparse.Namespace:
         type=str,
         # default="config.yaml",
         help="The configuration file to use.",
-    )
-    parser.add_argument(
-        "--guidisable", action="store_false", help="Whether or not to disable the GUI."
     )
     parser.add_argument(
         "-p",
@@ -108,22 +96,6 @@ def signal_handler(signal_received, frame) -> None:
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
-
-def substitute_env_vars(config: Any):
-    """Recursively replace placeholders in a (yaml) dictionary with environment variables."""
-    if isinstance(config, dict):
-        return {key: substitute_env_vars(value) for key, value in config.items()}
-    elif isinstance(config, list):
-        return [substitute_env_vars(item) for item in config]
-    elif isinstance(config, str):
-        # Replace placeholders that look like $VAR_NAME with actual env vars
-        for var, value in os.environ.items():
-            placeholder = f"${var}"
-            if placeholder in config:
-                logger.info(f"Replacing {placeholder} with its environment value")
-                config = config.replace(placeholder, value)
-        return config
-    return
 
 def stop_all_adapters() -> None:
     """Stop all adapters gracefully."""
@@ -286,6 +258,24 @@ def run_adapters(equipment_instances, output, error_handler,
 
 sys.excepthook = handle_exception
 
+def create_configuration(args) -> None:
+    # Obtain script directory
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    # Create config directory
+    if not os.path.exists(os.path.join(script_dir, "config")):
+        os.makedirs(os.path.join(script_dir, "config"))
+    # Check if a config file is provided
+    if args.config is not None:
+        # Check if the config file exists
+        if os.path.exists(args.config):
+            # Copy to the config directory
+            with open(os.path.join(script_dir, "config", "configuration.yaml"), "w") as f:
+                with open(args.config, "r") as f2:
+                    f.write(f2.read())
+    # Fixed path to the configuration file
+    args.config = os.path.join(script_dir, "config", "configuration.yaml")
+
+
 def welcome_message() -> None:
     """Prints a welcome message."""
     logger.info("""\n\n ##:::::::'########::::'###::::'########:
@@ -310,13 +300,13 @@ def welcome_message() -> None:
 #
 ###################################
 def main(args=None) -> None:
+    """
+    Main function to start the program.
+    """
     global global_gui, global_output, global_error_handler, global_config, global_external_adapter
+
     welcome_message()
 
-    # register.load_adapters()
-
-    """Main function as a wrapper for all steps."""
-    logger.info("Starting the proxy.")
     args = parse_args(args)
     global_args = args
 
@@ -325,47 +315,9 @@ def main(args=None) -> None:
         logger.setLevel(logging.DEBUG)
 
     # Create configuration folder to store the config file in
-    # Obtain script directory
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    # Create config directory
-    if not os.path.exists(os.path.join(script_dir, "config")):
-        os.makedirs(os.path.join(script_dir, "config"))
-    # Check if a config file is provided
-    if args.config is not None:
-        # Check if the config file exists
-        if os.path.exists(args.config):
-            # Copy to the config directory
-            with open(os.path.join(script_dir, "config", "configuration.yaml"), "w") as f:
-                with open(args.config, "r") as f2:
-                    f.write(f2.read())
-    # Fixed path to the configuration file
-    args.config = os.path.join(script_dir, "config", "configuration.yaml")
+    create_configuration(args)
 
-    # if args.config is None:
-    #     logger.error("No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
-    #     if os.path.isfile("config/config.yaml"):
-    #         logger.info("An example of a config file if needed:")
-    #         with open("config/config.yaml", "r") as file:
-    #             logger.info("\n"+file.read())
-    #     return
-
-    # external_adapter = args.path
-    # logger.debug(f"Loading configuration file: {args.config}")
-    #
-    # with open(args.config, "r") as file:
-    #     config = yaml.safe_load(file)
-    #
-    # logger.info(f"Configuration: {args.config} loaded.")
-    # general_error_holder = ErrorHolder()
-    # output = get_output_module(config, general_error_holder)
-    # run_adapters(config["EQUIPMENT_INSTANCES"], output,
-    #              general_error_holder,external_adapter=external_adapter)
-
-    # If GUI is enabled, run NiceGUI as the main application
-    import threading
-    import time
-    # if args.guidisable:
-    logger.info(f"Starting NiceGUI web interface on port {args.port}")
+    logger.info(f"Starting NiceGUI web interface on localhost:{args.port}")
     # Create GUI instance
     from leaf.interface.main import create_gui
     global_gui = create_gui(args.port)
@@ -380,8 +332,6 @@ def main(args=None) -> None:
 
     # Function to run background tasks (adapter setup)
     def run_background_tasks():
-
-
         global_external_adapter = args.path
         logger.debug(f"Loading configuration file: {args.config}")
 
