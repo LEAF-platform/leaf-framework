@@ -102,6 +102,7 @@ class EquipmentAdapter(ABC):
         metadata_manager: Optional[MetadataManager] = None,
         error_holder: Optional[ErrorHolder] = None,
         experiment_timeout: Optional[int] = None,
+        external_watcher: None = None # Need to specify type
     ):
         """
         Initialize the EquipmentAdapter instance.
@@ -115,6 +116,7 @@ class EquipmentAdapter(ABC):
                 (defaults to new MetadataManager if None).
             error_holder (Optional[ErrorHolder]): Optional error holder instance.
             experiment_timeout (Optional[int]): Timeout duration for the experiment in seconds.
+            external_watcher (??): ??
         """
         # ErrorHolder
         self._error_holder: Optional[ErrorHolder] = error_holder
@@ -159,6 +161,8 @@ class EquipmentAdapter(ABC):
         # Misc
         self._stop_event: Event = Event()
         self._experiment_timeout = experiment_timeout
+
+        self._external_watcher = external_watcher
 
     def _validate_processes(
         self, watcher: EventWatcher, processes: List[ProcessModule]
@@ -209,6 +213,8 @@ class EquipmentAdapter(ABC):
             return self.stop()
         try:
             self._watcher.start()
+            if self._external_watcher is not None:
+                self._external_watcher.start()
             while not self._stop_event.is_set():
                 time.sleep(1)
                 if self._error_holder is None:
