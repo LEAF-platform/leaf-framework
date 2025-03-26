@@ -5,6 +5,7 @@ from leaf_register.metadata import MetadataManager
 from opcua import Client, Node
 from opcua.ua import DataChangeNotification
 
+import leaf.start
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.input_modules.event_watcher import EventWatcher
 
@@ -20,6 +21,7 @@ class OPCWatcher(EventWatcher):
                  host: str,
                  port: int,
                  topics: Optional[List[str]] = None,
+                 exclude_topics: Optional[List[str]] = [],
                  callbacks: Optional[List[Callable]] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -40,7 +42,7 @@ class OPCWatcher(EventWatcher):
         self._host = host
         self._port = port
         self._topics = topics
-
+        self._exclude_topics = exclude_topics
         self._metadata_manager = metadata_manager
         self._client = None
         self._sub = None
@@ -116,6 +118,9 @@ class OPCWatcher(EventWatcher):
         try:
             self._sub = self._client.create_subscription(1000, self)  # 1s interval
             for topic in self._topics:
+                if topic in self._exclude_topics:
+                    leaf.start.logger.info("Excluded topic: {}".format(topic))
+                    continue
                 try:
                     node = self._client.get_node(f"ns=2;s={topic}")  # Adjust namespace
                     handle = self._sub.subscribe_data_change(node)
