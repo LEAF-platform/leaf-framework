@@ -6,6 +6,7 @@ from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.adapters.equipment_adapter import EquipmentAdapter
@@ -30,6 +31,7 @@ class DiscreteExperimentAdapter(EquipmentAdapter):
         error_holder: Optional[ErrorHolder] = None,
         metadata_manager: Optional[MetadataManager] = None,
         experiment_timeout: Optional[int] = None,
+        external_watcher: ExternalEventWatcher = None,
     ):
         """
         Initialize the StartStopAdapter with its phases and processes.
@@ -60,9 +62,11 @@ class DiscreteExperimentAdapter(EquipmentAdapter):
         super().__init__(
             instance_data,
             watcher,
+            output,
             process,
             interpreter,
             metadata_manager=metadata_manager,
             error_holder=error_holder,
             experiment_timeout=experiment_timeout,
+            external_watcher=external_watcher
         )

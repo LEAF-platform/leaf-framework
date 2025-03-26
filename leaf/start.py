@@ -13,12 +13,10 @@ import signal
 import sys
 import time
 from typing import Any, Type
-import threading
 import time
 
 import yaml
 
-from leaf import register
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.error_handler.error_holder import ErrorHolder
