@@ -6,6 +6,7 @@ from leaf_register.metadata import MetadataManager
 from leaf.adapters.core_adapters.discrete_experiment_adapter import DiscreteExperimentAdapter
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.input_modules.csv_watcher import CSVWatcher
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf.modules.output_modules.output_module import OutputModule
 from tests.mock_functional_adapter.interpreter import MockInterpreter
 
@@ -22,6 +23,7 @@ class MockFunctionalAdapter(DiscreteExperimentAdapter):
         maximum_message_size: Optional[int] = 1,
         error_holder: Optional[ErrorHolder] = None,
         experiment_timeout: Optional[int] = None,
+        external_watcher: ExternalEventWatcher = None,
     ):
         metadata_manager = MetadataManager()
         watcher = CSVWatcher(write_file, metadata_manager)
@@ -36,6 +38,7 @@ class MockFunctionalAdapter(DiscreteExperimentAdapter):
             error_holder=error_holder,
             metadata_manager=metadata_manager,
             experiment_timeout=experiment_timeout,
+            external_watcher=external_watcher
         )
         self._write_file: Optional[str] = write_file
         self._metadata_manager.add_equipment_data(metadata_fn)

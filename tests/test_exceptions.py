@@ -100,6 +100,7 @@ class MockEquipment(EquipmentAdapter):
         super().__init__(
             equipment_data,
             watcher,
+            output,
             mock_process,
             MockBioreactorInterpreter(),
             metadata_manager,

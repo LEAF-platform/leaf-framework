@@ -4,6 +4,7 @@ from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.output_modules.output_module import OutputModule
@@ -30,7 +31,8 @@ class UploadAdapter(EquipmentAdapter):
         maximum_message_size: Optional[int] = 1,
         error_holder: Optional[ErrorHolder] = None,
         metadata_manager: Optional[MetadataManager] = None,
-        experiment_timeout: Optional[int] = None):
+        experiment_timeout: Optional[int] = None,
+        external_watcher: ExternalEventWatcher = None,):
         """
         Initialize the UploadAdapter with its phases and processes.
 
@@ -59,7 +61,8 @@ class UploadAdapter(EquipmentAdapter):
         process = [UploadProcess(output, phase)]
 
         # Call the parent class constructor
-        super().__init__(instance_data,watcher,process,interpreter,
+        super().__init__(instance_data,watcher,output,process,interpreter,
                          metadata_manager=metadata_manager,
                          error_holder=error_holder,
-                         experiment_timeout=experiment_timeout)
+                         experiment_timeout=experiment_timeout,
+                         external_watcher=external_watcher)

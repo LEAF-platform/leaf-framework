@@ -12,7 +12,8 @@ class EventWatcher(ABC):
     events, such as when equipment provides measurements
     by writing to a file or any other observable event.
     """
-    def __init__(self, term_map: dict, metadata_manager: MetadataManager,
+    def __init__(self, term_map: dict, 
+                 metadata_manager: MetadataManager = None,
                  callbacks: Optional[List[Callable]] = None, 
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -35,7 +36,8 @@ class EventWatcher(ABC):
         self._running = False
         self._callbacks = callbacks if callbacks is not None else []
 
-        if self.start not in term_map:
+        if (self.start not in term_map and 
+            self._metadata_manager is not None):
             term_map[self.start] = self._metadata_manager.details
         self._term_map = term_map
 
@@ -80,6 +82,9 @@ class EventWatcher(ABC):
             error_holder (ErrorHolder): Object to hold and manage errors.
         """
         self._error_holder = error_holder
+
+    def set_metadata_manager(self,metadata_manager):
+        self._metadata_manager = metadata_manager
 
     def get_terms(self) -> list:
         """

@@ -3,30 +3,6 @@ import logging
 import time
 from socket import error as socket_error
 from socket import gaierror
-from typing import Literal, Union, Any
-
-import paho.mqtt.client as mqtt
-from paho.mqtt.enums import CallbackAPIVersion
-
-from leaf.error_handler.error_holder import ErrorHolder
-from leaf.error_handler.exceptions import AdapterBuildError, LEAFError
-from leaf.error_handler.exceptions import ClientUnreachableError
-from leaf.error_handler.exceptions import SeverityLevel
-from leaf.modules.logger_modules.logger_utils import get_logger
-from leaf.modules.output_modules.output_module import OutputModule
-
-FIRST_RECONNECT_DELAY = 1
-RECONNECT_RATE = 2
-MAX_RECONNECT_COUNT = 12
-MAX_RECONNECT_DELAY = 1
-
-logger = get_logger(__name__, log_file="mqtt.log", log_level=logging.ERROR)
-
-import json
-import logging
-import time
-from socket import error as socket_error
-from socket import gaierror
 from typing import Literal, Union, Optional, Any
 
 import paho.mqtt.client as mqtt
