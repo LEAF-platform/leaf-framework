@@ -100,6 +100,7 @@ class MockEquipmentAdapter(EquipmentAdapter):
         super().__init__(
             equipment_data,
             watcher,
+            output,
             mock_process,
             MockBioreactorInterpreter(),
             metadata_manager,
@@ -327,7 +328,6 @@ class TestEquipmentAdapter(unittest.TestCase):
                         ):
                             expected_exceptions.remove(exp_exc)
                 time.sleep(0.1)
-            print(mock_client.messages.keys())
             self.assertEqual(list(mock_client.messages.keys()), [_adapter._metadata_manager.details(),
                                                                  _adapter._metadata_manager.experiment.start()])
             _adapter.stop()
@@ -362,7 +362,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
             phase = [start_p, stop_p,details_p]
             mock_process = [DiscreteProcess(output,phase)]
-            adapter = EquipmentAdapter(instance_data,watcher,mock_process,
+            adapter = EquipmentAdapter(instance_data,watcher,output,
+                                       mock_process,
                                        MockBioreactorInterpreter(),
                                        metadata_manager=metadata_manager)
 

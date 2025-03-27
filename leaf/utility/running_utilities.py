@@ -110,6 +110,13 @@ def process_instance(instance: dict[str, Any],
     equipment_code = instance["adapter"]
     instance_data = instance["data"]
     requirements = instance["requirements"]
+    if "external_input" in instance:
+        ei_data = instance["external_input"]
+        ei_code = ei_data.pop("plugin")
+        external_watcher = register.get_external_input(ei_code)
+        external_watcher = external_watcher(**ei_data)
+    else:
+        external_watcher = None
     adapter = register.get_equipment_adapter(equipment_code,
                                              external_adapter=external_adapter)
     try:
@@ -143,7 +150,9 @@ def process_instance(instance: dict[str, Any],
     try:
         error_holder = ErrorHolder(instance_id)
         return adapter(instance_data, output,
-                       error_holder=error_holder, **requirements)
+                       error_holder=error_holder,
+                       external_watcher=external_watcher, 
+                       **requirements)
     except ValueError as ex:
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
     
