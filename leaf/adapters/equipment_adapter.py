@@ -11,8 +11,11 @@ from leaf.error_handler import exceptions
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import LEAFError
 from leaf.modules.input_modules.event_watcher import EventWatcher
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf.modules.logger_modules.logger_utils import get_logger
 from leaf.modules.process_modules.process_module import ProcessModule
+from leaf.modules.process_modules.external_event_process import ExternalEventProcess
 
 class AbstractInterpreter(ABC):
     """
@@ -97,11 +100,13 @@ class EquipmentAdapter(ABC):
         self,
         instance_data: str,
         watcher: EventWatcher,
+        output: OutputModule,
         process_adapters: Union[ProcessModule, List[ProcessModule]],
         interpreter: AbstractInterpreter,
         metadata_manager: Optional[MetadataManager] = None,
         error_holder: Optional[ErrorHolder] = None,
         experiment_timeout: Optional[int] = None,
+        external_watcher: ExternalEventWatcher = None
     ):
         """
         Initialize the EquipmentAdapter instance.
@@ -109,13 +114,17 @@ class EquipmentAdapter(ABC):
         Args:
             instance_data (str): Data related to the instance.
             watcher (EventWatcher): An object that watches or monitors events or data.
+            output (OutputModule): An object that outputs data from the adapter.
             process_adapters (Union[ProcessModule, List[ProcessModule]]): A list or a single instance of ProcessModules.
             interpreter (AbstractInterpreter): An interpreter object to process the data.
             metadata_manager (Optional[MetadataManager]): Optional metadata manager instance
                 (defaults to new MetadataManager if None).
             error_holder (Optional[ErrorHolder]): Optional error holder instance.
             experiment_timeout (Optional[int]): Timeout duration for the experiment in seconds.
+            external_watcher (ExternalEventWatcher): Optional Input module to take messages from external sources.
         """
+
+        self._output = output
         # ErrorHolder
         self._error_holder: Optional[ErrorHolder] = error_holder
 
@@ -158,11 +167,26 @@ class EquipmentAdapter(ABC):
 
         # Misc
         self._stop_event: Event = Event()
+        self._stop_event.set()
         self._experiment_timeout = experiment_timeout
 
+        # External Inputs (Feedback system)
+        self._external_watcher = external_watcher
+        # Currently, we have a predefined static external process.
+        # In future, COULD be reworked to allow input processes if needed.
+        if self._external_watcher is not None:
+            self._external_watcher.set_metadata_manager(metadata_manager)
+            self._external_process = ExternalEventProcess(output,
+                                                          self._metadata_manager,
+                                                          self._error_holder)
+            self._external_process.set_error_holder(self._error_holder)
+            self._external_process.set_interpreter(interpreter=interpreter)
+            self._external_watcher.add_callback(self._external_process.process_input)
+
+
     def _validate_processes(
-        self, watcher: EventWatcher, processes: List[ProcessModule]
-    ) -> None:
+        self, watcher: EventWatcher, 
+        processes: List[ProcessModule]) -> None:
         """
         Validate that the processes have terms matching the watcher.
 
@@ -190,32 +214,42 @@ class EquipmentAdapter(ABC):
         """
         return not self._stop_event.is_set()
     
+    def is_initialised(self):
+        return (self._watcher.is_running() and 
+                self._output.is_connected() and 
+                self.is_running())
+    
     def start(self) -> None:
         """
         Start the equipment adapter process.
         Use custom exception handling with severity levels.
         """
-        self._stop_event.clear()
         if not self._metadata_manager.is_valid():
             ins_id = self._metadata_manager.get_instance_id()
             missing_data = self._metadata_manager.get_missing_metadata()
             excp = exceptions.AdapterLogicError(
-                f"{ins_id} is missing data. : {missing_data}", severity=exceptions.SeverityLevel.CRITICAL
+                f"{ins_id} is missing data. : {missing_data}", 
+                severity=exceptions.SeverityLevel.CRITICAL
             )
             self._logger.error(
-                f"Critical error, shutting down this adapter: {excp}", exc_info=excp
+                f"Critical error, shutting down this adapter: {excp}", 
+                exc_info=excp
             )
             self._handle_exception(excp)
             return self.stop()
         try:
             self._watcher.start()
+            if self._external_watcher is not None:
+                self._external_watcher.start()
+            self._stop_event.clear()
             while not self._stop_event.is_set():
                 time.sleep(1)
                 if self._error_holder is None:
                     continue
                 
                 cur_errors = self._error_holder.get_unseen_errors()
-                # Do a double iteration because want to ensure all errors are transmited.
+                # Do a double iteration because want to ensure all 
+                # errors are transmited.
                 # May be case that an error causes a change meaning 
                 # subsequent errors arent iterated and handled.
                 self.transmit_errors(cur_errors)
@@ -270,7 +304,8 @@ class EquipmentAdapter(ABC):
                             # Adapter logic errors may need granular handling
                             pass
                         elif isinstance(error, exceptions.InterpreterError):
-                            # Interpreter errors typically indicate data or implementation issues
+                            # Interpreter errors typically indicate data 
+                            # or implementation issues
                             pass
                         else:
                             self._logger.info(f"Warning error: {error}", exc_info=error)
@@ -289,8 +324,6 @@ class EquipmentAdapter(ABC):
                         exception = exceptions.HardwareStalledError(e_str)
                         self._handle_exception(exception)
                         
-
-
         except KeyboardInterrupt:
             self._logger.info("User keyboard input stopping adapter.")
             self._stop_event.set()

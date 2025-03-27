@@ -20,7 +20,7 @@ from importlib.metadata import entry_points
 import logging
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.error_handler.exceptions import AdapterBuildError
-
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 root_dir = os.path.dirname(os.path.realpath(__file__))
 adapter_dir = os.path.join(root_dir, "adapters")
 core_adapter_dir = os.path.join(adapter_dir, "core_adapters")
@@ -31,7 +31,8 @@ equipment_adapter_dirs = [
 ]
 
 adapter_id = "adapter_id"
-output_adapter_dir = os.path.join(root_dir, "modules", "output_modules")
+output_module_dir = os.path.join(root_dir, "modules", "output_modules")
+input_module_dir = os.path.join(root_dir, "modules", "input_modules")
 logger = get_logger(__name__, log_file="global.log",
                     error_log_file="global_error.log",
                     log_level=logging.INFO)
@@ -128,12 +129,26 @@ def get_equipment_adapter(code: str,external_adapter=None) -> EquipmentAdapter:
     raise AdapterBuildError(f"Adapter for code '{code}' not found.")
 
 
+def get_external_input(code:str):
+    for file in os.listdir(input_module_dir):
+        if file.endswith(".py"):
+            python_fp = os.path.join(input_module_dir, file)
+            try:
+                input_class = _load_class_from_file(python_fp, code)
+                if not issubclass(input_class,ExternalEventWatcher):
+                    continue
+                return input_class
+            except (AdapterBuildError):
+                continue
+    else:
+        raise AdapterBuildError(f"Class '{code}' not found.")
+
 def get_output_adapter(code: str):
     """
     Searches for and returns the output adapter class 
     corresponding to the given output adapter code.
 
-    This function traverses the `output_adapter_dir` 
+    This function traverses the `output_module_dir` 
     to locate the appropriate Python file and attempts to
     dynamically load and return the class associated with the 
     given code.
@@ -151,9 +166,9 @@ def get_output_adapter(code: str):
         AttributeError: If the class corresponding to the code is not 
                         found in the Python module.
     """
-    for file in os.listdir(output_adapter_dir):
+    for file in os.listdir(output_module_dir):
         if file.endswith(".py"):
-            python_fp = os.path.join(output_adapter_dir, file)
+            python_fp = os.path.join(output_module_dir, file)
             try:
                 adapter_class = _load_class_from_file(python_fp, code)
                 return adapter_class

@@ -11,12 +11,15 @@ import logging
 import os
 import signal
 import sys
-import threading
+import time
+from typing import Any, Type
 import time
 from typing import Any, Type
 
 import yaml
 
+from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.logger_modules.logger_utils import set_log_dir
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
