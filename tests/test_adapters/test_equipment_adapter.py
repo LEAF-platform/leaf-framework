@@ -109,7 +109,7 @@ class MockEquipmentAdapter(EquipmentAdapter):
             experiment_timeout=experiment_timeout)
 
 
-class TestEquipmentAdapter(unittest.TestCase)
+class TestEquipmentAdapter(unittest.TestCase):
     def setUp(self) -> None:
         """
         Set up the test environment by creating a temporary directory
