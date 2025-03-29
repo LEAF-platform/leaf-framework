@@ -151,7 +151,7 @@ def process_instance(instance: dict[str, Any],
         error_holder = ErrorHolder(instance_id)
         return adapter(instance_data, output,
                        error_holder=error_holder,
-                       external_watcher=external_watcher, 
+                       # external_watcher=external_watcher,
                        **requirements)
     except ValueError as ex:
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")

@@ -171,8 +171,7 @@ def run_adapters(equipment_instances, output, error_handler,
             if "simulation" in equipment_instance:
                 simulated = equipment_instance.pop("simulation")
 
-            adapter = process_instance(equipment_instance, output,
-                                        external_adapter=external_adapter)
+            adapter = process_instance(instance=equipment_instance, output=output) # , external_adapter=external_adapter)
             if adapter is None:
                 continue
 
