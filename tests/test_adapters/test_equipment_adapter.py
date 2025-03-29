@@ -8,6 +8,8 @@ import tempfile
 import yaml
 import uuid
 
+from leaf.modules.process_modules.process_module import ProcessModule
+
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -83,8 +85,7 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 
 
 class MockEquipmentAdapter(EquipmentAdapter):
-    def __init__(self, instance_data,equipment_data, fp,
-                 experiment_timeout=None):
+    def __init__(self, instance_data, equipment_data, fp, experiment_timeout=None):
         metadata_manager = MetadataManager()
         watcher = FileWatcher(fp, metadata_manager)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
@@ -95,29 +96,36 @@ class MockEquipmentAdapter(EquipmentAdapter):
 
         metadata_manager.add_instance_data(instance_data)
         phase = [start_p, measure_p, stop_p,details_p]
-        mock_process = [DiscreteProcess(output,phase)]
+        mock_process: list[ProcessModule] = [DiscreteProcess(output,phase)]
         error_holder = ErrorHolder()
         super().__init__(
-            equipment_data,
-            watcher,
-            output,
-            mock_process,
-            MockBioreactorInterpreter(),
-            metadata_manager,
+            instance_data=equipment_data,
+            watcher=watcher,
+            output=output,
+            process_adapters=mock_process,
+            interpreter=MockBioreactorInterpreter(),
+            metadata_manager=metadata_manager,
             error_holder=error_holder,
             experiment_timeout=experiment_timeout)
 
 
-class TestEquipmentAdapter(unittest.TestCase):
-    def setUp(self):
+class TestEquipmentAdapter(unittest.TestCase)
+    def setUp(self) -> None:
+        """
+        Set up the test environment by creating a temporary directory
+        """
         self.temp_dir = tempfile.TemporaryDirectory()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
+        """
+        Clean up the test environment by stopping the adapter and
+        removing the temporary directory
+        """
         self._adapter.stop()
         self.temp_dir.cleanup()
         self.mock_client.reset_messages()
 
-    def initialize_experiment(self,**kwargs):
+    def initialize_experiment(self,**kwargs) -> None:
         """
         Helper function to initialize a unique MockEquipmentAdapter
         instance with unique file paths and instance data.
@@ -137,7 +145,7 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockEquipmentAdapter(instance_data,equipment_data, text_watch_file,**kwargs)
+        self._adapter = MockEquipmentAdapter(instance_data=instance_data,equipment_data=equipment_data, fp=text_watch_file,**kwargs)
 
         self.details_topic = self._adapter._metadata_manager.details()
         self.start_topic = self._adapter._metadata_manager.experiment.start()

@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from threading import Event
 from typing import List, Optional, Union, Any
 
+from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import LEAFError
 from leaf.error_handler import exceptions
@@ -101,7 +102,7 @@ class EquipmentAdapter(ABC):
         instance_data: str,
         watcher: EventWatcher,
         output: OutputModule,
-        process_adapters: Union[ProcessModule, List[ProcessModule]],
+        process_adapters: list[DiscreteProcess],
         interpreter: AbstractInterpreter,
         metadata_manager: Optional[MetadataManager] = None,
         error_holder: Optional[ErrorHolder] = None,
@@ -214,7 +215,10 @@ class EquipmentAdapter(ABC):
         """
         return not self._stop_event.is_set()
     
-    def is_initialised(self):
+    def is_initialised(self) -> bool:
+        """
+        Check if the equipment adapter is initialized and running.
+        """
         return (self._watcher.is_running() and 
                 self._output.is_connected() and 
                 self.is_running())
