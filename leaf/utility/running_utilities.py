@@ -15,7 +15,7 @@ logger = get_logger(__name__, log_file="global.log",
                     error_log_file="global_error.log",
                     log_level=logging.INFO)
 
-def handle_disabled_modules(output,timeout):
+def handle_disabled_modules(output, timeout: int) -> None:
     '''
     Attemps to restart the output module when disabled.
     If if can restart, then all stored messages are outputed.
@@ -157,7 +157,7 @@ def process_instance(instance: dict[str, Any],
         raise AdapterBuildError(f"Error initializing {instance_id}: {ex}")
     
 
-def start_all_adapters_in_threads(adapters):
+def start_all_adapters_in_threads(adapters: list[EquipmentAdapter]) -> list[threading.Thread]:
     """Start each adapter in a separate thread."""
     threads = []
     for adapter in adapters:
@@ -168,7 +168,7 @@ def start_all_adapters_in_threads(adapters):
         threads.append(thread)
     return threads
 
-def run_simulation_in_thread(adapter, **kwargs) -> threading.Thread:
+def run_simulation_in_thread(adapter: EquipmentAdapter, **kwargs) -> threading.Thread:
     """Run the adapter's simulate function in a separate thread."""
     logger.info(f"Running simulation: {adapter}")
 

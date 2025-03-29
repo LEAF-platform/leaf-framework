@@ -1,8 +1,8 @@
 import time
-from typing import Optional, Callable, List, Set
+from typing import Optional, Callable, List, Set, Any
 
 from leaf_register.metadata import MetadataManager
-from opcua import Client, Node
+from opcua import Client, Node, Subscription
 from opcua.ua import DataChangeNotification
 
 import leaf.start
@@ -20,7 +20,7 @@ class OPCWatcher(EventWatcher):
                  metadata_manager: MetadataManager,
                  host: str,
                  port: int,
-                 topics: Optional[List[str]] = None,
+                 topics: Optional[List[str]] = [],
                  exclude_topics: Optional[List[str]] = [],
                  callbacks: Optional[List[Callable]] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
@@ -33,7 +33,7 @@ class OPCWatcher(EventWatcher):
             error_holder (Optional[ErrorHolder]): Optional object to manage errors.
         """
         # Can't populate yet in this situation
-        term_map = {}
+        term_map: dict[Any,Any] = {}
 
         super().__init__(term_map, metadata_manager,
                          callbacks=callbacks,
@@ -41,13 +41,13 @@ class OPCWatcher(EventWatcher):
 
         self._host = host
         self._port = port
-        self._topics = topics
-        self._exclude_topics = exclude_topics
+        self._topics: list[str]|None = topics
+        self._exclude_topics: list[str]|None = exclude_topics
         self._metadata_manager = metadata_manager
-        self._client = None
-        self._sub = None
+        self._client: Client|None = None
+        self._sub: Subscription|None = None
         self._handler = self._dispatch_callback
-        self._handles = []
+        self._handles: list[Any] = []
 
         # This is under the impression that the watcher will only ever express measurements.
         # Not control information such as when experiments start.
@@ -60,7 +60,7 @@ class OPCWatcher(EventWatcher):
         self._term_map[self._start_handler.datachange_notification] = metadata_manager.experiment.start'
         '''
 
-    def datachange_notification(self, node: Node, val: [int,str,float], data: DataChangeNotification) -> None:
+    def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
         # print(f"Value changed: {node.nodeid}: {val} at {data.monitored_item.Value.SourceTimestamp}")
         self._dispatch_callback(self.datachange_notification, {"node":node.nodeid.Identifier, "value":val, "timestamp":data.monitored_item.Value.SourceTimestamp, "data":data})
 
@@ -88,7 +88,7 @@ class OPCWatcher(EventWatcher):
         # Subscribe to topics
         self._subscribe_to_topics()
 
-    def _browse_and_read(self, node) -> Set[str]:
+    def _browse_and_read(self, node: Node) -> Set[str]:
         """
         Recursively browse and read OPC UA nodes to obtain topics.
 

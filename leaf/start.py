@@ -59,7 +59,7 @@ global_args = None
 #
 ###################################
 
-def parse_args(args=None) -> argparse.Namespace:
+def parse_args(args: list[str]|None = None) -> argparse.Namespace:
     """Parses commandline arguments."""
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
@@ -84,6 +84,12 @@ def parse_args(args=None) -> argparse.Namespace:
         type=str,
         help="The path to the directory of the adapter to use.",
         default=None
+    )
+
+    parser.add_argument(
+        "--nogui",
+        action="store_true",
+        help="Run the proxy without the GUI.",
     )
     return parser.parse_args(args=args)
 
@@ -117,11 +123,11 @@ def stop_all_adapters() -> None:
                 logger.info(f"Adapter for {adapter} stopped successfully.")
         except Exception as e:
             logging.error(f"Error stopping adapter: {e}")
-    
+
     for thread in adapter_threads:
         thread.join()
 
-def handle_exception(exc_type: Type[BaseException], exc_value, 
+def handle_exception(exc_type: Type[BaseException], exc_value,
                      exc_traceback) -> None:
     """Handle uncaught exceptions."""
     if issubclass(exc_type, KeyboardInterrupt):
@@ -190,19 +196,21 @@ def run_adapters(equipment_instances, output, error_handler,
             if all(not thread.is_alive() for thread in adapter_threads):
                 logger.info("All adapters have stopped.")
                 break
-            
+
             cur_errors = error_handler.get_unseen_errors()
             # Do a double iteration because want to ensure all errors are transmited.
-            # May be case that an error causes a change meaning 
+            # May be case that an error causes a change meaning
             # subsequent errors arent iterated and handled.
             for adapter in adapters:
                 adapter.transmit_errors(cur_errors)
                 time.sleep(0.1)
 
-            for error,tb in cur_errors:                    
+            for error,tb in cur_errors:
                 if error.severity == SeverityLevel.CRITICAL:
-                    return error_shutdown(error,output,
-                                          error_handler.get_unseen_errors())
+                    return error_shutdown(error,
+                                          output,
+                                          error_handler.get_unseen_errors()
+                                          )
 
                 elif error.severity == SeverityLevel.ERROR:
                     logger.error(
@@ -213,7 +221,7 @@ def run_adapters(equipment_instances, output, error_handler,
                     time.sleep(cooldown_period_error)
                     output.connect()
                     adapter_threads = start_all_adapters_in_threads(adapters)
-                    
+
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
                         logger.warning(
@@ -235,14 +243,14 @@ def run_adapters(equipment_instances, output, error_handler,
                                 time.sleep(cooldown_period_warning)
                                 output.connect()
                     else:
-                        logger.warning(f"Warning encountered: {error}", 
+                        logger.warning(f"Warning encountered: {error}",
                                        exc_info=error)
 
                 elif error.severity == SeverityLevel.INFO:
                     logger.info(f"Information error, no action: {error}",
                                 exc_info=error)
 
-            handle_disabled_modules(output,output_disable_time)
+            handle_disabled_modules(output, output_disable_time)
 
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received. Shutting down.")
@@ -299,7 +307,7 @@ def welcome_message() -> None:
 #        FUNCTION: Main
 #
 ###################################
-def main(args=None) -> None:
+def main(args: list[str] | None = None) -> None:
     """
     Main function to start the program.
     """
@@ -307,20 +315,20 @@ def main(args=None) -> None:
 
     welcome_message()
 
-    args = parse_args(args)
-    global_args = args
+    arguments = parse_args(args)
+    global_args = arguments
 
-    if args.debug:
+    if arguments.debug:
         logger.debug("Debug logging enabled.")
         logger.setLevel(logging.DEBUG)
 
     # Create configuration folder to store the config file in
-    create_configuration(args)
+    create_configuration(arguments)
 
-    logger.info(f"Starting NiceGUI web interface on localhost:{args.port}")
+    logger.info(f"Starting NiceGUI web interface on localhost:{arguments.port}")
     # Create GUI instance
     from leaf.interface.main import create_gui
-    global_gui = create_gui(args.port)
+    global_gui = create_gui(arguments.port)
     # Set global variables
     global_gui.global_args = global_args
     global_gui.global_config = global_config
@@ -331,22 +339,22 @@ def main(args=None) -> None:
     )
 
     # Function to run background tasks (adapter setup)
-    def run_background_tasks():
-        global_external_adapter = args.path
-        logger.debug(f"Loading configuration file: {args.config}")
+    def run_background_tasks() -> None:
+        # global_external_adapter = arguments.path
+        logger.debug(f"Loading configuration file: {arguments.config}")
 
         # Load the configuration file
-        if args.config is None or not os.path.exists(args.config):
+        if arguments.config is None or not os.path.exists(arguments.config):
             logger.error(
                 "No configuration file provided (See the documentation for more details at leaf.systemsbiology.nl).")
-            global_config: str = "No configuration file provided."
-            config = None
+            # global_config: str = "No configuration file provided."
+            # config = None
         else:
-            with open(args.config, "r") as file:
+            with open(arguments.config, "r") as file:
                 config = yaml.safe_load(file)
-                global_config: str = yaml.dump(config, indent=4)
+                global_config = yaml.dump(config, indent=4)
 
-            logger.info(f"Configuration: {args.config} loaded.")
+            logger.info(f"Configuration: {arguments.config} loaded.")
             logger.info(f"\n{global_config}\n")
 
             general_error_holder = ErrorHolder()
@@ -360,9 +368,12 @@ def main(args=None) -> None:
     background_thread.start()
 
     # Run the GUI in the main thread
-    global_gui.run()
+    if not arguments.nogui:
+        # Start the GUI
+        global_gui.run()
 
-
+    # Wait for the background thread to finish
+    background_thread.join()
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()
