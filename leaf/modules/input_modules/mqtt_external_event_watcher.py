@@ -3,7 +3,7 @@ from uuid import uuid4
 from typing import Optional, List, Callable
 
 from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
-from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.utility.logger.logger_utils import get_logger
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf_register.metadata import MetadataManager
 
@@ -20,7 +20,7 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError, LEAFError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.utility.logger.logger_utils import get_logger
 
 FIRST_RECONNECT_DELAY = 1
 RECONNECT_RATE = 2
@@ -109,7 +109,6 @@ class MQTTExternalEventWatcher(ExternalEventWatcher):
                 self.client.username_pw_set(self._username, 
                                             self._password)
             self.client.connect(self._broker, self._port, 60)
-            time.sleep(3)
             self.client.loop_start()
             time.sleep(3)
             for topic in self._topics:

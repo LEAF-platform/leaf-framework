@@ -161,11 +161,20 @@ class TestEquipmentAdapter(unittest.TestCase):
         except Exception:
             pass
 
+    def wait_for_adapter_start(self,adapter):
+        timeout = 30
+        cur_count = 0
+        while not adapter.is_running():
+            time.sleep(0.5)
+            cur_count += 1
+            if cur_count > timeout:
+                self.fail("Unable to initialise.")
+
     def test_details(self):
         self.initialize_experiment()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
@@ -181,7 +190,7 @@ class TestEquipmentAdapter(unittest.TestCase):
             del self.mock_client.messages[self.start_topic]
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         _create_file(text_watch_file)
         time.sleep(2)
         self._adapter.stop()
@@ -197,7 +206,7 @@ class TestEquipmentAdapter(unittest.TestCase):
                                        self._adapter._watcher._file_name)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         _create_file(text_watch_file)
         self.mock_client.reset_messages()
         time.sleep(2)
@@ -228,7 +237,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client.subscribe(exp_tp)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         _create_file(text_watch_file)
         time.sleep(2)
         _modify_file(text_watch_file)
@@ -256,7 +265,7 @@ class TestEquipmentAdapter(unittest.TestCase):
             content = src.read()
         with open(test_exp_tw_watch_file, 'a') as dest:
             dest.write(content)
-        time.sleep(2)
+        self.wait_for_adapter_start(adapter)
         adapter.stop()
         mthread.join()
     
@@ -301,7 +310,7 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         mthread = Thread(target=_adapter.start)
         unique_logger_name = f"leaf.adapters.equipment_adapter.{_adapter._metadata_manager.get_instance_id()}"
-        expected_exceptions = [HardwareStalledError("Experiment timeout between measurements")]
+        expected_exceptions = [HardwareStalledError("Experiment timeout")]
         with self.assertLogs(unique_logger_name, level="WARNING") as logs:
             mthread.start()
             watcher_timeout = 10
@@ -317,9 +326,11 @@ class TestEquipmentAdapter(unittest.TestCase):
             timeout = 30
             start_time = time.time()
 
+            
             while len(expected_exceptions) > 0 and (time.time() - start_time < timeout):
                 for log in logs.records:
                     exc_type, exc_value, exc_traceback = log.exc_info
+                    print(exc_type,exc_value)
                     for exp_exc in list(expected_exceptions):
                         if (
                             type(exp_exc) == exc_type

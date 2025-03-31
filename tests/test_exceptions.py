@@ -8,7 +8,10 @@ import tempfile
 import unittest
 from csv import Error as csv_error
 from threading import Thread
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch
+from unittest.mock import MagicMock
+from unittest.mock import mock_open
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 from paho.mqtt.client import CONNACK_REFUSED_PROTOCOL_VERSION
@@ -24,25 +27,25 @@ from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.keydb_client import KEYDB
 from leaf.modules.output_modules.file import FILE
 from leaf.modules.input_modules.file_watcher import FileWatcher
+from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.modules.process_modules.continous_module import ContinousProcess
 from leaf.start import process_instance
-from leaf.start import get_output_module
+from leaf.utility.running_utilities import build_output_module
 from leaf.start import run_adapters
 from leaf.start import stop_all_adapters
 from leaf import start
 from leaf_register.metadata import MetadataManager
-from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import InputError
-from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import InterpreterError
+from leaf.error_handler.error_holder import ErrorHolder
 from tests.mock_mqtt_client import MockBioreactorClient
-from pathlib import Path
+from leaf.registry.registry import discover_from_config
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -58,7 +61,6 @@ except:
     un = None
     pw = None
 
-
 watch_file = os.path.join("tmp.txt")
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 test_file_dir = os.path.join(curr_dir, "static_files")
@@ -66,7 +68,9 @@ initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
 text_watch_file = os.path.join("tmp.txt")
-mock_functional_adapter_path = os.path.join(curr_dir,"mock_functional_adapter")
+mock_functional_adapter_path = os.path.join(curr_dir, "mock_functional_adapter")
+
+
 
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
@@ -132,7 +136,7 @@ class TestExceptionsInit(unittest.TestCase):
             ],
         }
         with self.assertRaises(AdapterBuildError):
-            get_output_module(config, None)
+            build_output_module(config, None)
 
     def test_start_get_output_fallback_not_found(self) -> None:
         config = {
@@ -154,7 +158,7 @@ class TestExceptionsInit(unittest.TestCase):
             ],
         }
         with self.assertRaises(AdapterBuildError):
-            get_output_module(config, None)
+            build_output_module(config, None)
 
     def test_start_get_output_invalid_params(self) -> None:
         config = {
@@ -175,7 +179,7 @@ class TestExceptionsInit(unittest.TestCase):
             ],
         }
         with self.assertRaises(AdapterBuildError):
-            get_output_module(config, None)
+            build_output_module(config, None)
 
     def test_startprocess_instance_not_found(self) -> None:
         config = {
@@ -389,12 +393,13 @@ class TestExceptionsGeneral(unittest.TestCase):
                 }
             }
         ]
+        discover_from_config({"EQUIPMENT_INSTANCES":ins},
+                             mock_functional_adapter_path)
 
         def _start() -> Thread:
             mthread = Thread(
                 target=run_adapters,
-                args=[ins, output, error_holder],
-                kwargs={"external_adapter": mock_functional_adapter_path},
+                args=[ins, output, error_holder]
             )
             mthread.daemon = True
             mthread.start()
@@ -468,12 +473,13 @@ class TestExceptionsGeneral(unittest.TestCase):
                 }
             }
         ]
+        discover_from_config({"EQUIPMENT_INSTANCES":ins},
+                             mock_functional_adapter_path)
 
         def _start() -> Thread:
             mthread = Thread(
                 target=run_adapters,
                 args=[ins, output, error_holder],
-                kwargs={"external_adapter": mock_functional_adapter_path},
             )
             mthread.daemon = True
             mthread.start()
@@ -564,10 +570,11 @@ class TestExceptionsGeneral(unittest.TestCase):
                 }
             },
         ]
+        discover_from_config({"EQUIPMENT_INSTANCES":ins},
+                             mock_functional_adapter_path)
 
         def _start() -> None:
-            mthread = Thread(target=run_adapters, args=[ins, output, error_holder],
-                             kwargs={"external_adapter" : mock_functional_adapter_path})
+            mthread = Thread(target=run_adapters, args=[ins, output, error_holder])
             mthread.daemon = True
             mthread.start()
             return mthread
@@ -578,7 +585,7 @@ class TestExceptionsGeneral(unittest.TestCase):
 
         with self.assertLogs(start.__name__, level="ERROR") as captured:
             adapter_thread = _start()
-            time.sleep(5)
+            time.sleep(10)
             exception = ClientUnreachableError(
                 "test_multiple_adapter_reset_test_exception",
                 severity=SeverityLevel.CRITICAL,
@@ -815,26 +822,27 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             clientid=None,
             error_holder=error_holder,
         )
-
+        instance_id = f"{uuid.uuid4()}"
+        institute = f"{uuid.uuid4()}"
         ins = [
             {
                 "equipment": {
                     "adapter": "MockFunctionalAdapter",
                     "data": {
-                        "instance_id": f"{uuid.uuid4()}",
-                        "institute": f"{uuid.uuid4()}",
+                        "instance_id": instance_id,
+                        "institute": institute,
                     },
                     "requirements": {"write_file": write_file},
                 }
             }
         ]
+        discover_from_config({"EQUIPMENT_INSTANCES":ins},
+                             mock_functional_adapter_path)
 
         def _start() -> Thread:
             mthread = Thread(
                 target=run_adapters,
-                args=[ins, output, error_holder],
-                kwargs={"external_adapter": mock_functional_adapter_path},
-            )
+                args=[ins.copy(), output, error_holder])
             mthread.daemon = True
             mthread.start()
             return mthread
@@ -844,7 +852,8 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
             time.sleep(10)
         
         mock_client = MockBioreactorClient(broker,port,username=un,password=pw)
-        mock_client.subscribe(f'{ins[0]["equipment"]["data"]["institute"]}/#')
+
+        mock_client.subscribe(f'{institute}/#')
         time.sleep(0.5)
         adapter_thread = _start()
         time.sleep(10)
@@ -861,7 +870,7 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         
         error_messages = None
         for mt in mock_client.messages.keys():
-            if "error" in mt and ins[0]["equipment"]["data"]["institute"] in mt:
+            if "error" in mt and institute in mt:
                 error_messages = mock_client.messages[mt]
         for e in expected_exceptions:
             self.assertIn(e,error_messages)

@@ -1,4 +1,3 @@
-import functools
 import importlib
 import os
 import subprocess
@@ -7,10 +6,14 @@ import sys
 import requests
 from nicegui import ui
 
-from leaf import register
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 
-installed_adapters: dict[str, EquipmentAdapter] = register.load_adapters()
+from leaf.registry.registry import all_registered
+
+def refresh_adapters() -> dict[str, type[EquipmentAdapter]]:
+    return all_registered("equipment")
+
+installed_adapters: dict[str, EquipmentAdapter] = refresh_adapters()
 
 async def pip_install(dialog: ui.dialog, adapter: dict[str, str]) -> None:
     dialog.close()
@@ -30,7 +33,7 @@ async def pip_install(dialog: ui.dialog, adapter: dict[str, str]) -> None:
         subprocess.check_call(command)
         ui.notify(f'Installed adapter: {adapter["name"]}', color='positive')
         global installed_adapters
-        installed_adapters = register.load_adapters()
+        installed_adapters = refresh_adapters()
 
 async def create_adapters_panel(tabs, adapters_tab, self) -> None:
     # Adapters tab

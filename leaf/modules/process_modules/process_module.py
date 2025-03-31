@@ -32,7 +32,6 @@ class ProcessModule:
             metadata_manager (Optional[MetadataManager]): An optional manager for process metadata.
             error_holder (Optional[ErrorHolder]): An optional error holder for managing process errors.
         """
-        super().__init__()
         if not isinstance(phases, (list, set, tuple)):
             phases = [phases]
         self._output = output
@@ -83,8 +82,8 @@ class ProcessModule:
         Args:
             interpreter (AbstractInterpreter): The interpreter to be set for each PhaseModule.
         """
-        for p in self._phases:
-            p.set_interpreter(interpreter)
+        for phase in self._phases:
+            phase.set_interpreter(interpreter)
 
     def set_error_holder(self, error_holder: ErrorHolder) -> None:
         """
@@ -94,8 +93,8 @@ class ProcessModule:
             error_holder (ErrorHolder): The error holder to be set for the process and phases.
         """
         self._error_holder = error_holder
-        for p in self._phases:
-            p.set_error_holder(error_holder)
+        for phase in self._phases:
+            phase.set_error_holder(error_holder)
 
     def set_metadata_manager(self, manager: MetadataManager) -> None:
         """
@@ -107,5 +106,11 @@ class ProcessModule:
         self._metadata_manager = manager
         [p.set_metadata_manager(manager) for p in self._phases]
 
-    def get_phase_terms(self):
+    def get_phase_terms(self) -> set[str]:
+        """
+        Return the set of topic terms associated with each phase.
+
+        Returns:
+            set[str]: A set of terms each phase listens to or handles.
+        """
         return {phase.get_term() for phase in self._phases}

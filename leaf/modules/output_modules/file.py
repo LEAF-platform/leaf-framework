@@ -1,7 +1,9 @@
 import json
 import os
 import random
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
+from typing import Union
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
@@ -9,7 +11,7 @@ from leaf.error_handler.exceptions import SeverityLevel
 
 
 class FILE(OutputModule):
-    def __init__(self, filename: str, fallback: Optional[str] = None, 
+    def __init__(self, filename: str, fallback: Optional[OutputModule] = None, 
                  error_holder: Optional[ErrorHolder] = None) -> None:
         super().__init__(fallback=fallback, error_holder=error_holder)
         self.filename = filename
@@ -39,7 +41,7 @@ class FILE(OutputModule):
                                                       output_module=self,
                                                       severity=severity))
 
-    def transmit(self, topic: str, data: str | None = None) -> bool:
+    def transmit(self, topic: str, data: Optional[Union[str, dict]] = None) -> bool:
         """
         Transmit data to the file associated with a specific topic.
         """

@@ -1,88 +1,103 @@
 import logging
-import os
 import time
 from abc import ABC, abstractmethod
 from threading import Event
-from typing import List, Optional, Union, Any
+from typing import Any, Optional
 
 from leaf_register.metadata import MetadataManager
-from leaf.error_handler.exceptions import LEAFError
+
 from leaf.error_handler import exceptions
-from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import LEAFError
+from leaf.error_handler.error_holder import ErrorHolder
+
 from leaf.modules.input_modules.event_watcher import EventWatcher
-from leaf.modules.output_modules.output_module import OutputModule
 from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
-from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.utility.logger.logger_utils import get_logger
 from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.modules.process_modules.external_event_process import ExternalEventProcess
+
 
 class AbstractInterpreter(ABC):
     """
     Abstract base class for interpreters.
 
-    One interpreter is needed for each EquipmentAdapter class.
+    Interpreters are responsible for transforming raw input data into a
+    structured format suitable for processing and output. Each adapter
+    uses one interpreter instance to convert metadata and measurement
+    input into a standardised structure.
     """
 
     def __init__(self, error_holder: Optional[ErrorHolder] = None):
         """
-        Initialize the abstract interpreter with predefined keys for
-        measurement and metadata outputs.
+        Initialise the interpreter.
 
         Args:
-            error_holder (Optional[ErrorHolder]): Object to hold error instances.
+            error_holder (Optional[ErrorHolder]): Optional holder for logging
+                                                  or deferring error handling.
         """
         self.id: str = "undefined"
         self.TIMESTAMP_KEY: str = "timestamp"
         self.EXPERIMENT_ID_KEY: str = "experiment_id"
         self.MEASUREMENT_HEADING_KEY: str = "measurement_types"
-        self._error_holder: Optional[ErrorHolder] = error_holder
+        self._error_holder = error_holder
         self._last_measurement = None
         self._is_running = False
 
     def set_error_holder(self, error_holder: Optional[ErrorHolder]) -> None:
-        """
-        Set the error holder for the interpreter.
-
-        Args:
-            error_holder (Optional[ErrorHolder]): Error holder instance.
-        """
+        """Assign an ErrorHolder instance to the interpreter."""
         self._error_holder = error_holder
 
     @abstractmethod
-    def metadata(self, data: Any) -> None:
+    def metadata(self, data: Any) -> dict[str, Any]:
         """
-        Abstract method to process metadata.
+        Parse metadata input and return it in structured form.
 
         Args:
-            data (Any): The metadata from the InputModule.
+            data (Any): Raw metadata from input module.
+
+        Returns:
+            dict[str, Any]: Parsed metadata dictionary.
         """
-        return {self.TIMESTAMP_KEY : time.time()}
+        return {self.TIMESTAMP_KEY: time.time()}
 
     @abstractmethod
-    def measurement(self, data: Any) -> None:
+    def measurement(self, data: Any) -> Any:
         """
-        Abstract method to process measurement data.
+        Parse a measurement payload.
 
         Args:
-            data (Any): The measurement from the InputModule.
+            data (Any): Raw measurement data.
+
+        Returns:
+            Any: Parsed or transformed measurement data.
         """
         self._last_measurement = time.time()
         return data
-    
-    def get_last_measurement_time(self):
+
+    def get_last_measurement_time(self) -> Optional[float]:
+        """Return the timestamp of the last successful measurement."""
         return self._last_measurement
-    
-    def experiment_stop(self,data=None):
+
+    def experiment_stop(self, data: Any = None) -> Any:
+        """
+        Clear internal state for stopping experiment tracking.
+
+        Args:
+            data (Any): Optional additional data for stop logic.
+
+        Returns:
+            Any: Forwarded or cleaned-up stop payload.
+        """
         self._last_measurement = None
         return data
 
     def _handle_exception(self, exception: LEAFError) -> None:
         """
-        Handle exceptions by adding them to the error holder or raising them.
+        Route exceptions to the error handler or raise directly.
 
         Args:
-            exception (LEAFError): The exception to handle.
+            exception (LEAFError): Exception to handle or raise.
         """
         if self._error_holder is not None:
             self._error_holder.add_error(exception)
@@ -92,302 +107,268 @@ class AbstractInterpreter(ABC):
 
 class EquipmentAdapter(ABC):
     """
-    Base class for all equipment adapters. Ensures all derived classes have
-    the required composite modules and implements a start and stop function.
+    Base class for all equipment adapters.
+
+    Handles coordination of:
+      - data input (via watchers),
+      - processing (via processes),
+      - output (via output modules),
+      - and error handling.
+
+    Subclasses implement concrete workflows (e.g., continuous, discrete).
     """
 
     def __init__(
         self,
-        instance_data: str,
+        instance_data: dict[str, Any],
         watcher: EventWatcher,
         output: OutputModule,
-        process_adapters: Union[ProcessModule, List[ProcessModule]],
+        process_adapters: ProcessModule | list[ProcessModule],
         interpreter: AbstractInterpreter,
         metadata_manager: Optional[MetadataManager] = None,
         error_holder: Optional[ErrorHolder] = None,
         experiment_timeout: Optional[int] = None,
-        external_watcher: ExternalEventWatcher = None
+        external_watcher: Optional[ExternalEventWatcher] = None
     ):
         """
-        Initialize the EquipmentAdapter instance.
+        Initialise the equipment adapter.
 
         Args:
-            instance_data (str): Data related to the instance.
-            watcher (EventWatcher): An object that watches or monitors events or data.
-            output (OutputModule): An object that outputs data from the adapter.
-            process_adapters (Union[ProcessModule, List[ProcessModule]]): A list or a single instance of ProcessModules.
-            interpreter (AbstractInterpreter): An interpreter object to process the data.
-            metadata_manager (Optional[MetadataManager]): Optional metadata manager instance
-                (defaults to new MetadataManager if None).
-            error_holder (Optional[ErrorHolder]): Optional error holder instance.
-            experiment_timeout (Optional[int]): Timeout duration for the experiment in seconds.
-            external_watcher (ExternalEventWatcher): Optional Input module to take messages from external sources.
+            instance_data (dict): Configuration and metadata for the adapter instance.
+            watcher (EventWatcher): Input module responsible for receiving input events.
+            output (OutputModule): Output module to send processed data.
+            process_adapters (ProcessModule | list): Phase processors to handle logic.
+            interpreter (AbstractInterpreter): Logic for transforming raw input to usable data.
+            metadata_manager (Optional[MetadataManager]): Metadata coordinator.
+            error_holder (Optional[ErrorHolder]): Centralised error recording and dispatch.
+            experiment_timeout (Optional[int]): Optional timeout in seconds for experiment stall detection.
+            external_watcher (Optional[ExternalEventWatcher]): Optional secondary input for external events.
         """
-
         self._output = output
-        # ErrorHolder
-        self._error_holder: Optional[ErrorHolder] = error_holder
+        self._error_holder = error_holder
 
-        # Processes
         if not isinstance(process_adapters, (list, tuple, set)):
             process_adapters = [process_adapters]
-        self._processes: List[ProcessModule] = process_adapters
-        [p.set_error_holder(error_holder) for p in self._processes]
+        self._processes: list[ProcessModule] = list(process_adapters)
+        for p in self._processes:
+            p.set_error_holder(error_holder)
 
-        # Interpreter
-        self._interpreter: AbstractInterpreter = interpreter
-        [p.set_interpreter(interpreter) for p in self._processes]
+        self._interpreter = interpreter
+        for p in self._processes:
+            p.set_interpreter(interpreter)
         interpreter.set_error_holder(error_holder)
 
-        # Metadata
-        if metadata_manager is None:
-            self._metadata_manager: MetadataManager = MetadataManager()
-
-        else:
-            self._metadata_manager = metadata_manager
+        self._metadata_manager = metadata_manager or MetadataManager()
         self._metadata_manager.add_instance_data(instance_data)
 
-        # Watcher
-        self._watcher: EventWatcher = watcher
+        self._watcher = watcher
         for p in self._processes:
             self._watcher.add_callback(p.process_input)
             p.set_metadata_manager(self._metadata_manager)
-        watcher.set_error_holder(error_holder)
+        self._watcher.set_error_holder(error_holder)
+
         self._validate_processes(self._watcher, self._processes)
 
-        # Logger
         ins_id = self._metadata_manager.get_instance_id()
-        unique_logger_name = f"{__name__}.{ins_id}"
         self._logger = get_logger(
-            name=unique_logger_name,
+            name=f"{__name__}.{ins_id}",
             log_file=f"{ins_id}.log",
             error_log_file=f"{ins_id}_error.log",
             log_level=logging.INFO,
         )
 
-        # Misc
-        self._stop_event: Event = Event()
+        self._stop_event = Event()
         self._stop_event.set()
         self._experiment_timeout = experiment_timeout
 
-        # External Inputs (Feedback system)
         self._external_watcher = external_watcher
-        # Currently, we have a predefined static external process.
-        # In future, COULD be reworked to allow input processes if needed.
         if self._external_watcher is not None:
-            self._external_watcher.set_metadata_manager(metadata_manager)
-            self._external_process = ExternalEventProcess(output,
-                                                          self._metadata_manager,
-                                                          self._error_holder)
+            self._external_watcher.set_metadata_manager(self._metadata_manager)
+            self._external_process = ExternalEventProcess(
+                output, self._metadata_manager, self._error_holder
+            )
             self._external_process.set_error_holder(self._error_holder)
-            self._external_process.set_interpreter(interpreter=interpreter)
+            self._external_process.set_interpreter(interpreter)
             self._external_watcher.add_callback(self._external_process.process_input)
 
-
-    def _validate_processes(
-        self, watcher: EventWatcher, 
-        processes: List[ProcessModule]) -> None:
+    def _validate_processes(self, watcher: EventWatcher, 
+                            processes: list[ProcessModule]) -> None:
         """
-        Validate that the processes have terms matching the watcher.
+        Ensure that all terms the watcher emits are handled by the processes.
 
         Args:
-            watcher (EventWatcher): The event watcher.
-            processes (List[ProcessModule]): List of process modules to validate.
+            watcher (EventWatcher): The input module emitting data.
+            processes (list[ProcessModule]): Phase processors.
         """
-        phase_terms = []    
+        phase_terms = []
         watcher_terms = watcher.get_terms()
         for process in processes:
-            phase_terms += [t for t in process.get_phase_terms()]
+            phase_terms.extend(process.get_phase_terms())
         if not all(term in phase_terms for term in watcher_terms):
-            error_str = (
-                "Current processes and phases " 
-                "don't handle all potential inputs"
-            )
             excp = exceptions.AdapterBuildError(
-                error_str, severity=exceptions.SeverityLevel.WARNING
+                "Current processes and phases don't handle all potential inputs",
+                severity=exceptions.SeverityLevel.WARNING,
             )
             self._handle_exception(excp)
 
-    def is_running(self) -> None:
+    def is_running(self) -> bool:
         """
-        Displays whether the adapter is running on not.
+        Check if the adapter is actively running.
+
+        Returns:
+            bool: True if input/output are active and adapter is not stopped.
         """
-        return not self._stop_event.is_set()
-    
-    def is_initialised(self):
         return (self._watcher.is_running() and 
                 self._output.is_connected() and 
-                self.is_running())
-    
+                not self._stop_event.is_set())
+
     def start(self) -> None:
         """
-        Start the equipment adapter process.
-        Use custom exception handling with severity levels.
+        Begin running the adapter.
+
+        Starts input watchers, begins monitoring for errors,
+        and invokes appropriate error-driven control logic.
         """
         if not self._metadata_manager.is_valid():
             ins_id = self._metadata_manager.get_instance_id()
             missing_data = self._metadata_manager.get_missing_metadata()
             excp = exceptions.AdapterLogicError(
-                f"{ins_id} is missing data. : {missing_data}", 
-                severity=exceptions.SeverityLevel.CRITICAL
+                f"{ins_id} is missing data: {missing_data}",
+                severity=exceptions.SeverityLevel.CRITICAL,
             )
-            self._logger.error(
-                f"Critical error, shutting down this adapter: {excp}", 
-                exc_info=excp
-            )
+            self._logger.error("Critical error, shutting down adapter", exc_info=excp)
             self._handle_exception(excp)
             return self.stop()
+
         try:
             self._watcher.start()
-            if self._external_watcher is not None:
+            if self._external_watcher:
                 self._external_watcher.start()
+
             self._stop_event.clear()
+
             while not self._stop_event.is_set():
                 time.sleep(1)
-                if self._error_holder is None:
+                if not self._error_holder:
                     continue
-                
+
                 cur_errors = self._error_holder.get_unseen_errors()
-                # Do a double iteration because want to ensure all 
-                # errors are transmited.
-                # May be case that an error causes a change meaning 
-                # subsequent errors arent iterated and handled.
                 self.transmit_errors(cur_errors)
-                for error, tb in cur_errors:                    
+
+                for error, _ in cur_errors:
                     if error.severity == exceptions.SeverityLevel.CRITICAL:
-                        self._logger.error(
-                            f"Critical error, shutting down this adapter: {error}",
-                            exc_info=error,
-                        )
+                        self._logger.error("Critical error, stopping adapter", exc_info=error)
                         self._stop_event.set()
                         self.stop()
+
                     elif error.severity == exceptions.SeverityLevel.ERROR:
-                        self._logger.error(
-                            f"Error, resetting this adapter: {error}", exc_info=error
-                        )
+                        self._logger.error("Error, restarting adapter", exc_info=error)
                         self.stop()
                         return self.start()
 
                     elif error.severity == exceptions.SeverityLevel.WARNING:
-                        if isinstance(error, exceptions.InputError):
-                            self._logger.warning(
-                                f"Warning Input error, taking action on this adapter: {error}",
-                                exc_info=error,
-                            )
-                            if self._watcher.is_running():
-                                self._watcher.stop()
-                            self._watcher.start()
-                        elif isinstance(error, exceptions.HardwareStalledError):
-                            self._logger.warning(
-                                f"Warning Hardware error, taking action on this adapter: {error}",
-                                exc_info=error,
-                            )
-                            # Not much can be done here
-                            for p in self._processes:
-                                p.stop()
-                            self._interpreter.experiment_stop()
-                            if self._watcher.is_running():
-                                self._watcher.stop()
-                            self._watcher.start()
-                            
-                        elif isinstance(error, exceptions.ClientUnreachableError):
-                            # This should generally not occur.
-                            self._logger.warning(
-                                f"Warning Client error, taking action on this adapter: {error}",
-                                exc_info=error,
-                            )
-                            if error.client is not None:
-                                error.client.stop()
-                                time.sleep(1)
-                                error.client.start()
-                        elif isinstance(error, exceptions.AdapterLogicError):
-                            # Adapter logic errors may need granular handling
-                            pass
-                        elif isinstance(error, exceptions.InterpreterError):
-                            # Interpreter errors typically indicate data 
-                            # or implementation issues
-                            pass
-                        else:
-                            self._logger.info(f"Warning error: {error}", exc_info=error)
-                    elif error.severity == exceptions.SeverityLevel.INFO:
-                        self._logger.info(
-                            f"Information error, no action needed: {error}",
-                            exc_info=error,
-                        )
+                        self._handle_warning(error)
 
-                # Check for experiment stalling.
-                if self._experiment_timeout is not None:
+                    elif error.severity == exceptions.SeverityLevel.INFO:
+                        self._logger.info("Info: %s", error, exc_info=error)
+
+                if self._experiment_timeout:
                     lmt = self._interpreter.get_last_measurement_time()
-                    if (lmt is not None and time.time() - 
-                        lmt > self._experiment_timeout):
-                        e_str = f'Experiment timeout between measurements'
-                        exception = exceptions.HardwareStalledError(e_str)
-                        self._handle_exception(exception)
-                        
+                    if lmt and (time.time() - lmt > self._experiment_timeout):
+                        self._handle_exception(exceptions.HardwareStalledError("Experiment timeout"))
+
         except KeyboardInterrupt:
-            self._logger.info("User keyboard input stopping adapter.")
+            self._logger.info("Keyboard interrupt received.")
             self._stop_event.set()
+
         except Exception as e:
             self._logger.error(f"Unexpected error: {e}", exc_info=True)
             self._stop_event.set()
+
         finally:
-            self._logger.info("Stopping the watcher and cleaning up.")
+            self._logger.info("Stopping adapter.")
             self._watcher.stop()
             self.stop()
 
+    def _handle_warning(self, error: LEAFError) -> None:
+        """
+        Handle warnings by attempting recovery actions (restart input, etc).
 
-    def withdraw(self) -> None:
+        Args:
+            error (LEAFError): The warning-level exception to evaluate.
         """
-        Instructs all processes to stop 
-        being visible where appropriate.
-        Essentially withdraws the adapter from 
-        being visible but still keeps running.
-        """
-        for process in self._processes:
-            process.withdraw()
-                
+        if isinstance(error, exceptions.InputError):
+            self._logger.warning("Input error, restarting watcher", exc_info=error)
+            if self._watcher.is_running():
+                self._watcher.stop()
+            self._watcher.start()
+
+        elif isinstance(error, exceptions.HardwareStalledError):
+            self._logger.warning("Hardware stalled, stopping processes", exc_info=error)
+            for p in self._processes:
+                p.stop()
+            self._interpreter.experiment_stop()
+            if self._watcher.is_running():
+                self._watcher.stop()
+            self._watcher.start()
+
+        elif isinstance(error, exceptions.ClientUnreachableError):
+            self._logger.warning("Client unreachable", exc_info=error)
+            if error.client:
+                error.client.disconnect()
+                time.sleep(1)
+                error.client.connect()
+
     def stop(self) -> None:
         """
-        Stop the equipment adapter process.
-
-        Stops the watcher and flushes all output channels.
+        Stop the adapter and all associated processes and watchers.
         """
         self._stop_event.set()
         if self._watcher.is_running():
             self._watcher.stop()
 
-        for process in self._processes:
-            process.stop()
+        for p in self._processes:
+            p.stop()
 
-    def transmit_errors(self, errors: List[LEAFError] = None) -> None:
+        if self._external_watcher:
+            self._external_watcher.stop()
+
+    def withdraw(self) -> None:
         """
-        Transmit errors to the output channels of each process.
+        Withdraw the adapter from being visible, but leave it running.
+
+        Calls withdraw on each active process.
+        """
+        for process in self._processes:
+            process.withdraw()
+
+    def transmit_errors(self, errors: list[LEAFError] = None) -> None:
+        """
+        Push errors to the output module(s) via each process.
 
         Args:
-            error (Exception): The error to transmit.
+            errors (list[LEAFError], optional): A list of errors to transmit.
         """
-        if errors is None:
-            errors = self._error_holder.get_unseen_errors()
-        for error,tb in errors:
+        errors = errors or self._error_holder.get_unseen_errors()
+        for error, _ in errors:
             if not isinstance(error, LEAFError):
-                self._logger.error(
-                    f"{error} added to error holder, only LEAF errors should be used.",
-                    exc_info=error,
-                )
+                self._logger.error("Non-LEAF error added to error holder", 
+                                   exc_info=error)
                 return self.stop()
-            error = error.to_json()
+
+            error_json = error.to_json()
             for process in self._processes:
-                process.transmit_error(error)
+                process.transmit_error(error_json)
                 time.sleep(0.1)
 
     def _handle_exception(self, exception: Exception) -> None:
         """
-        Handle exceptions by adding them to the error holder or raising them.
+        Record or raise an exception.
 
         Args:
-            exception (Exception): The exception to handle.
+            exception (Exception): Exception to handle.
         """
-        if self._error_holder is not None:
+        if self._error_holder:
             self._error_holder.add_error(exception)
         else:
             raise exception

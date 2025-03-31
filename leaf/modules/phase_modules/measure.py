@@ -1,7 +1,8 @@
-import logging
 import time
-from typing import Optional, Any
-
+from typing import Any
+from typing import Optional
+from typing import List
+from typing import Tuple
 from influxobject import InfluxPoint
 
 from leaf.modules.phase_modules.phase import PhaseModule
@@ -42,7 +43,7 @@ class MeasurePhase(PhaseModule):
             error_holder=error_holder)
         self._maximum_message_size: int = maximum_message_size
 
-    def update(self, data: Optional[Any] = None, **kwargs: Any) -> Optional[list]:
+    def update(self, data: Optional[Any] = None, **kwargs: Any) -> Optional[List[Tuple[str, Any]]]:
         """
         Called to process new measurements and transmit the data.
 
@@ -122,7 +123,8 @@ class MeasurePhase(PhaseModule):
             result = result.to_json()
             measurement = result.get("measurement", "unknown")
         elif isinstance(result, list):
-            result = [l.to_json() if isinstance(l, InfluxPoint) else l for l in result]
+            result = [l.to_json() if isinstance(l, InfluxPoint) 
+                      else l for l in result]
         else:
             excp = AdapterLogicError(f"Unknown measurement data type: {type(result)}")
             self._handle_exception(excp)
