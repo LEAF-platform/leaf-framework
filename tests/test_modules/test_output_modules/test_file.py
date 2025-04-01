@@ -1,7 +1,8 @@
 import sys
 import os
 import unittest
-from unittest.mock import mock_open, patch
+from unittest.mock import mock_open
+from unittest.mock import patch
 import json
 import uuid
 

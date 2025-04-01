@@ -1,51 +1,60 @@
 import logging
-from requests import Response, get, RequestException
-from typing import Optional, Callable, List, Dict
-from leaf.modules.input_modules.polling_watcher import PollingWatcher
-from leaf.modules.logger_modules.logger_utils import get_logger
+import requests
+
+from typing import Optional
+from typing import Callable
+from typing import List
+from typing import Dict
+from typing import Any
+
+from requests import Response
+from requests import RequestException
+
 from leaf_register.metadata import MetadataManager
+from leaf.modules.input_modules.polling_watcher import PollingWatcher
+from leaf.utility.logger.logger_utils import get_logger
 from leaf.error_handler.error_holder import ErrorHolder
 
 logger = get_logger(__name__, log_file="input_module.log", 
                     log_level=logging.DEBUG)
 
+
 class URLState:
     """
-    Tracks URL state, including ETag, Last-Modified, and previous data,
-    to detect changes in API responses.
+    Tracks ETag, Last-Modified, and response body
+    to detect whether a new API response is worth processing.
     """
-    def __init__(self, url_type: str):
+
+    def __init__(self, url_type: str) -> None:
         """
         Initialize URLState.
 
         Args:
-            url_type: Description of URL type.
+            url_type (str): Identifier for the 
+            type of URL being tracked.
         """
-        self.url_type = url_type
-        self.etag = None
-        self.last_modified = None
-        self.previous_data = None
+        self.url_type: str = url_type
+        self.etag: Optional[str] = None
+        self.last_modified: Optional[str] = None
+        self.previous_data: Optional[dict] = None
 
     def update_from_response(self, response: Response) -> Optional[dict]:
         """
-        Update state from an API response and return new data if a 
-        change is detected, or None if no change is detected.
+        Update tracking state if the response represents new data.
 
         Args:
-            response: HTTP response from the API.
+            response (Response): HTTP response to analyze.
 
         Returns:
-            New JSON data if a change is detected, else None.
+            Optional[dict]: Parsed JSON if the response is new; else None.
         """
-        if "ETag" in response.headers and response.headers["ETag"] == self.etag:
+        if response.headers.get("ETag") == self.etag:
             return None
-        if (
-            "Last-Modified" in response.headers
-            and response.headers["Last-Modified"] == self.last_modified
-        ):
+        if response.headers.get("Last-Modified") == self.last_modified:
             return None
 
         current_data = response.json()
+
         if self.etag is None and self.last_modified is None:
             if current_data == self.previous_data:
                 return None
@@ -53,73 +62,79 @@ class URLState:
         self.etag = response.headers.get("ETag")
         self.last_modified = response.headers.get("Last-Modified")
         self.previous_data = current_data
+
         return current_data
 
 
 class HTTPWatcher(PollingWatcher):
     """
-    Polls API endpoints at specified intervals, utilizing ETag and
-    Last-Modified headers to detect changes. Supports measurement,
-    start, and stop conditions.
+    Polls one or more HTTP endpoints periodically using ETag and Last-Modified
+    headers to detect meaningful updates. Supports measurement, start, and stop events.
     """
+
     def __init__(
-        self, metadata_manager: MetadataManager,
+        self,
+        metadata_manager: MetadataManager,
         measurement_url: str,
         start_url: Optional[str] = None,
         stop_url: Optional[str] = None,
         interval: int = 60,
-        headers: Optional[Dict[str, str]] = None, 
-        callbacks: Optional[List[Callable]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        callbacks: Optional[List[Callable[[str, Any], None]]] = None,
         error_holder: Optional[ErrorHolder] = None
     ) -> None:
         """
-        Initialize HTTPWatcher.
+        Initialize the HTTPWatcher.
 
         Args:
-            metadata_manager (MetadataManager): Manages equipment 
-                                                metadata.
-            measurement_url (str): URL to poll for measurement data.
-            start_url (Optional[str]): Optional URL for start condition 
-                                    polling.
-            stop_url (Optional[str]): Optional URL for stop condition 
-                                    polling.
-            interval (int): Polling interval in seconds.
-            headers (Optional[Dict[str, str]]): Custom headers for API 
-                                                requests.
-            callbacks (Optional[List[Callable]]): Callbacks for event 
-                                                  updates.
-            error_holder (Optional[ErrorHolder]): Optional object to 
-                                                  manage errors.
+            metadata_manager (MetadataManager): Metadata manager instance.
+            measurement_url (str): Required URL to poll for measurements.
+            start_url (Optional[str]): Optional URL to detect start events.
+            stop_url (Optional[str]): Optional URL to detect stop events.
+            interval (int): Polling frequency in seconds.
+            headers (Optional[Dict[str, str]]): Custom headers to include in all requests.
+            callbacks (Optional[List[Callable]]): Callback functions to execute on data updates.
+            error_holder (Optional[ErrorHolder]): Optional error management object.
         """
-        super().__init__(interval, metadata_manager, callbacks=callbacks,
-                         error_holder=error_holder)
+        super().__init__(
+            interval=interval,
+            metadata_manager=metadata_manager,
+            callbacks=callbacks,
+            error_holder=error_holder
+        )
 
-        self.url_states = {"measurement": URLState("measurement")}
-        self.urls = {"measurement": measurement_url}
+        self._headers: Dict[str, str] = headers or {}
+
+        self._urls: Dict[str, str] = {
+            "measurement": measurement_url
+        }
+        self._url_states: Dict[str, URLState] = {
+            "measurement": URLState("measurement")
+        }
 
         if start_url:
-            self.url_states["start"] = URLState("start")
-            self.urls["start"] = start_url
+            self._urls["start"] = start_url
+            self._url_states["start"] = URLState("start")
 
         if stop_url:
-            self.url_states["stop"] = URLState("stop")
-            self.urls["stop"] = stop_url
-
-        self._headers = headers or {}
+            self._urls["stop"] = stop_url
+            self._url_states["stop"] = URLState("stop")
 
     def _fetch_data(self) -> Dict[str, Optional[dict]]:
         """
-        Poll each configured URL for changes and return data if updates 
-        are detected.
+        Fetch data from all configured URLs and detect changes.
 
         Returns:
-            Dict[str, Optional[dict]]: A dictionary with new data 
-                                        for each URL.
+            Dict[str, Optional[dict]]: Dictionary with new data for each type.
         """
-        fetched_data = {"measurement": None, "start": None, "stop": None}
+        result: Dict[str, Optional[dict]] = {
+            "measurement": None,
+            "start": None,
+            "stop": None
+        }
 
-        for url_key, url in self.urls.items():
-            state = self.url_states[url_key]
+        for key, url in self._urls.items():
+            state = self._url_states[key]
             headers = self._headers.copy()
 
             if state.etag:
@@ -128,14 +143,15 @@ class HTTPWatcher(PollingWatcher):
                 headers["If-Modified-Since"] = state.last_modified
 
             try:
-                response = get(url, headers=headers)
+                response = requests.get(url, headers=headers)
                 response.raise_for_status()
             except RequestException as e:
-                logger.error(f"Error polling API {url}: {e}")
+                logger.error(f"[HTTPWatcher] Failed to fetch {key} from {url}: {e}", exc_info=True)
                 continue
 
             if response.status_code == 200:
                 new_data = state.update_from_response(response)
-                if new_data is not None:
-                    fetched_data[url_key] = new_data
-        return fetched_data
+                if new_data:
+                    result[key] = new_data
+
+        return result

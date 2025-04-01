@@ -1,29 +1,32 @@
-from typing import Optional
+from typing import Optional, Any
+
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
+
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
+
 from leaf.modules.input_modules.event_watcher import EventWatcher
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.adapters.equipment_adapter import EquipmentAdapter
-from leaf.adapters.equipment_adapter import AbstractInterpreter
+
+from leaf.adapters.equipment_adapter import EquipmentAdapter, AbstractInterpreter
 
 
 class DiscreteExperimentAdapter(EquipmentAdapter):
     """
     Adapter that implements a discrete start-stop process workflow.
 
-    It initializes and manages discrete phases for starting, stopping,
-    measuring, and initializing equipment processes.
+    It sets up individual phases for start, stop, measure, and details.
+    The process is triggered by incoming events, not continuous monitoring.
     """
 
     def __init__(
         self,
-        instance_data: str,
+        instance_data: dict[str, Any],
         watcher: EventWatcher,
         output: OutputModule,
         interpreter: AbstractInterpreter,
@@ -31,39 +34,38 @@ class DiscreteExperimentAdapter(EquipmentAdapter):
         error_holder: Optional[ErrorHolder] = None,
         metadata_manager: Optional[MetadataManager] = None,
         experiment_timeout: Optional[int] = None,
-        external_watcher: ExternalEventWatcher = None,
+        external_watcher: Optional[ExternalEventWatcher] = None,
     ):
         """
-        Initialize the StartStopAdapter with its phases and processes.
+        Initialise the DiscreteExperimentAdapter.
 
         Args:
-            instance_data (str): Data related to the instance.
-            watcher (EventWatcher): The input module used to watch or monitor events or data.
-            output (OutputModule): The output module used to transmit data.
-            interpreter (AbstractInterpreter): The interpreter for processing data.
-            maximum_message_size (Optional[int]): The maximum size of messages in the MeasurePhase.
-            error_holder (Optional[ErrorHolder]): Object to store and manage errors.
-            metadata_manager (Optional[MetadataManager]): The metadata manager for equipment data.
-            experiment_timeout (Optional[int]): Timeout for experiments in seconds.
+            instance_data (dict): Configuration and instance-level metadata.
+            watcher (EventWatcher): Monitors input events to trigger phase execution.
+            output (OutputModule): Module to transmit processed data externally.
+            interpreter (AbstractInterpreter): Translates raw data into structured output.
+            maximum_message_size (Optional[int]): Max batch size for messages in MeasurePhase.
+            error_holder (Optional[ErrorHolder]): Shared error container.
+            metadata_manager (Optional[MetadataManager]): Optional metadata manager.
+            experiment_timeout (Optional[int]): Max time allowed between measurements.
+            external_watcher (Optional[ExternalEventWatcher]): Input for out-of-band events (optional).
         """
-        # Initialize phases
+        # Initialize phase modules
         start_p = StartPhase(metadata_manager)
         stop_p = StopPhase(metadata_manager)
-        measure_p = MeasurePhase(
-            metadata_manager, maximum_message_size=maximum_message_size
-        )
+        measure_p = MeasurePhase(metadata_manager, 
+                                 maximum_message_size=maximum_message_size)
         details_p = InitialisationPhase(metadata_manager)
 
-        # Combine phases into a discrete process
-        phase = [start_p, measure_p, stop_p, details_p]
-        process = [DiscreteProcess(output, phase)]
+        # Combine into a discrete process
+        phases = [start_p, measure_p, stop_p, details_p]
+        processes = [DiscreteProcess(output, phases)]
 
-        # Call the parent class constructor
         super().__init__(
             instance_data,
             watcher,
             output,
-            process,
+            processes,
             interpreter,
             metadata_manager=metadata_manager,
             error_holder=error_holder,

@@ -9,8 +9,8 @@ import tempfile
 import uuid
 
 sys.path.insert(0, os.path.join(".."))
-sys.path.insert(0, os.path.join("..",".."))
-sys.path.insert(0, os.path.join("..","..",".."))
+sys.path.insert(0, os.path.join("..", ".."))
+sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.input_modules.file_watcher import FileWatcher
@@ -23,10 +23,10 @@ from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 
-# Current location of this script
-curr_dir: str = os.path.dirname(os.path.realpath(__file__))
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "..", "test_config.yaml")
 
-with open(curr_dir + '/../../test_config.yaml', 'r') as file:
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
@@ -35,13 +35,14 @@ port = int(config["OUTPUTS"][0]["port"])
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
-except:
+except KeyError:
     un = None
     pw = None
 
 test_file_dir = os.path.join(curr_dir, "..", "..", "static_files")
 initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
+
 
 
 def _create_file(text_watch_file):

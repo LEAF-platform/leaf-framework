@@ -3,7 +3,7 @@ import logging
 from typing import Optional, List, Callable
 
 from leaf.modules.input_modules.event_watcher import EventWatcher
-from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.utility.logger.logger_utils import get_logger
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf_register.metadata import MetadataManager
 

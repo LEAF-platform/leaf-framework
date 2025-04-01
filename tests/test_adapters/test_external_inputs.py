@@ -7,7 +7,6 @@ from threading import Thread
 import tempfile
 import yaml
 import uuid
-from datetime import datetime
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -15,9 +14,7 @@ sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.input_modules.file_watcher import FileWatcher
-from leaf.modules.input_modules.mqtt_external_event_watcher import (
-    MQTTExternalEventWatcher,
-)
+from leaf.modules.input_modules.mqtt_external_event_watcher import MQTTExternalEventWatcher
 from leaf.modules.phase_modules.external_event_phase import logger
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
@@ -25,22 +22,25 @@ from leaf.modules.process_modules.discrete_module import DiscreteProcess
 from leaf.start import run_adapters
 from leaf.start import stop_all_adapters
 from leaf.start import adapters
-
+from leaf.registry.registry import discover_from_config
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.adapters.equipment_adapter import AbstractInterpreter
-
 from leaf_register.metadata import MetadataManager
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.error_handler.error_holder import ErrorHolder
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
-text_watch_file = os.path.join("tmp.txt")
+config_path = os.path.join(curr_dir, "..", "test_config.yaml")
+test_file_dir = os.path.join(curr_dir, "..", "static_files")
+text_watch_file = os.path.join(curr_dir, "tmp.txt")
 mock_functional_adapter_path = os.path.join(curr_dir, "..", "mock_functional_adapter")
-with open(os.path.join(curr_dir, "..", "test_config.yaml"), "r") as file:
+
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
+
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
@@ -48,7 +48,6 @@ except KeyError:
     un = None
     pw = None
 
-test_file_dir = os.path.join(curr_dir, "..", "static_files")
 
 
 class MockBioreactorInterpreter(AbstractInterpreter):
@@ -163,7 +162,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread.start()
         timeout = 30
         cur_count = 0
-        while not self._adapter.is_initialised():
+        while not self._adapter.is_running():
             time.sleep(0.5)
             cur_count += 1
             if cur_count > timeout:
@@ -239,12 +238,13 @@ class TestEquipmentAdapter(unittest.TestCase):
                 }
             }
         ]
+        discover_from_config({"EQUIPMENT_INSTANCES":ins},
+                             mock_functional_adapter_path)
 
         def _start() -> Thread:
             mthread = Thread(
                 target=run_adapters,
                 args=[ins, output, error_holder],
-                kwargs={"external_adapter": mock_functional_adapter_path},
             )
             mthread.daemon = True
             mthread.start()

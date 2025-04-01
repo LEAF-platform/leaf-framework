@@ -1,5 +1,4 @@
 import os
-import shutil
 import sys
 import time
 import unittest
@@ -14,26 +13,21 @@ sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.input_modules.file_watcher import FileWatcher
-from leaf.modules.phase_modules.measure import MeasurePhase
-from leaf.modules.phase_modules.control import ControlPhase
-from leaf.modules.process_modules.discrete_module import DiscreteProcess
-
 from leaf.adapters.core_adapters.continuous_experiment_adapter import ContinuousExperimentAdapter
 from leaf.adapters.equipment_adapter import AbstractInterpreter
-
 from leaf_register.metadata import MetadataManager
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.error_handler.exceptions import AdapterBuildError
-from leaf.error_handler.exceptions import HardwareStalledError
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "test_config.yaml")
 
-with open(os.path.join(curr_dir, "..", "test_config.yaml"), "r") as file:
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
+
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
@@ -45,6 +39,7 @@ test_file_dir = os.path.join(curr_dir, "..", "static_files")
 initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
+
 
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
@@ -132,11 +127,20 @@ class TestEquipmentAdapter(unittest.TestCase):
         except Exception:
             pass
 
+    def wait_for_adapter_start(self,adapter):
+        timeout = 30
+        cur_count = 0
+        while not adapter.is_running():
+            time.sleep(0.5)
+            cur_count += 1
+            if cur_count > timeout:
+                self.fail("Unable to initialise.")
+
     def test_details(self):
         self.initialize_experiment()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
@@ -147,13 +151,12 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.initialize_experiment()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         # Start Experiment
         self.assertIn(self.start_topic, self.mock_client.messages)
         self._adapter.withdraw()
         self._adapter.stop()
         mthread.join()
-        time.sleep(2)
 
 
 

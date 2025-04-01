@@ -1,4 +1,3 @@
-import csv
 import os
 import shutil
 import sys
@@ -8,7 +7,6 @@ import unittest
 import uuid
 from pathlib import Path
 from threading import Thread
-from typing import Any
 
 import yaml
 
@@ -23,12 +21,14 @@ from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf_register.metadata import MetadataManager
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "test_config.yaml")
 
-with open(os.path.join(curr_dir, "..", "test_config.yaml"), "r") as file:
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
+
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
@@ -38,6 +38,7 @@ except KeyError:
 
 test_file_dir = os.path.join(curr_dir, "..", "static_files")
 initial_file = os.path.join(test_file_dir, "upload_test.txt")
+
 
 def _upload_file(watch_dir: Path) -> None:
     watch_file = os.path.join(watch_dir,os.path.basename(initial_file))
@@ -103,11 +104,21 @@ class TestUploadAdapter(unittest.TestCase):
         self.mock_client.subscribe(wildcard_measure)
         time.sleep(1)
 
+
     def tearDown(self) -> None:
         self._adapter.stop()
         self._flush_topics()
         self.mock_client.reset_messages()
         self.temp_dir.cleanup()
+
+    def wait_for_adapter_start(self,adapter):
+        timeout = 30
+        cur_count = 0
+        while not adapter.is_running():
+            time.sleep(0.5)
+            cur_count += 1
+            if cur_count > timeout:
+                self.fail("Unable to initialise.")
 
     def _flush_topics(self) -> None:
         self.mock_client.flush(self.details_topic)
@@ -120,7 +131,7 @@ class TestUploadAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(1)
+        self.wait_for_adapter_start(self._adapter)
         self._adapter.stop()
         mthread.join()
         self.assertIn(self.details_topic, self.mock_client.messages)
@@ -137,7 +148,7 @@ class TestUploadAdapter(unittest.TestCase):
         self.mock_client.reset_messages()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(1)
+        self.wait_for_adapter_start(self._adapter)
         _upload_file(self.watch_dir)
         time.sleep(1)
         self._adapter.stop()
@@ -165,7 +176,7 @@ class TestUploadAdapter(unittest.TestCase):
 
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(1)
+        self.wait_for_adapter_start(self._adapter)
         _upload_file(self.watch_dir)
         time.sleep(1)
         self._adapter.stop()
