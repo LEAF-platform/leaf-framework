@@ -26,9 +26,9 @@ class TestExternalApiWatcher(unittest.TestCase):
         )
 
     def test_initial_state_tracking(self):
-        self.assertIn("measurement", self.watcher.api_states)
-        self.assertIn("start", self.watcher.api_states)
-        self.assertIn("stop", self.watcher.api_states)
+        self.assertIn("measurement", self.watcher._api_states)
+        self.assertIn("start", self.watcher._api_states)
+        self.assertIn("stop", self.watcher._api_states)
 
     def test_measurement_fetching(self):
         self.measurement_fetcher.return_value = {"value": 42}

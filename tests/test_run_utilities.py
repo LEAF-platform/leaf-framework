@@ -1,10 +1,8 @@
 import os
 import sys
 import time
-import uuid
 import tempfile
 import unittest
-from threading import Thread
 import yaml
 
 sys.path.insert(0, os.path.join(".."))
@@ -17,10 +15,6 @@ from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
 from leaf.utility.running_utilities import handle_disabled_modules
-from leaf.start import stop_all_adapters
-from leaf.start import run_adapters
-from leaf import start
-from leaf.error_handler.error_holder import ErrorHolder
 
 
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))

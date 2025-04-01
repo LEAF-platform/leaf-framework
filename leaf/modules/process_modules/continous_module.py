@@ -35,7 +35,7 @@ class ContinousProcess(ProcessModule):
         Raises:
             AdapterBuildError: If more than one phase is provided.
         """
-        if isinstance(phase, (list, tuple, set)):
+        if not isinstance(phase, PhaseModule):
             raise AdapterBuildError("Continuous process may only have one phase.")
         super().__init__(
             output,

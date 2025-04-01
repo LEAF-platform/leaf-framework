@@ -6,6 +6,7 @@ import time
 import json
 import tempfile
 from uuid import uuid4
+
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -15,10 +16,11 @@ from leaf.modules.output_modules.keydb_client import KEYDB
 from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
-# Current location of this script
-curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
-with open(curr_dir + "/../../test_config.yaml", "r") as file:
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "..", "test_config.yaml")
+
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
