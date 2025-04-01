@@ -121,5 +121,4 @@ cloud/timescaledb_data
 cloud/grafana_data/
 cloud/vernemq_data
 
-leaf/adapters/functional_adapters
 testing_data

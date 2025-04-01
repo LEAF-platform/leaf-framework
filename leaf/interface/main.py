@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import logging
 import os
@@ -23,7 +24,7 @@ class LEAFGUI:
         self.global_config = None
         self.global_output = None
         self.global_error_handler = None
-        self.global_args = None
+        self.global_args: argparse.Namespace|None = None
         self.leaf_state: dict[str, Any] = {
             "status": "Initializing",
             "active_adapters": 0,

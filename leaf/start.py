@@ -101,6 +101,12 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
         help="The path to the directory of the adapter to use.",
         default=None
     )
+
+    parser.add_argument(
+        "--nogui",
+        action="store_true",
+        help="Run the proxy without the GUI.",
+    )
     return parser.parse_args(args=args)
 
 

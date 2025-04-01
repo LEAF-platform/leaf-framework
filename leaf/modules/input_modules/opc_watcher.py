@@ -1,11 +1,16 @@
 import time
-from typing import Optional, Callable, List, Set
+from typing import Optional, Callable, List, Any, Set
 
 from leaf_register.metadata import MetadataManager
-from opcua import Client, Node
-from opcua.ua import DataChangeNotification
 
-import leaf.start
+try:
+    from opcua import Client, Node, Subscription  # type: ignore
+    from opcua.ua import DataChangeNotification   # type: ignore
+    OPCUA_AVAILABLE = True
+except ImportError:
+    OPCUA_AVAILABLE = False
+    Client = Node = Subscription = DataChangeNotification = None  # Placeholders
+
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.input_modules.event_watcher import EventWatcher
 
@@ -19,9 +24,9 @@ class OPCWatcher(EventWatcher):
                  metadata_manager: MetadataManager,
                  host: str,
                  port: int,
-                 topics: Optional[List[str]] = None,
-                 exclude_topics: Optional[List[str]] = [],
-                 callbacks: Optional[List[Callable]] = None,
+                 topics: set[str],
+                 exclude_topics: list[str],
+                 callbacks: Optional[List[Callable[..., Any]]] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
         Initialize OPCWatcher.
@@ -32,7 +37,7 @@ class OPCWatcher(EventWatcher):
             error_holder (Optional[ErrorHolder]): Optional object to manage errors.
         """
         # Can't populate yet in this situation
-        term_map = {}
+        term_map: dict[Any,Any] = {}
 
         super().__init__(term_map, metadata_manager,
                          callbacks=callbacks,
@@ -40,28 +45,24 @@ class OPCWatcher(EventWatcher):
 
         self._host = host
         self._port = port
-        self._topics = topics
-        self._exclude_topics = exclude_topics
+        self._topics: set[str] = topics
+        self._exclude_topics: list[str] = exclude_topics
         self._metadata_manager = metadata_manager
-        self._client = None
-        self._sub = None
+        self._sub: Subscription|None = None
         self._handler = self._dispatch_callback
-        self._handles = []
+        self._handles: list[Any] = []
 
         # This is under the impression that the watcher will only ever express measurements.
         # Not control information such as when experiments start.
         self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
 
-        '''
-        If you do have other actions, then youd add more handlers i think, like below.
-        But your OPC subscription system would need to subscribe to the correct topics using the appropriate handlers.
-        self._start_handler = SubHandler(self._dispatch_callback)
-        self._term_map[self._start_handler.datachange_notification] = metadata_manager.experiment.start'
-        '''
-
-    def datachange_notification(self, node: Node, val: [int,str,float], data: DataChangeNotification) -> None:
-        # print(f"Value changed: {node.nodeid}: {val} at {data.monitored_item.Value.SourceTimestamp}")
-        self._dispatch_callback(self.datachange_notification, {"node":node.nodeid.Identifier, "value":val, "timestamp":data.monitored_item.Value.SourceTimestamp, "data":data})
+    def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
+        self._dispatch_callback(self.datachange_notification, {
+            "node": node.nodeid.Identifier,
+            "value":val,
+            "timestamp":data.monitored_item.Value.SourceTimestamp,
+            "data":data
+        })
 
     def start(self) -> None:
         """
@@ -71,8 +72,6 @@ class OPCWatcher(EventWatcher):
         self._client = Client(f"opc.tcp://{self._host}:{self._port}")
         self._client.connect()
 
-        # Not sure what's going on here. Could be changed to allow user defined topics etc.
-        # Are they all different measurements?
         root = self._client.get_root_node()
         objects_node = root.get_child(["0:Objects"])
         # Automatically browse and read nodes to obtain topics user could provide a list of topics.
@@ -87,7 +86,7 @@ class OPCWatcher(EventWatcher):
         # Subscribe to topics
         self._subscribe_to_topics()
 
-    def _browse_and_read(self, node) -> Set[str]:
+    def _browse_and_read(self, node: Node) -> Set[str]:
         """
         Recursively browse and read OPC UA nodes to obtain topics.
 
@@ -102,7 +101,9 @@ class OPCWatcher(EventWatcher):
             try:
                 child.get_value()
                 nodes_data.add(child.nodeid.Identifier)
-            except Exception:
+            except Exception as e:
+                from leaf.start import logger
+                logger.error(e)
                 pass
             nodes_data.update(self._browse_and_read(child))  # Recursive call
         return nodes_data
@@ -111,6 +112,8 @@ class OPCWatcher(EventWatcher):
         """
         Subscribe to OPC UA nodes and monitor data changes.
         """
+        from leaf.start import logger
+
         if not self._client:
             print("Client is not connected.")
             return
@@ -118,7 +121,7 @@ class OPCWatcher(EventWatcher):
             self._sub = self._client.create_subscription(1000, self)  # 1s interval
             for topic in self._topics:
                 if topic in self._exclude_topics:
-                    leaf.start.logger.info("Excluded topic: {}".format(topic))
+                    logger.info("Excluded topic: {}".format(topic))
                     continue
                 try:
                     node = self._client.get_node(f"ns=2;s={topic}")  # Adjust namespace
