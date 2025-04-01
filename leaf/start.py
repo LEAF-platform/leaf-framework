@@ -84,10 +84,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     )
     parser.add_argument("--debug", action="store_true", 
                         help="Enable debug logging.")
-    
-    parser.add_argument("--nogui", action="store_true", 
-                        help="Disables GUI system.")
-    
+        
     parser.add_argument(
         "-c",
         "--config",
