@@ -54,7 +54,7 @@ class LEAFError(Exception):
     def __eq__(self, value):
         if not isinstance(value,LEAFError):
             return False
-        return self._message == self._message and self.severity == self.severity
+        return self._message == value._message and self.severity == value.severity
 
 class InputError(LEAFError):
     """

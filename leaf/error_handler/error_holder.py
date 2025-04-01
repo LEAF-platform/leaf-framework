@@ -1,7 +1,7 @@
 import threading
 import traceback
 from typing import Optional, List, Tuple
-
+from leaf.error_handler.exceptions import LEAFError
 class ErrorHolder:
     """
     A simplified error manager that stores errors once 
@@ -20,13 +20,15 @@ class ErrorHolder:
         self.lock = threading.Lock()
         self._adapter_id = adapter_id
 
-    def add_error(self, exc: Exception) -> None:
+    def add_error(self, exc: LEAFError) -> None:
         """
         Add an error entry with its traceback.
 
         Args:
-            exc (Exception): The exception to add.
+            exc (LEAFError): The exception to add.
         """
+        if not isinstance(exc, LEAFError):
+            raise TypeError("ErrorHolder only accepts LEAFError exceptions.")
         with self.lock:
             tb = traceback.format_exc()
             error_entry = {

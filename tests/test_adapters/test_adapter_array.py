@@ -9,8 +9,6 @@ import yaml
 import tempfile
 import uuid
 
-
-
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -21,14 +19,16 @@ from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
 from leaf.adapters.equipment_adapter import AbstractInterpreter
-from leaf.start import logger
-curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-with open(curr_dir + "/../test_config.yaml", "r") as file:
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "test_config.yaml")
+
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
+
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
@@ -40,6 +40,7 @@ test_file_dir = os.path.join(curr_dir, "..", "static_files")
 initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
+
 
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:

@@ -14,7 +14,6 @@ except ImportError:
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.modules.input_modules.event_watcher import EventWatcher
 
-
 class OPCWatcher(EventWatcher):
     """
     A concrete implementation of EventWatcher that uses

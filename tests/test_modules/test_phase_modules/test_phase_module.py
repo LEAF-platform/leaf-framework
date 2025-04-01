@@ -1,10 +1,7 @@
 import os
 import sys
 import unittest
-from threading import Thread
 import yaml
-import time
-import shutil
 import tempfile
 
 sys.path.insert(0, os.path.join(".."))
@@ -18,10 +15,11 @@ from leaf.modules.phase_modules.initialisation import InitialisationPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import LEAFError
-# Current location of this script
-curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
-with open(curr_dir + "/../../test_config.yaml", "r") as file:
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "..", "test_config.yaml")
+
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
@@ -30,14 +28,14 @@ port = int(config["OUTPUTS"][0]["port"])
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
-except:
+except KeyError:
     un = None
     pw = None
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
 test_file_dir = os.path.join(curr_dir, "..", "..", "static_files")
 initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
+
 
 class TestMeasurePhase(unittest.TestCase):
     def setUp(self) -> None:

@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import logging
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..",".."))
@@ -9,7 +10,6 @@ sys.path.insert(0, os.path.join("..","..",".."))
 from leaf.measurement_handler.terms import measurement_manager
 from leaf.modules.measurement_modules.ph import pH
 from leaf.modules.measurement_modules.measurement_module import MeasurementModule
-import logging
 
 logging.basicConfig(level=logging.DEBUG)
 

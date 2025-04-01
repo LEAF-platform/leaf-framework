@@ -12,7 +12,7 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError, LEAFError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.modules.logger_modules.logger_utils import get_logger
+from leaf.utility.logger.logger_utils import get_logger
 from leaf.modules.output_modules.output_module import OutputModule
 
 FIRST_RECONNECT_DELAY = 1
@@ -102,7 +102,7 @@ class MQTT(OutputModule):
         self.client.on_message = self.on_message
 
         self._username = None
-        self._password is None
+        self._password = None
         if username and password:
             self._username = username
             self._password = password
@@ -124,7 +124,6 @@ class MQTT(OutputModule):
             if self._username and self._password:
                         self.client.username_pw_set(self._username, self._password)
             self.client.connect(self._broker, self._port, 60)
-            time.sleep(3)
             self.client.loop_start()
         except (socket_error, gaierror, OSError) as e:
             self._handle_exception(

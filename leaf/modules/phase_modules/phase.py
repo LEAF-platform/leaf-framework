@@ -1,4 +1,8 @@
-from typing import Optional, Callable, Any
+from typing import Optional
+from typing import Callable
+from typing import Any
+from typing import List
+from typing import Tuple
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 
@@ -64,7 +68,7 @@ class PhaseModule:
         """
         self._interpreter = interpreter
 
-    def update(self, data: Optional[Any] = None, **kwargs: Any) -> list:
+    def update(self, data: Optional[Any] = None, **kwargs: Any) -> List[Tuple[str, Any]]:
         """
         Builds the topic that is specifically bound to this phase.
 

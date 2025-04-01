@@ -1,17 +1,20 @@
 import sys
 import os
-import time
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.modules.input_modules.http_watcher import HTTPWatcher, URLState
-
 import unittest
-from unittest.mock import patch, MagicMock
-from leaf_register.metadata import MetadataManager
+from unittest.mock import patch
+from unittest.mock import MagicMock
+
 from requests.models import Response
+
+from leaf.modules.input_modules.http_watcher import HTTPWatcher
+from leaf.modules.input_modules.http_watcher import URLState
+from leaf_register.metadata import MetadataManager
+
 
 
 class TestURLState(unittest.TestCase):
@@ -29,7 +32,9 @@ class TestURLState(unittest.TestCase):
         return response
 
     def test_update_with_new_data(self):
-        response = self.mock_response(json_data={"key": "new_data"})
+        response = self.mock_response(json_data={"key": "new_data"},
+                                      etag="12345",
+                                      last_modified="Mon, 26 Jul 2021 05:00:00 GMT",)
         new_data = self.url_state.update_from_response(response)
         self.assertEqual(new_data, {"key": "new_data"})
         self.assertEqual(self.url_state.previous_data, {"key": "new_data"})
@@ -44,6 +49,7 @@ class TestURLState(unittest.TestCase):
         response = self.mock_response(
             last_modified="Mon, 26 Jul 2021 05:00:00 GMT",
             json_data={"key": "updated_data"},
+            etag="12345"
         )
         self.url_state.last_modified = "Mon, 26 Jul 2021 04:00:00 GMT"
         new_data = self.url_state.update_from_response(response)
@@ -81,10 +87,10 @@ class TestAPIWatcher(unittest.TestCase):
 
     @patch("requests.get")
     def test_initialisation(self, mock_get):
-        self.assertIn("measurement", self.api_watcher.url_states)
-        self.assertIn("start", self.api_watcher.url_states)
-        self.assertIn("stop", self.api_watcher.url_states)
-        self.assertEqual(self.api_watcher.interval, 60)
+        self.assertIn("measurement", self.api_watcher._url_states)
+        self.assertIn("start", self.api_watcher._url_states)
+        self.assertIn("stop", self.api_watcher._url_states)
+        self.assertEqual(self.api_watcher._interval, 60)
         self.assertEqual(
             self.api_watcher._headers, {"Authorisation": "Bearer test-token"}
         )
