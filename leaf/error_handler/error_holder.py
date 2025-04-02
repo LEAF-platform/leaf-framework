@@ -37,7 +37,7 @@ class ErrorHolder:
             }
             self._errors.append(error_entry)
 
-    def get_unseen_errors(self) -> List[Tuple[Exception, str]]:
+    def get_unseen_errors(self) -> List[Tuple[LEAFError, str]]:
         """
         Retrieve all stored errors and clear the list.
 

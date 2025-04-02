@@ -67,7 +67,7 @@ def get_existing_ids(output_module: OutputModule,
 
 
 def build_output_module(config: dict[str, Any], 
-                        error_holder: ErrorHolder) -> Optional[MQTT]:
+                        error_holder: ErrorHolder) -> Optional[OutputModule]:
     """Finds, initializes, and connects all output adapters defined in config."""
     outputs = config["OUTPUTS"]
     output_objects = {}
@@ -109,7 +109,7 @@ def build_output_module(config: dict[str, Any],
 
 
 def process_instance(instance: dict[str, Any], 
-                     output: MQTT) -> EquipmentAdapter:
+                     output: OutputModule) -> EquipmentAdapter:
     """Initializes and validates an equipment adapter from config data."""
     equipment_code = instance.pop("adapter")
     instance_data = instance.pop("data")

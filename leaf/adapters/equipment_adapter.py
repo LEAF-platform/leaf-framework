@@ -342,7 +342,7 @@ class EquipmentAdapter(ABC):
         for process in self._processes:
             process.withdraw()
 
-    def transmit_errors(self, errors: list[LEAFError] = None) -> None:
+    def transmit_errors(self, errors: list[tuple[LEAFError, str]] = None) -> None:
         """
         Push errors to the output module(s) via each process.
 

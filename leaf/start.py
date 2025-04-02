@@ -5,6 +5,8 @@
 ###################################
 
 import argparse
+import asyncio
+import json
 import logging
 import os
 import signal
@@ -13,7 +15,7 @@ import threading
 import time
 from typing import Any, Optional, Type
 
-import yaml
+import yaml  # type: ignore
 
 from leaf.utility.logger.logger_utils import get_logger
 from leaf.utility.logger.logger_utils import set_log_dir
@@ -57,7 +59,7 @@ class AppContext:
     """Context container to hold shared application state."""
     def __init__(self) -> None:
         self.gui: Optional[Any] = None
-        self.output: Optional[Any] = None
+        self.output: Optional[OutputModule] = None
         self.error_handler: Optional[ErrorHolder] = None
         self.config_yaml: Optional[str] = None
         self.args: Optional[argparse.Namespace] = None
@@ -311,18 +313,16 @@ def main(args: Optional[list[str]] = None) -> None:
     # Load configuration file first.
     if not context.args.config or not os.path.exists(context.args.config):
         logger.error("No configuration file provided.")
-        return
-
-    try:
-        with open(context.args.config, "r") as f:
-            config = yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        logger.error("Failed to parse YAML configuration.", exc_info=e)
-        return
-
-    context.config_yaml = yaml.dump(config, indent=4)
-    
-    discover_from_config(config, context.args.path)
+        # return
+    else:
+        try:
+            with open(context.args.config, "r") as f:
+                config = yaml.safe_load(f)
+                context.config_yaml = yaml.dump(config, indent=4)
+                discover_from_config(config, context.args.path)
+        except yaml.YAMLError as e:
+            logger.error("Failed to parse YAML configuration.", exc_info=e)
+            # return
 
     if context.args.debug:
         logger.setLevel(logging.DEBUG)
@@ -335,15 +335,17 @@ def main(args: Optional[list[str]] = None) -> None:
     sys.excepthook = handle_exception
 
     def run_background_tasks() -> None:
-        logger.info(f"Configuration: {context.args.config} loaded.")
-        logger.info(f"\n{context.config_yaml}\n")
-        context.error_handler = ErrorHolder()
-        context.output = build_output_module(config, context.error_handler)
-        run_adapters(
-            config.get("EQUIPMENT_INSTANCES", []),
-            context.output,
-            context.error_handler,
-        )
+        if context.config_yaml is not None:
+            logger.info(f"Configuration: {context.args.config} loaded.")
+            logger.info(f"\n{context.config_yaml}\n")
+            context.error_handler = ErrorHolder()
+            context.output = build_output_module(json.loads(context.config_yaml), context.error_handler)
+            if context.output is not None:
+                run_adapters(
+                    config.get("EQUIPMENT_INSTANCES", []),
+                    context.output,
+                    context.error_handler,
+                )
 
     if context.args.nogui:
         logger.info("Running in headless mode (no GUI).")
@@ -353,7 +355,7 @@ def main(args: Optional[list[str]] = None) -> None:
         from leaf.interface.main import create_gui
         context.gui = create_gui(context.args.port)
         context.gui.global_args = context.args
-        context.gui.global_config = context.config_yaml
+        # context.gui.global_config = context.config_yaml
 
         context.gui.register_callbacks(
             start_adapters_func=run_adapters,
@@ -366,7 +368,7 @@ def main(args: Optional[list[str]] = None) -> None:
         )
         background_thread.start()
 
-        context.gui.run()
+        asyncio.run(context.gui.run())
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()

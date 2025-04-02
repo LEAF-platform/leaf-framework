@@ -142,10 +142,10 @@ class LEAFGUI:
     #     """Update the active adapters count"""
     #     self.leaf_state["active_adapters"] = count
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Start the NiceGUI interface"""
         # self.setup_nicegui()
-        asyncio.run(self.setup_nicegui())  # ✅ Run the async function properly
+        await self.setup_nicegui()
         ui.run(port=self.port, title="LEAF Monitoring System", show=False)
 
 
