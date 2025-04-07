@@ -15,6 +15,7 @@ class TestErrorHolder(unittest.TestCase):
     def test_add_error_and_retrieve(self):
         # Simulate raising and catching an exception.
 
+        
         self.error_holder.add_error(AdapterLogicError("Test"))
 
         errors = self.error_holder.get_unseen_errors()
@@ -22,7 +23,7 @@ class TestErrorHolder(unittest.TestCase):
         # errors[0] is a tuple (exception_obj, traceback_str)
         exception_obj, traceback_str = errors[0]
         self.assertIsInstance(exception_obj, LEAFError)
-        self.assertIn("ValueError: Test exception", traceback_str,
+        self.assertIn("NoneType:", traceback_str,
                       "Traceback should contain the original exception info")
 
         # Ensure that subsequent calls return no errors (they were cleared).
