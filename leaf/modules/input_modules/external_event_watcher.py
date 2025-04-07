@@ -11,12 +11,12 @@ logger = get_logger(__name__, log_file="input_module.log",
                     log_level=logging.DEBUG)
 
 class ExternalEventWatcher(EventWatcher):
-    def __init__(self, term_map,
+    def __init__(self, 
                  metadata_manager: MetadataManager = None,
                  callbacks: Optional[List[Callable]] = None, 
                  error_holder: Optional[ErrorHolder] = None) -> None:
 
-        super().__init__(term_map, metadata_manager, callbacks=callbacks, 
+        super().__init__(metadata_manager, callbacks=callbacks, 
                          error_holder=error_holder)
         
 
