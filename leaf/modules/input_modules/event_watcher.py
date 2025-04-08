@@ -6,8 +6,6 @@ from typing import Any
 
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.error_handler.exceptions import AdapterLogicError
-
 
 class EventWatcher(ABC):
     """
@@ -19,7 +17,6 @@ class EventWatcher(ABC):
 
     def __init__(
         self,
-        term_map: dict[Callable[..., Any], str],
         metadata_manager: Optional[MetadataManager] = None,
         callbacks: Optional[list[Callable[[str, Any], None]]] = None,
         error_holder: Optional[ErrorHolder] = None,
@@ -28,7 +25,6 @@ class EventWatcher(ABC):
         Initialize the EventWatcher.
 
         Args:
-            term_map: Maps functions to corresponding experiment metadata terms.
             metadata_manager: Used for adapter and experiment metadata.
             callbacks: Callback functions to invoke when an event is triggered.
             error_holder: Optional error tracker for collecting exceptions.
@@ -38,12 +34,6 @@ class EventWatcher(ABC):
         self._callbacks: list[Callable[[str, Any], None]] = callbacks or []
         self._running: bool = False
 
-        # Ensure start event is always mapped
-        if self.start not in term_map and self._metadata_manager:
-            term_map[self.start] = self._metadata_manager.details
-
-        self._term_map: dict[Callable[..., Any], str] = term_map
-
     @abstractmethod
     def start(self) -> None:
         """
@@ -51,11 +41,7 @@ class EventWatcher(ABC):
 
         This should begin the watching process and dispatch the initial metadata event.
         """
-        equipment_data = (
-            self._metadata_manager.get_data() if self._metadata_manager else {}
-        )
         self._running = True
-        self._dispatch_callback(self.start, equipment_data)
 
     def stop(self) -> None:
         """
@@ -81,15 +67,6 @@ class EventWatcher(ABC):
         """
         self._callbacks.append(callback)
 
-    def get_terms(self) -> list[str]:
-        """
-        Retrieve all event terms associated with this watcher.
-
-        Returns:
-            A list of strings representing the topic terms.
-        """
-        return [fn() if callable(fn) else fn for fn in self._term_map.values()]
-
     def set_error_holder(self, error_holder: ErrorHolder) -> None:
         """
         Assign an ErrorHolder for centralized error tracking.
@@ -108,7 +85,7 @@ class EventWatcher(ABC):
         """
         self._metadata_manager = metadata_manager
 
-    def _dispatch_callback(self, function: Callable[..., Any], data: Any) -> None:
+    def _dispatch_callback(self, topic:str, data: Any) -> None:
         """
         Dispatch a term and data payload to all registered callbacks.
 
@@ -116,13 +93,6 @@ class EventWatcher(ABC):
             function: The function that triggered the callback (used to find the term).
             data: Payload data to send to callbacks.
         """
-        if function not in self._term_map:
-            self._handle_exception(
-                AdapterLogicError("Function not mapped to any term.")
-            )
-            return
-
-        topic = self._term_map[function]
         for callback in self._callbacks:
             callback(topic, data)
 

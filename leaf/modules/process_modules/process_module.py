@@ -59,7 +59,7 @@ class ProcessModule:
         """
         self._output.disconnect()
 
-    def process_input(self, topic: str, data: dict) -> None:
+    def process_input(self, topic: Any, data: dict) -> None:
         """
         Process input data by passing it to the appropriate phase.
 

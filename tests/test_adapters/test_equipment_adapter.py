@@ -350,33 +350,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         
 
 
-    def test_process_input_validation(self):
-        instance_data = {"instance_id" : "test_process_input_validation_instance",
-                        "institute" : "test_process_input_validation_ins"}
-        equipment_data = {"adapter_id" : "test_process_input_validation_equip"}
-        temp_dir = tempfile.TemporaryDirectory()
-        test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_process_input_validation.txt")
 
-        try:
-            adapter = MockEquipmentAdapter(instance_data,equipment_data,
-                                    test_exp_tw_watch_file)
-        except AdapterBuildError as e:
-            self.fail(f"Unexpected exception raised: {e}")
-
-        with self.assertRaises(AdapterBuildError):
-            metadata_manager = MetadataManager()
-            watcher = FileWatcher(test_exp_tw_watch_file, metadata_manager)
-            output = MQTT(broker, port, username=un, password=pw, clientid=None)
-            start_p = ControlPhase(metadata_manager.experiment.start)
-            stop_p = ControlPhase(metadata_manager.experiment.stop)
-            details_p = ControlPhase(metadata_manager.details)
-
-            phase = [start_p, stop_p,details_p]
-            mock_process = [DiscreteProcess(output,phase)]
-            adapter = EquipmentAdapter(instance_data,watcher,output,
-                                       mock_process,
-                                       MockBioreactorInterpreter(),
-                                       metadata_manager=metadata_manager)
 
 
 if __name__ == "__main__":

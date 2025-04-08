@@ -36,10 +36,7 @@ class OPCWatcher(EventWatcher):
             callbacks (Optional[List[Callable]]): Callbacks for event updates.
             error_holder (Optional[ErrorHolder]): Optional object to manage errors.
         """
-        # Can't populate yet in this situation
-        term_map: dict[Any,Any] = {}
-
-        super().__init__(term_map, metadata_manager,
+        super().__init__(metadata_manager,
                          callbacks=callbacks,
                          error_holder=error_holder)
 
@@ -52,12 +49,8 @@ class OPCWatcher(EventWatcher):
         self._handler = self._dispatch_callback
         self._handles: list[Any] = []
 
-        # This is under the impression that the watcher will only ever express measurements.
-        # Not control information such as when experiments start.
-        self._term_map[self.datachange_notification] = metadata_manager.experiment.measurement
-
     def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
-        self._dispatch_callback(self.datachange_notification, {
+        self._dispatch_callback(self._metadata_manager.experiment.measurement, {
             "node": node.nodeid.Identifier,
             "value":val,
             "timestamp":data.monitored_item.Value.SourceTimestamp,
