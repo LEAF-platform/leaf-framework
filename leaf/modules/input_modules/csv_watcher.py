@@ -67,7 +67,8 @@ class CSVWatcher(FileWatcher):
         except Exception as e:
             self._file_event_exception(e, "creation")
         else:
-            self._dispatch_callback(self.on_created, data)
+            self._dispatch_callback(self._term_map[self.on_created], data)
+            
 
     def on_modified(self, event: FileSystemEvent) -> None:
         """
@@ -85,7 +86,7 @@ class CSVWatcher(FileWatcher):
         except Exception as e:
             self._file_event_exception(e, "modification")
         else:
-            self._dispatch_callback(self.on_modified, data)
+            self._dispatch_callback(self._term_map[self.on_modified], data)
 
     def _file_event_exception(self, error: Exception, event_type: str) -> None:
         """

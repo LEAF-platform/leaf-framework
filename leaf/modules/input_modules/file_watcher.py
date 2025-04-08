@@ -47,15 +47,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Raises:
             AdapterBuildError: Raised if the provided file path is invalid.
         """
-        term_map = {
-            self.on_created: metadata_manager.experiment.start,
-            self.on_modified: metadata_manager.experiment.measurement,
-            self.on_deleted: metadata_manager.experiment.stop,
-        }
-
         super().__init__(
-            term_map,
-            metadata_manager,
+            metadata_manager=metadata_manager,
             callbacks=callbacks,
             error_holder=error_holder,
         )
@@ -80,6 +73,12 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         self._last_created: Optional[float] = None
         self._last_modified: Optional[float] = None
         self._debounce_delay: float = 0.75
+
+        self._term_map = {
+            self.on_created: metadata_manager.experiment.start,
+            self.on_modified: metadata_manager.experiment.measurement,
+            self.on_deleted: metadata_manager.experiment.stop,
+        }
 
     def start(self) -> None:
         """
@@ -138,7 +137,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 data = file.read()
         except Exception as e:
             self._file_event_exception(e, "creation")
-        self._dispatch_callback(self.on_created, data)
+        self._dispatch_callback(self._term_map[self.on_created], data)
 
     def on_modified(self, event: FileSystemEvent) -> None:
         """
@@ -155,7 +154,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 data = file.read()
         except Exception as e:
             self._file_event_exception(e, "modification")
-        self._dispatch_callback(self.on_modified, data)
+        self._dispatch_callback(self._term_map[self.on_modified], data)
 
     def on_deleted(self, event: FileSystemEvent) -> None:
         """
@@ -166,7 +165,8 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         """
         if self._file_name is None or event.src_path.endswith(self._file_name):
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self._dispatch_callback(self.on_deleted, timestamp)
+            self._dispatch_callback(self._term_map[self.on_deleted], 
+                                    timestamp)
 
     def _get_filepath(self, event: FileSystemEvent) -> Optional[str]:
         """

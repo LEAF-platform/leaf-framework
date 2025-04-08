@@ -167,8 +167,6 @@ class EquipmentAdapter(ABC):
             p.set_metadata_manager(self._metadata_manager)
         self._watcher.set_error_holder(error_holder)
 
-        self._validate_processes(self._watcher, self._processes)
-
         ins_id = self._metadata_manager.get_instance_id()
         self._logger = get_logger(
             name=f"{__name__}.{ins_id}",
@@ -190,26 +188,6 @@ class EquipmentAdapter(ABC):
             self._external_process.set_error_holder(self._error_holder)
             self._external_process.set_interpreter(interpreter)
             self._external_watcher.add_callback(self._external_process.process_input)
-
-    def _validate_processes(self, watcher: EventWatcher, 
-                            processes: list[ProcessModule]) -> None:
-        """
-        Ensure that all terms the watcher emits are handled by the processes.
-
-        Args:
-            watcher (EventWatcher): The input module emitting data.
-            processes (list[ProcessModule]): Phase processors.
-        """
-        phase_terms = []
-        watcher_terms = watcher.get_terms()
-        for process in processes:
-            phase_terms.extend(process.get_phase_terms())
-        if not all(term in phase_terms for term in watcher_terms):
-            excp = exceptions.AdapterBuildError(
-                "Current processes and phases don't handle all potential inputs",
-                severity=exceptions.SeverityLevel.WARNING,
-            )
-            self._handle_exception(excp)
 
     def is_running(self) -> bool:
         """
@@ -246,7 +224,10 @@ class EquipmentAdapter(ABC):
                 self._external_watcher.start()
 
             self._stop_event.clear()
-
+            # Expose adapter on all channels.
+            for process in self._processes:
+                process.process_input(self._metadata_manager.details,
+                                      self._metadata_manager.get_data())
             while not self._stop_event.is_set():
                 time.sleep(1)
                 if not self._error_holder:
