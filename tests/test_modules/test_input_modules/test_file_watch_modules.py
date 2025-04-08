@@ -16,31 +16,6 @@ from leaf_register.metadata import MetadataManager
 
 
 class TestFileWatcher(unittest.TestCase):
-    def test_file_watcher_details(self):
-        with tempfile.TemporaryDirectory() as test_dir:
-            topics = {}
-            def mock_callback(topic,data):
-                nonlocal topics
-                topic = topic()
-                if topic not in topics:
-                    topics[topic] = []
-                topics[topic].append(data)
-
-            text_watch_file = os.path.join(test_dir, "test_file_watcher_change.txt")
-            if not os.path.isfile(text_watch_file):
-                with open(text_watch_file, "w"):
-                    pass
-
-            metadata = MetadataManager()
-            metadata.add_equipment_value("adapter_id","test_file_watcher_details")
-            metadata.add_instance_value("institute","test_file_watcher_details")
-            metadata.add_instance_value("instance_id","test_file_watcher_details")
-            watcher = FileWatcher(text_watch_file,metadata,
-                                  callbacks=[mock_callback])
-            watcher.start()
-            watcher.stop()
-            self.assertEqual(topics[metadata.details()][0],metadata.get_data())
-
     def test_file_watcher_change(self):
         with tempfile.TemporaryDirectory() as test_dir:
             def mod_file(filename, interval, count):

@@ -45,11 +45,7 @@ class MQTTExternalEventWatcher(ExternalEventWatcher):
                  callbacks: Optional[List[Callable]] = None, 
                  error_holder: Optional[ErrorHolder] = None) -> None:
 
-        # Term map for externals MAY be involed if we ever standardise 
-        # the Input commands (set temperate to x etc.)
-        # Term map -> Maps functions (within InputWatcher) to topics.
-        term_map = {}
-        super().__init__(term_map, metadata_manager, callbacks=callbacks, 
+        super().__init__(metadata_manager, callbacks=callbacks, 
                          error_holder=error_holder)
 
         self._topics = topics
