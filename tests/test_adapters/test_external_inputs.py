@@ -230,7 +230,7 @@ class TestEquipmentAdapter(unittest.TestCase):
                     },
                     "requirements": {"write_file": write_file},
                     "external_input": {
-                        "plugin": "MQTTExternalEventWatcher",
+                        "plugin": "mqtt_external_event_watcher",
                         "broker": "localhost",
                         "port": 1883,
                         "topics": ["test_topic/external_action"],
