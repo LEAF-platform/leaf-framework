@@ -302,8 +302,8 @@ class TestExceptionsGeneral(unittest.TestCase):
                 broker=self.broker, port=self.port, error_holder=self.error_holder
             )
 
-    @patch("leaf.modules.output_modules.keydb_client.KEYDB._handle_redis_error")
-    @patch("leaf.modules.output_modules.keydb_client.redis.StrictRedis")
+    @patch("leaf.modules.output_modules.keydb.KEYDB._handle_redis_error")
+    @patch("leaf.modules.output_modules.keydb.redis.StrictRedis")
     def test_keydb_connect_cant_access_client(self, mock_redis, mock_handle_error) -> None:
         mock_redis.side_effect = ClientUnreachableError("Connection to KeyDB failed")
         with self.assertRaises(ClientUnreachableError):
