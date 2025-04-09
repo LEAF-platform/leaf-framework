@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join("..", "..", ".."))
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf.modules.output_modules.mqtt import MQTT
-from leaf.modules.output_modules.keydb_client import KEYDB
+from leaf.modules.output_modules.keydb import KEYDB
 from leaf.modules.output_modules.file import FILE
 from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.input_modules.csv_watcher import CSVWatcher

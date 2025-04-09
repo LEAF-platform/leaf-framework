@@ -339,7 +339,8 @@ def main(args: Optional[list[str]] = None) -> None:
             logger.info(f"Configuration: {context.args.config} loaded.")
             logger.info(f"\n{context.config_yaml}\n")
             context.error_handler = ErrorHolder()
-            context.output = build_output_module(json.loads(context.config_yaml), context.error_handler)
+            context.output = build_output_module(config, 
+                                                 context.error_handler)
             if context.output is not None:
                 run_adapters(
                     config.get("EQUIPMENT_INSTANCES", []),
