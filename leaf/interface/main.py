@@ -1,4 +1,5 @@
 import logging
+from typing import Callable
 
 from nicegui import ui
 
@@ -11,12 +12,22 @@ logger = logging.getLogger(__name__)
 
 class LEAFGUI:
     def __init__(self, context: AppContext) -> None:
-        self.port = context.args.port
+        self.context = context
+        self.port = self.context.args.port
+        self.start_adapters_func = None
+        self.stop_adapters_func = None
 
     def run(self) -> None:
         """Start the NiceGUI interface"""
         # Start the NiceGUI application
         ui.run(port=self.port, title="LEAF Monitoring System", show=True)
+
+    def register_callbacks(self,
+                          start_adapters_func: Callable[[], None],
+                          stop_adapters_func: Callable[[], None]) -> None:
+        """Register callback functions from main module"""
+        self.start_adapters_func = start_adapters_func
+        self.stop_adapters_func = stop_adapters_func
 
 
 @ui.page('/')
@@ -126,13 +137,7 @@ def index() -> None:
     #         "warnings": []
     #     }
     #
-    # def register_callbacks(self,
-    #                       start_adapters_func: Callable[[], None],
-    #                       stop_adapters_func: Callable[[], None]) -> None:
-    #     """Register callback functions from main module"""
-    #     self.start_adapters_func = start_adapters_func
-    #     self.stop_adapters_func = stop_adapters_func
-    #
+
     # def start_adapters_background(self) -> bool:
     #     """Start all adapters using the global variables."""
     #     if self.global_output and self.global_config:

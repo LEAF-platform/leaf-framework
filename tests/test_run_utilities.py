@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
-from leaf.modules.output_modules.keydb_client import KEYDB
+from leaf.modules.output_modules.keydb import KEYDB
 from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager

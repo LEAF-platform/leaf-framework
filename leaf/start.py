@@ -5,7 +5,6 @@
 ###################################
 
 import argparse
-import asyncio
 import logging
 import os
 import sys
@@ -13,25 +12,22 @@ import threading
 import time
 from typing import Any, Optional, Type
 
-from leaf.interface.adapters import all_registered
 import yaml  # type: ignore
-
-from leaf.utility.logger.logger_utils import get_logger
-from leaf.utility.logger.logger_utils import set_log_dir
-from leaf.modules.output_modules.output_module import OutputModule
 
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-
+from leaf.interface.adapters import all_registered
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.registry.registry import discover_from_config
+from leaf.utility.logger.logger_utils import get_logger
+from leaf.utility.logger.logger_utils import set_log_dir
 from leaf.utility.running_utilities import build_output_module
 from leaf.utility.running_utilities import handle_disabled_modules
 from leaf.utility.running_utilities import process_instance
 from leaf.utility.running_utilities import run_simulation_in_thread
 from leaf.utility.running_utilities import start_all_adapters_in_threads
-from leaf.registry.registry import discover_from_config
-
 
 ##################################
 #
@@ -60,6 +56,7 @@ class AppContext:
     """Context container to hold shared application state."""
     def __init__(self) -> None:
         # GUI interface
+        from interface.main import LEAFGUI
         self.gui: LEAFGUI = None
         # Output module
         self.output: Optional[OutputModule] = None
@@ -348,6 +345,10 @@ def main(args: Optional[list[str]] = None) -> None:
                 logger.info(f"Output: {y}")
                 logger.info(f"External input: {z}")
                 logger.info("#" * 40)
+                from leaf.registry.discovery import get_all_adapter_codes
+                codes = get_all_adapter_codes()
+                logger.info(f"All adapter codes: {codes}")
+
         except yaml.YAMLError as e:
             logger.error("Failed to parse YAML configuration.", exc_info=e)
             # return
@@ -367,22 +368,16 @@ def main(args: Optional[list[str]] = None) -> None:
             logger.info(f"Configuration: {context.args.config} loaded.")
             logger.info(f"\n{context.config_yaml}\n")
             context.error_handler = ErrorHolder()
+
             context.config = yaml.safe_load(context.config_yaml)
             discover_from_config(context.config, context.args.path)
             context.output = build_output_module(yaml.safe_load(context.config_yaml), context.error_handler)
-            # TODO ENABLE ME
-            # if context.output is not None:
-            #     run_adapters(
-            #         context.config.get("EQUIPMENT_INSTANCES", []),
-            #         context.output,
-            #         context.error_handler,
-            #     )
-            while True:
-                import uuid
-                logger.info("Some random background task running. {}".format(uuid.uuid4()))
-                time.sleep(1)
-        else:
-            logger.error("No configuration file provided.")
+            if context.output is not None:
+                run_adapters(
+                    config.get("EQUIPMENT_INSTANCES", []),
+                    context.output,
+                    context.error_handler,
+                )
 
     if context.args.nogui:
         logger.info("Running in headless mode (no GUI).")

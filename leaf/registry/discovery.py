@@ -2,7 +2,7 @@ import os
 import json
 import importlib.util
 from importlib.metadata import entry_points
-from typing import Optional, Type, Any
+from typing import Optional, Type, Any, Dict, List
 
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.registry.loader import load_class_from_file
@@ -23,22 +23,16 @@ input_module_dir = os.path.join(root_dir, "modules", "input_modules")
 
 
 def discover_entry_point_equipment(
+    needed_codes: set[str] = None,
     group: str = "leaf.adapters",
 ) -> list[tuple[str, Type[Any]]]:
     """
-    Discover equipment adapters exposed via setuptools entry points.
-
-    Args:
-        group: The entry point group name to search.
-
-    Returns:
-        A list of (adapter_id, class) tuples for discovered adapters.
+    Discover only needed equipment adapters exposed via setuptools entry points.
     """
     discovered: list[tuple[str, Type[Any]]] = []
 
     for entry_point in entry_points(group=group):
         try:
-            cls = entry_point.load()
             module_path = entry_point.module
             spec = importlib.util.find_spec(module_path)
             if not spec or not spec.origin:
@@ -48,38 +42,32 @@ def discover_entry_point_equipment(
             device_json_path = os.path.join(module_dir, "device.json")
 
             if not os.path.exists(device_json_path):
-                raise AdapterBuildError(
-                    f"device.json not found for adapter at {module_dir}"
-                )
+                continue
 
             with open(device_json_path, "r") as f:
                 device_info = json.load(f)
                 adapter_id = device_info.get("adapter_id")
-                if not adapter_id:
-                    raise AdapterBuildError(
-                        f"'adapter_id' not found in {device_json_path}"
-                    )
 
+                if needed_codes is not None and (
+                    not adapter_id or adapter_id.lower() not in needed_codes
+                ):
+                    continue
+
+                cls = entry_point.load()
                 discovered.append((adapter_id, cls))
 
         except Exception:
-            # Skip problematic entry points silently
             continue
 
     return discovered
 
 
 def discover_local_equipment(
+    needed_codes: set[str],
     base_dirs: Optional[list[str]] = None,
 ) -> list[tuple[str, Type[EquipmentAdapter]]]:
     """
-    Discover equipment adapters in local directories containing `adapter.py` and `device.json`.
-
-    Args:
-        base_dirs: Optional list of directories to scan in addition to the defaults.
-
-    Returns:
-        A list of (adapter_id, class) tuples for discovered adapters.
+    Discover and load only the required equipment adapters from local paths.
     """
     discovered: list[tuple[str, Type[EquipmentAdapter]]] = []
     search_dirs = list(set((base_dirs or []) + default_equipment_locations))
@@ -98,21 +86,21 @@ def discover_local_equipment(
                         data = json.load(f)
                         code = data.get(ADAPTER_ID_KEY)
 
-                    if code:
+                    if code and code.lower() in needed_codes:
                         cls = load_class_from_file(py_fp, base_class=EquipmentAdapter)
                         discovered.append((code, cls))
+
                 except Exception:
                     continue
 
     return discovered
 
 
-def discover_output_modules() -> list[tuple[str, Type[OutputModule]]]:
+def discover_output_modules(
+    needed_codes: set[str],
+) -> list[tuple[str, Type[OutputModule]]]:
     """
-    Discover output modules in the output module directory.
-
-    Returns:
-        A list of (class_name, class) tuples for discovered output modules.
+    Discover only the required output modules in the output module directory.
     """
     discovered: list[tuple[str, Type[OutputModule]]] = []
 
@@ -121,22 +109,25 @@ def discover_output_modules() -> list[tuple[str, Type[OutputModule]]]:
 
     for file in os.listdir(output_module_dir):
         if file.endswith(".py"):
+            module_name = file[:-3]
+            if module_name.lower() not in needed_codes:
+                continue
+
             path = os.path.join(output_module_dir, file)
             try:
                 cls = load_class_from_file(path, base_class=OutputModule)
-                discovered.append((cls.__name__, cls))
+                discovered.append((module_name, cls))
             except Exception:
                 continue
 
     return discovered
 
 
-def discover_external_inputs() -> list[tuple[str, Type[ExternalEventWatcher]]]:
+def discover_external_inputs(
+    needed_codes: set[str],
+) -> list[tuple[str, Type[ExternalEventWatcher]]]:
     """
-    Discover external input modules in the input module directory.
-
-    Returns:
-        A list of (class_name, class) tuples for discovered external input modules.
+    Discover only the required external input modules in the input module directory.
     """
     discovered: list[tuple[str, Type[ExternalEventWatcher]]] = []
 
@@ -145,11 +136,26 @@ def discover_external_inputs() -> list[tuple[str, Type[ExternalEventWatcher]]]:
 
     for file in os.listdir(input_module_dir):
         if file.endswith(".py"):
+            module_name = file[:-3]  # strip .py
+            if module_name.lower() not in needed_codes:
+                continue
+
             path = os.path.join(input_module_dir, file)
             try:
                 cls = load_class_from_file(path, base_class=ExternalEventWatcher)
-                discovered.append((cls.__name__, cls))
+                discovered.append((module_name, cls))
             except Exception:
                 continue
 
     return discovered
+
+
+def get_all_adapter_codes() -> Dict[str, List[str]]:
+    '''
+    Returns all the adapter codes available.
+    '''
+    from leaf.registry import discovery
+
+    available_equipment = discovery.discover_entry_point_equipment()
+    equipment_codes = [code for code, _ in available_equipment]
+    return equipment_codes

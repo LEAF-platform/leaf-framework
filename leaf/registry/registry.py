@@ -1,4 +1,4 @@
-from typing import Type, Any, Literal, Dict
+from typing import Type, Any, Literal, Dict, List
 
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 from leaf.modules.output_modules.output_module import OutputModule
@@ -16,21 +16,11 @@ _registry: Dict[PluginType, Dict[str, Type[Any]]] = {
 
 
 def register(plugin_type: PluginType, code: str, cls: Type[Any]) -> None:
-    """
-    Register a plugin class under a plugin type and code.
-    """
-    _registry[plugin_type][code] = cls
-
+    _registry[plugin_type][code.lower()] = cls
 
 def get(plugin_type: PluginType, code: str) -> Type[Any]:
-    """
-    Retrieve a class from the registry by plugin type and code.
-
-    Raises:
-        AdapterBuildError if the plugin is not found.
-    """
     try:
-        return _registry[plugin_type][code]
+        return _registry[plugin_type][code.lower()]
     except KeyError:
         raise AdapterBuildError(f"No {plugin_type} class registered for code '{code}'")
 
@@ -75,40 +65,53 @@ def all_registered(plugin_type: PluginType) -> Dict[str, Type[EquipmentAdapter]]
 def discover_from_config(config: dict[str, Any], external_path: str = None) -> None:
     """
     Discover and register only the plugins referenced in the given configuration.
-
-    Args:
-        config: Parsed configuration dictionary.
-        external_path: Optional external directory to include in discovery.
     """
     from leaf.registry import discovery
 
-    # Collect plugin codes from the config
+    output_codes = _collect_output_codes(config.get("OUTPUTS", []))
     equipment_codes = {
-        instance["equipment"]["adapter"]
+        instance["equipment"]["adapter"].lower()
         for instance in config.get("EQUIPMENT_INSTANCES", [])
     }
-    output_codes = {output["plugin"] for output in config.get("OUTPUTS", [])}
+    ...
     external_input_codes = {
-        instance["equipment"]["external_input"]["plugin"]
+        instance["equipment"]["external_input"]["plugin"].lower()
         for instance in config.get("EQUIPMENT_INSTANCES", [])
         if "external_input" in instance["equipment"]
     }
 
-    # Discover and register equipment adapters
     discovered_equipment = (
-        discovery.discover_entry_point_equipment()
-        + discovery.discover_local_equipment([external_path] if external_path else [])
+        discovery.discover_entry_point_equipment(equipment_codes)
+        + discovery.discover_local_equipment(equipment_codes, [external_path] if external_path else [])
     )
     for code, cls in discovered_equipment:
-        if code in equipment_codes:
-            register("equipment", code, cls)
+        register("equipment", code, cls)
 
-    # Discover and register output modules
-    for code, cls in discovery.discover_output_modules():
-        if code in output_codes:
-            register("output", code, cls)
+    # Discover and register outputs
+    for code, cls in discovery.discover_output_modules(output_codes):
+        register("output", code, cls)
 
-    # Discover and register external input modules
-    for code, cls in discovery.discover_external_inputs():
-        if code in external_input_codes:
-            register("external_input", code, cls)
+    # Discover and register external inputs
+    for code, cls in discovery.discover_external_inputs(external_input_codes):
+        register("external_input", code, cls)
+
+
+
+
+def _collect_output_codes(outputs: list[dict]) -> set[str]:
+    result = set()
+
+    def recurse(output):
+        plugin = output.get("plugin")
+        if plugin:
+            result.add(plugin.lower())
+        fallback = output.get("fallback")
+        if isinstance(fallback, dict):
+            recurse(fallback)
+        elif isinstance(fallback, str):
+            result.add(fallback.lower())
+
+    for output in outputs:
+        recurse(output)
+
+    return result
