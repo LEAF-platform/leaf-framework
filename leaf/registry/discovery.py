@@ -3,6 +3,7 @@ import json
 import importlib.util
 from importlib.metadata import entry_points
 from typing import Optional, Type, Any, Dict, List
+from venv import logger
 
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.registry.loader import load_class_from_file
@@ -149,13 +150,19 @@ def discover_external_inputs(
 
     return discovered
 
+def get_class_file_path(cls):
+    """Return the absolute file path of the class definition."""
+    import sys
+    module = sys.modules[cls.__module__]
+    return os.path.abspath(module.__file__)
 
-def get_all_adapter_codes() -> Dict[str, List[str]]:
+
+def get_all_adapter_codes() -> List[str]:
     '''
     Returns all the adapter codes available.
     '''
     from leaf.registry import discovery
 
     available_equipment = discovery.discover_entry_point_equipment()
-    equipment_codes = [code for code, _ in available_equipment]
-    return equipment_codes
+    equipment_paths = {name: get_class_file_path(cls) for name, cls in available_equipment}
+    return equipment_paths
