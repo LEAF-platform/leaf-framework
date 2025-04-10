@@ -65,7 +65,7 @@ def get_external_input(code: str) -> Type[ExternalEventWatcher]:
     return cls
 
 
-def all_registered(plugin_type: PluginType) -> Dict[str, Type[Any]]:
+def all_registered(plugin_type: PluginType) -> Dict[str, Type[EquipmentAdapter]]:
     """
     Return all registered classes of a given plugin type.
     """

@@ -10,7 +10,7 @@ def create_dashboard_panel(self, dashboard_tab) -> None:
                 ui.label('System Status').classes('text-xl font-bold')
 
                 # Status display that updates in real-time
-                status_label = ui.label().bind_text_from(self.leaf_state, 'status')
+                ui.label().bind_text_from(self.leaf_state, 'status')
 
                 # Add active adapters count
                 with ui.row():

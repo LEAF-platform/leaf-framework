@@ -5,8 +5,6 @@ import inspect
 from typing import Any, Optional
 
 from leaf.utility.logger.logger_utils import get_logger
-from leaf_register.topic_utilities import topic_utilities
-from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.error_holder import ErrorHolder

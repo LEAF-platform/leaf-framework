@@ -2,18 +2,24 @@ import importlib
 import os
 import subprocess
 import sys
+from typing import Type, Any
 
-import requests
+import requests  # type: ignore
 from nicegui import ui
 
 from leaf.adapters.equipment_adapter import EquipmentAdapter
 
 from leaf.registry.registry import all_registered
+from leaf.registry.discovery import discover_entry_point_equipment
 
-def refresh_adapters() -> dict[str, type[EquipmentAdapter]]:
-    return all_registered("equipment")
 
-installed_adapters: dict[str, EquipmentAdapter] = refresh_adapters()
+def refresh_adapters() -> list[tuple[str, Type[Any]]]:
+    # return all_registered("equipment")
+    x = discover_entry_point_equipment()
+    print(x)
+    return x
+
+installed_adapters: list[tuple[str, Type[Any]]] = []
 
 async def pip_install(dialog: ui.dialog, adapter: dict[str, str]) -> None:
     dialog.close()
@@ -93,10 +99,14 @@ async def create_adapters_panel(tabs, adapters_tab, self) -> None:
                 dialog.open()
         else:
             ui.notify(f"Error: Unable to fetch data (Status Code: {response.status_code})", color='negative')
+        # Search for new adapters that have been installed
+        installed_adapters = refresh_adapters()
+
     # Install new adapter button only when not already installed
-    # if installed_adapter['name']
     with ui.row().style('width: 100%'):
-        ui.button("Install new adapter", on_click=install_adapter, color='green')
+        ui.button('Scan for new adapters', on_click=refresh_adapters, color='green')
+        ui.button("BLA-Install new adapter", on_click=install_adapter, color='green')
     with ui.row().style('width: 100%'):
         # Write text to explain disabled adapter buttons
-        ui.label("Disabled adapters did not install successfully. Check logs for more details.").style('color: grey')
+        if installed_adapters:
+            ui.label("Disabled adapters are not installed. Click the button to install.").style('color: grey')

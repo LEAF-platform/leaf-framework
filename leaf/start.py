@@ -6,15 +6,14 @@
 
 import argparse
 import asyncio
-import json
 import logging
 import os
-import signal
 import sys
 import threading
 import time
 from typing import Any, Optional, Type
 
+from leaf.interface.adapters import all_registered
 import yaml  # type: ignore
 
 from leaf.utility.logger.logger_utils import get_logger
@@ -32,6 +31,8 @@ from leaf.utility.running_utilities import process_instance
 from leaf.utility.running_utilities import run_simulation_in_thread
 from leaf.utility.running_utilities import start_all_adapters_in_threads
 from leaf.registry.registry import discover_from_config
+
+
 ##################################
 #
 #            VARIABLES
@@ -58,11 +59,19 @@ output_disable_time = 500
 class AppContext:
     """Context container to hold shared application state."""
     def __init__(self) -> None:
-        self.gui: Optional[Any] = None
+        # GUI interface
+        self.gui: LEAFGUI = None
+        # Output module
         self.output: Optional[OutputModule] = None
+        # Error handler
         self.error_handler: Optional[ErrorHolder] = None
+        # YAML configuration
         self.config_yaml: Optional[str] = None
+        # Configuration dictionary
+        self.config: Optional[dict[str, Any]] = None
+        # Command line arguments
         self.args: Optional[argparse.Namespace] = None
+        # External adapter
         self.external_adapter: Optional[str] = None
 
 context = AppContext()
@@ -130,13 +139,13 @@ def welcome_message() -> None:
 def stop_all_adapters() -> None:
     """Gracefully stops all running adapters and joins threads."""
     logger.info("Stopping all adapters.")
-    adapter_timeout = 10
-    count = 0
-    while len(adapters) == 0:
-        time.sleep(0.5)
-        count += 1
-        if count >= adapter_timeout:
-            raise AdapterBuildError("Cannot stop adapter, likely hasn't started before shutdown.")
+    # adapter_timeout = 10
+    # count = 0
+    # while len(adapters) == 0:
+    #     time.sleep(0.5)
+    #     count += 1
+    #     if count >= adapter_timeout:
+    #         raise AdapterBuildError("Cannot stop adapter, likely hasn't started before shutdown.")
 
     for adapter in adapters:
         if adapter.is_running():
@@ -285,18 +294,26 @@ def run_adapters(
     logger.info("All adapter threads have been stopped.")
 
 
-def create_configuration(args: argparse.Namespace) -> None:
+def create_configuration(context: AppContext) -> None:
     """Ensures configuration file is available in the expected directory."""
     script_dir = os.path.dirname(os.path.realpath(__file__))
     config_dir = os.path.join(script_dir, "config")
     os.makedirs(config_dir, exist_ok=True)
 
-    if args.config and os.path.exists(args.config):
+    if context.args.config and os.path.exists(context.args.config):
         with open(os.path.join(config_dir, CONFIG_FILE_NAME), "w") as dest:
-            with open(args.config, "r") as src:
+            with open(context.args.config, "r") as src:
                 dest.write(src.read())
+        logger.info(f"Configuration file copied to {config_dir}.")
+    else:
+        logger.info("No configuration file provided, using default.")
+        context.config_yaml = open(os.path.join(config_dir, CONFIG_FILE_NAME)).read()
+        context.config = yaml.safe_load(context.config_yaml)
 
-    args.config = os.path.join(config_dir, CONFIG_FILE_NAME)
+    context.args.config = os.path.join(config_dir, CONFIG_FILE_NAME)
+
+    logger.info(f"Configuration written to {context.args.config}.")
+
 
 
 ##################################
@@ -308,18 +325,29 @@ def create_configuration(args: argparse.Namespace) -> None:
 def main(args: Optional[list[str]] = None) -> None:
     """Main entry point for the LEAF proxy."""
     welcome_message()
+    # Parse command line arguments.
     context.args = parse_args(args)
-    
+
+    logger.info(f"Context: {context.__dict__}")
+
     # Load configuration file first.
     if not context.args.config or not os.path.exists(context.args.config):
-        logger.error("No configuration file provided.")
+        logger.error("No configuration file provided, using default.")
         # return
     else:
         try:
             with open(context.args.config, "r") as f:
-                config = yaml.safe_load(f)
-                context.config_yaml = yaml.dump(config, indent=4)
-                discover_from_config(config, context.args.path)
+                context.config = yaml.safe_load(f)
+                context.config_yaml = yaml.dump(context.config, indent=4)
+                discover_from_config(context.config, context.args.path)
+                # "equipment", "output", "external_input"
+                x = all_registered(plugin_type="equipment")
+                y = all_registered(plugin_type="output")
+                z = all_registered(plugin_type="external_input")
+                logger.info(f"Equipment: {x}")
+                logger.info(f"Output: {y}")
+                logger.info(f"External input: {z}")
+                logger.info("#" * 40)
         except yaml.YAMLError as e:
             logger.error("Failed to parse YAML configuration.", exc_info=e)
             # return
@@ -328,36 +356,44 @@ def main(args: Optional[list[str]] = None) -> None:
         logger.setLevel(logging.DEBUG)
         logger.debug("Debug logging enabled.")
 
-    create_configuration(context.args)
+    create_configuration(context)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    sys.excepthook = handle_exception
+    # signal.signal(signal.SIGINT, signal_handler)
+    # signal.signal(signal.SIGTERM, signal_handler)
+    # sys.excepthook = handle_exception
 
     def run_background_tasks() -> None:
         if context.config_yaml is not None:
             logger.info(f"Configuration: {context.args.config} loaded.")
             logger.info(f"\n{context.config_yaml}\n")
             context.error_handler = ErrorHolder()
-            context.output = build_output_module(json.loads(context.config_yaml), context.error_handler)
-            if context.output is not None:
-                run_adapters(
-                    config.get("EQUIPMENT_INSTANCES", []),
-                    context.output,
-                    context.error_handler,
-                )
+            context.config = yaml.safe_load(context.config_yaml)
+            discover_from_config(context.config, context.args.path)
+            context.output = build_output_module(yaml.safe_load(context.config_yaml), context.error_handler)
+            # TODO ENABLE ME
+            # if context.output is not None:
+            #     run_adapters(
+            #         context.config.get("EQUIPMENT_INSTANCES", []),
+            #         context.output,
+            #         context.error_handler,
+            #     )
+            while True:
+                import uuid
+                logger.info("Some random background task running. {}".format(uuid.uuid4()))
+                time.sleep(1)
+        else:
+            logger.error("No configuration file provided.")
 
     if context.args.nogui:
         logger.info("Running in headless mode (no GUI).")
         run_background_tasks()
     else:
         logger.info(f"Starting NiceGUI web interface on localhost:{context.args.port}")
-        from leaf.interface.main import create_gui
-        context.gui = create_gui(context.args.port)
-        context.gui.global_args = context.args
-        # context.gui.global_config = context.config_yaml
+        # from leaf.interface.main import LEAFGUI
+        import leaf.interface.main as main
+        gui = main.LEAFGUI(context=context)
 
-        context.gui.register_callbacks(
+        gui.register_callbacks(
             start_adapters_func=run_adapters,
             stop_adapters_func=stop_all_adapters,
         )
@@ -368,7 +404,7 @@ def main(args: Optional[list[str]] = None) -> None:
         )
         background_thread.start()
 
-        asyncio.run(context.gui.run())
+        gui.run()
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()
