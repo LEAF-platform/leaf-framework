@@ -54,10 +54,11 @@ def discover_entry_point_equipment(
                 ):
                     continue
 
-                cls = entry_point.load()
-                discovered.append((adapter_id, cls))
+                # cls = entry_point.load()
+                discovered.append((adapter_id, module_dir))
 
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             continue
 
     return discovered
