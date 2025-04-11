@@ -158,12 +158,11 @@ def get_class_file_path(cls):
     return os.path.abspath(module.__file__)
 
 
-def get_all_adapter_codes() -> List[str]:
+def get_all_adapter_codes() -> list[tuple[str, type[Any]]]:
     '''
     Returns all the adapter codes available.
     '''
-    from leaf.registry import discovery
 
-    available_equipment = discovery.discover_entry_point_equipment()
-    equipment_paths = {name: get_class_file_path(cls) for name, cls in available_equipment}
-    return equipment_paths
+    available_equipment = discover_entry_point_equipment()
+    # equipment_paths = {name: get_class_file_path(cls) for name, cls in available_equipment}
+    return available_equipment

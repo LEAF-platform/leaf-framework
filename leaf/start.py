@@ -7,6 +7,7 @@
 import argparse
 import logging
 import os
+import signal
 import sys
 import threading
 import time
@@ -18,9 +19,9 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.interface.adapters import all_registered
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.registry.registry import discover_from_config
+from leaf.registry.discovery import get_all_adapter_codes
+from leaf.registry.registry import discover_from_config, all_registered
 from leaf.utility.logger.logger_utils import get_logger
 from leaf.utility.logger.logger_utils import set_log_dir
 from leaf.utility.running_utilities import build_output_module
@@ -56,20 +57,22 @@ class AppContext:
     """Context container to hold shared application state."""
     def __init__(self) -> None:
         # GUI interface
-        from interface.main import LEAFGUI
-        self.gui: LEAFGUI = None
+        # from leaf.interface.main import LEAFGUI
+        self.gui = None # : LEAFGUI
         # Output module
         self.output: Optional[OutputModule] = None
         # Error handler
         self.error_handler: Optional[ErrorHolder] = None
         # YAML configuration
-        self.config_yaml: Optional[str] = None
+        self.config_yaml: str = None  # type: ignore
         # Configuration dictionary
-        self.config: Optional[dict[str, Any]] = None
+        self.config: dict[str, Any] = {}
         # Command line arguments
-        self.args: Optional[argparse.Namespace] = None
+        self.args: argparse.Namespace
         # External adapter
         self.external_adapter: Optional[str] = None
+        # Logger
+        self.logger: list[str] = []
 
 context = AppContext()
 
@@ -327,31 +330,6 @@ def main(args: Optional[list[str]] = None) -> None:
 
     logger.info(f"Context: {context.__dict__}")
 
-    # Load configuration file first.
-    if not context.args.config or not os.path.exists(context.args.config):
-        logger.error("No configuration file provided, using default.")
-        # return
-    else:
-        try:
-            with open(context.args.config, "r") as f:
-                context.config = yaml.safe_load(f)
-                context.config_yaml = yaml.dump(context.config, indent=4)
-                discover_from_config(context.config, context.args.path)
-                # "equipment", "output", "external_input"
-                x = all_registered(plugin_type="equipment")
-                y = all_registered(plugin_type="output")
-                z = all_registered(plugin_type="external_input")
-                logger.info(f"Equipment: {x}")
-                logger.info(f"Output: {y}")
-                logger.info(f"External input: {z}")
-                logger.info("#" * 40)
-                from leaf.registry.discovery import get_all_adapter_codes
-                codes = get_all_adapter_codes()
-                logger.info(f"All adapter codes: {codes}")
-
-        except yaml.YAMLError as e:
-            logger.error("Failed to parse YAML configuration.", exc_info=e)
-            # return
 
     if context.args.debug:
         logger.setLevel(logging.DEBUG)
@@ -359,11 +337,38 @@ def main(args: Optional[list[str]] = None) -> None:
 
     create_configuration(context)
 
-    # signal.signal(signal.SIGINT, signal_handler)
-    # signal.signal(signal.SIGTERM, signal_handler)
-    # sys.excepthook = handle_exception
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    sys.excepthook = handle_exception
 
     def run_background_tasks() -> None:
+        # Wait for 5 seconds to have the interface logger to boot up
+        time.sleep(5)
+        # Load configuration file first.
+        if not context.args.config or not os.path.exists(context.args.config):
+            logger.error("No configuration file provided, using default.")
+            # return
+        else:
+            try:
+                with open(context.args.config, "r") as f:
+                    context.config = yaml.safe_load(f)
+                    context.config_yaml = yaml.dump(context.config, indent=4)
+                    discover_from_config(context.config, context.args.path)
+                    # "equipment", "output", "external_input"
+                    x = all_registered(plugin_type="equipment")
+                    y = all_registered(plugin_type="output")
+                    z = all_registered(plugin_type="external_input")
+                    logger.info(f"Equipment: {x}")
+                    logger.info(f"Output: {y}")
+                    logger.info(f"External input: {z}")
+                    codes = get_all_adapter_codes()
+                    logger.info(f"All installed adapters: {", ".join(code for code, _ in codes)}")
+                    logger.info("#" * 40)
+
+            except yaml.YAMLError as e:
+                logger.error("Failed to parse YAML configuration.", exc_info=e)
+                # return
+
         if context.config_yaml is not None:
             logger.info(f"Configuration: {context.args.config} loaded.")
             logger.info(f"\n{context.config_yaml}\n")
@@ -374,19 +379,22 @@ def main(args: Optional[list[str]] = None) -> None:
             context.output = build_output_module(yaml.safe_load(context.config_yaml), context.error_handler)
             if context.output is not None:
                 run_adapters(
-                    config.get("EQUIPMENT_INSTANCES", []),
+                    context.config.get("EQUIPMENT_INSTANCES", []),
                     context.output,
                     context.error_handler,
                 )
+
+            while True:
+                logger.info("Running background tasks.")
+                time.sleep(1)
 
     if context.args.nogui:
         logger.info("Running in headless mode (no GUI).")
         run_background_tasks()
     else:
         logger.info(f"Starting NiceGUI web interface on localhost:{context.args.port}")
-        # from leaf.interface.main import LEAFGUI
-        import leaf.interface.main as main
-        gui = main.LEAFGUI(context=context)
+        from leaf.interface.main import LEAFGUI
+        gui = LEAFGUI(context)
 
         gui.register_callbacks(
             start_adapters_func=run_adapters,
@@ -398,8 +406,13 @@ def main(args: Optional[list[str]] = None) -> None:
             daemon=True
         )
         background_thread.start()
-
-        gui.run()
+        
+        import asyncio
+        # Run the GUI in the main thread
+        import asyncio
+        import nest_asyncio
+        nest_asyncio.apply()
+        asyncio.run(gui.run())
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()

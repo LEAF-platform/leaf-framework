@@ -1,9 +1,9 @@
-from typing import Type, Any, Literal, Dict, List
+from typing import Type, Any, Literal, Dict, Optional
 
 from leaf.adapters.equipment_adapter import EquipmentAdapter
-from leaf.modules.output_modules.output_module import OutputModule
-from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf.error_handler.exceptions import AdapterBuildError
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
+from leaf.modules.output_modules.output_module import OutputModule
 
 PluginType = Literal["equipment", "output", "external_input"]
 
@@ -55,14 +55,14 @@ def get_external_input(code: str) -> Type[ExternalEventWatcher]:
     return cls
 
 
-def all_registered(plugin_type: PluginType) -> Dict[str, Type[EquipmentAdapter]]:
+def all_registered(plugin_type: PluginType) -> dict[str, Type[Any]]:
     """
     Return all registered classes of a given plugin type.
     """
     return dict(_registry[plugin_type])
 
 
-def discover_from_config(config: dict[str, Any], external_path: str = None) -> None:
+def discover_from_config(config: dict[str, Any], external_path: Optional[str] = None) -> None:
     """
     Discover and register only the plugins referenced in the given configuration.
     """
@@ -96,16 +96,14 @@ def discover_from_config(config: dict[str, Any], external_path: str = None) -> N
         register("external_input", code, cls)
 
 
-
-
-def _collect_output_codes(outputs: list[dict]) -> set[str]:
+def _collect_output_codes(outputs: list[dict[str, Any]]) -> set[str]:
     result = set()
 
-    def recurse(output):
-        plugin = output.get("plugin")
+    def recurse(_output: dict[str, Any]) -> None:
+        plugin = _output.get("plugin")
         if plugin:
             result.add(plugin.lower())
-        fallback = output.get("fallback")
+        fallback = _output.get("fallback")
         if isinstance(fallback, dict):
             recurse(fallback)
         elif isinstance(fallback, str):

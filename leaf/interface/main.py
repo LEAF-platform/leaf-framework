@@ -5,19 +5,25 @@ from nicegui import ui
 
 from leaf.interface.logs import LogElementHandler
 from leaf.start import AppContext
-from leaf.start import context
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
+context: AppContext = None  # type: ignore[assignment]
+
+
 class LEAFGUI:
-    def __init__(self, context: AppContext) -> None:
-        self.context = context
-        self.port = self.context.args.port
+    def __init__(self, _context: AppContext) -> None:
+        """Initialize the LEAF GUI with the given context."""
+        global context
+        context = _context
+        self.port = context.args.port
         self.start_adapters_func = None
         self.stop_adapters_func = None
+        self.start_adapters_func = None
+        
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Start the NiceGUI interface"""
         # Start the NiceGUI application
         ui.run(port=self.port, title="LEAF Monitoring System", show=True)
@@ -28,6 +34,7 @@ class LEAFGUI:
         """Register callback functions from main module"""
         self.start_adapters_func = start_adapters_func
         self.stop_adapters_func = stop_adapters_func
+        logger.info("Callbacks registered successfully")
 
 
 @ui.page('/')
@@ -45,45 +52,41 @@ def index() -> None:
     # Tabs
     with ui.tabs().classes('w-full') as tabs:
         config_tab: ui.tab = ui.tab('Configuration')
-        logs_tab = ui.tab('Logs')
+        # logs_tab = ui.tab('Logs')
         docs_tab = ui.tab('Documentation')
 
-    with ui.tab_panels(tabs).classes('w-full'):
+    with ui.tab_panels(tabs, value=docs_tab).classes('w-full'):
         # Logging tab
-        with ui.tab_panel(logs_tab):
-            log: ui.log = ui.log(max_lines=1000).classes('width-full h-[60vh] overflow-auto')
-            log.push("Starting LEAF Monitoring System...")
-            handler = LogElementHandler(log)
-
-            # Define the log format you want (including date, class, level, and message)
-            log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            formatter = logging.Formatter(log_format)
-
-            # Set the formatter for the handler
-            handler.setFormatter(formatter)
-            handler.setLevel(logging.INFO)
-
-            # Add the handler to all available loggers
-            for logger_name in logging.root.manager.loggerDict:
-                logger = logging.getLogger(logger_name)
-
-                # Check if the logger already has handlers to avoid adding the same handler multiple times
-                if not logger.hasHandlers():
-                    logger.addHandler(handler)
-                else:
-                    # Optional: Remove existing handler if it's the same type and re-add your custom handler
-                    for existing_handler in logger.handlers:
-                        if isinstance(existing_handler, LogElementHandler):
-                            logger.removeHandler(existing_handler)
-                            break
-                    logger.addHandler(handler)
-
-            # Log an initial message to indicate log collection is starting
-            logger = logging.getLogger()  # This will use the root logger
-            logger.info("Collecting logs up to 1000 lines")
-
-            # Clean up the handler when the client disconnects
-            ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
+        # with ui.tab_panel(logs_tab):
+        #     log: ui.log = ui.log(max_lines=1000).classes('width-full h-[60vh] overflow-auto')
+        #     log.push("Starting LEAF Monitoring System...")
+        #
+        #     # Custom log handler to redirect logs to the NiceGUI log element
+        #     handler = LogElementHandler(log)
+        #     handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        #     handler.setLevel(logging.INFO)
+        #
+        #     # Add the handler to all available loggers
+        #     for logger_name in logging.root.manager.loggerDict:
+        #         logger = logging.getLogger(logger_name)
+        #
+        #         # Check if the logger already has handlers to avoid adding the same handler multiple times
+        #         if not logger.hasHandlers():
+        #             logger.addHandler(handler)
+        #         else:
+        #             # Optional: Remove existing handler if it's the same type and re-add your custom handler
+        #             for existing_handler in logger.handlers:
+        #                 if isinstance(existing_handler, LogElementHandler):
+        #                     logger.removeHandler(existing_handler)
+        #                     break
+        #             logger.addHandler(handler)
+        #
+        #     # Log an initial message to indicate log collection is starting
+        #     logger = logging.getLogger()  # This will use the root logger
+        #     logger.info("Collecting logs up to 1000 lines")
+        #
+        #     # Clean up the handler when the client disconnects
+        #     ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
 
         ui.label('LEAF Documentation').classes('text-xl font-bold')
         # Documentation tab
@@ -117,7 +120,22 @@ def index() -> None:
                 # Initially set the editor with any existing config data
                 config_yaml = context.config_yaml
                 config_editor = ui.codemirror(value=config_yaml, language="YAML").style('width: 100%')
+                print(config_editor.value)
+                # Save button
+                async def save_config(config_content: str) -> None:
+                    # Update global config from path
+                    context.config_yaml = config_content
+                    # Stop the running adapters asynchronously
+                    ui.notify("Stopping adapters")
+                    context.stop_adapters_func()
+                    # Restart the adapters with the new configuration
+                    ui.notify("Starting adapters")
+                    import asyncio
+                    await asyncio.to_thread(context.start_adapters_func, context.config["EQUIPMENT_INSTANCES"],
+                                             context.output, context.error_handler)
+                ui.button('Save Configuration', on_click=lambda _: save_config(config_editor.value)).style('')
 
+    
 
     # def setup_nicegui(self) -> None:
     #     """Set up NiceGUI web interface"""
