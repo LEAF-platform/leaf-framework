@@ -58,7 +58,6 @@ output_disable_time = 500
 class AppContext:
     """Context container to hold shared application state."""
     def __init__(self) -> None:
-        self.gui: Optional[Any] = None
         self.output: Optional[OutputModule] = None
         self.error_handler: Optional[ErrorHolder] = None
         self.config_yaml: Optional[str] = None
@@ -78,13 +77,9 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Proxy to monitor equipment and send data to the cloud."
     )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8080,
-        help="The port to run the NiceGUI web interface on.",
-    )
-    parser.add_argument("--debug", action="store_true", 
+
+
+    parser.add_argument("--debug", action="store_true",
                         help="Enable debug logging.")
         
     parser.add_argument(
@@ -101,11 +96,6 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
         default=None
     )
 
-    parser.add_argument(
-        "--nogui",
-        action="store_true",
-        help="Run the proxy without the GUI.",
-    )
     return parser.parse_args(args=args)
 
 
@@ -334,42 +324,19 @@ def main(args: Optional[list[str]] = None) -> None:
     signal.signal(signal.SIGTERM, signal_handler)
     sys.excepthook = handle_exception
 
-    def run_background_tasks() -> None:
-        if context.config_yaml is not None:
-            logger.info(f"Configuration: {context.args.config} loaded.")
-            logger.info(f"\n{context.config_yaml}\n")
-            context.error_handler = ErrorHolder()
-            context.output = build_output_module(config, 
-                                                 context.error_handler)
-            if context.output is not None:
-                run_adapters(
-                    config.get("EQUIPMENT_INSTANCES", []),
-                    context.output,
-                    context.error_handler,
-                )
+    if context.config_yaml is not None:
+        logger.info(f"Configuration: {context.args.config} loaded.")
+        logger.info(f"\n{context.config_yaml}\n")
+        context.error_handler = ErrorHolder()
+        context.output = build_output_module(config,
+                                             context.error_handler)
+        if context.output is not None:
+            run_adapters(
+                config.get("EQUIPMENT_INSTANCES", []),
+                context.output,
+                context.error_handler,
+            )
 
-    if context.args.nogui:
-        logger.info("Running in headless mode (no GUI).")
-        run_background_tasks()
-    else:
-        logger.info(f"Starting NiceGUI web interface on localhost:{context.args.port}")
-        from leaf.interface.main import create_gui
-        context.gui = create_gui(context.args.port)
-        context.gui.global_args = context.args
-        # context.gui.global_config = context.config_yaml
-
-        context.gui.register_callbacks(
-            start_adapters_func=run_adapters,
-            stop_adapters_func=stop_all_adapters,
-        )
-
-        background_thread = threading.Thread(
-            target=run_background_tasks,
-            daemon=True
-        )
-        background_thread.start()
-
-        asyncio.run(context.gui.run())
 
 if __name__ in {"__main__", "__mp_main__"}:
     main()
