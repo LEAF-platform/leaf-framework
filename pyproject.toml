@@ -3,7 +3,7 @@ name = "leaf-framework"
 version = "0.1.1"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = [
-    "Matthew Crowther <b5044420@newcastle.ac.uk>",
+    "Matthew Crowther <nmc215ncl.ac.uk>",
     "Brett Metcalfe <brett.metcalfe@hotmail.co.uk>",
     "Bart Nijsse <bart.nijsse@wur.nl>",
     "Jasper Koehorst <jasper.koehorst@wur.nl>"
