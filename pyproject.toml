@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "leaf"
+name = "leaf-framework"
 version = "0.1.1"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = [
@@ -11,8 +11,11 @@ authors = [
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://gitlab.com/LabEquipmentAdapterFramework/leaf"
-homepage = "https://gitlab.com/LabEquipmentAdapterFramework/leaf"
-documentation = "https://gitlab.com/LabEquipmentAdapterFramework/leaf/issues"
+documentation = "https://leaf.systemsbiology.nl"
+
+packages = [
+    { include = "leaf" }         # your actual Python module
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -25,7 +28,7 @@ watchdog = "~2.1.6"
 dateparser = "~1.2.0"
 requests = "~2.32.3"
 nicegui = "~2.12.1"
-leaf-register = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-register.git"}
+leaf-register = "~0.1.1"
 
 
 [tool.poetry.scripts]
