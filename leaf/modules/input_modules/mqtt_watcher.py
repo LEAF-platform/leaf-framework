@@ -11,7 +11,7 @@ from typing import Literal, Optional, Any
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
 
-from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
+from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.utility.logger.logger_utils import get_logger
 from leaf_register.metadata import MetadataManager
 from leaf_register.topic_utilities import topic_utilities
@@ -28,14 +28,14 @@ MAX_RECONNECT_DELAY = 1
 logger = get_logger(__name__, log_file="input_module.log", 
                     log_level=logging.DEBUG)
 
-class MQTTEventWatcher(ExternalEventWatcher):
+class MQTTEventWatcher(EventWatcher):
     def __init__(self,
-                 metadata_manager: MetadataManager = None,
+                 metadata_manager: MetadataManager,
+                 start_topics: Optional[List[str]] = None,
+                 stop_topics: Optional[List[str]] = None,
+                 measurement_topics: Optional[List[str]] = None,
+                 error_topics: Optional[List[str]] = None,
                  broker: str = None,
-                 start_topics: Optional[List] = None,
-                 stop_topics: Optional[List] = None,
-                 measurement_topics: Optional[List] = None,
-                 error_topics: Optional[List] = None,
                  port: int = 1883,
                  username: Optional[str] = None,
                  password: Optional[str] = None,
@@ -52,24 +52,29 @@ class MQTTEventWatcher(ExternalEventWatcher):
         if protocol not in ["v3", "v5"]:
             raise AdapterBuildError(f"Unsupported protocol '{protocol}'.")
         self._protocol = mqtt.MQTTv5 if protocol == "v5" else mqtt.MQTTv311
+
         if transport not in ["tcp", "websockets", "unix"]:
             raise AdapterBuildError(f"Unsupported transport '{transport}'.")
+
         if not isinstance(broker, str) or not broker:
-            raise AdapterBuildError(
-                "Broker must be a non-empty string representing the MQTT broker address."
-            )
+            raise AdapterBuildError("Broker must be a non-empty string representing the MQTT broker address.")
         if not isinstance(port, int) or not (1 <= port <= 65535):
             raise AdapterBuildError("Port must be an integer between 1 and 65535.")
 
         if clientid is None:
             clientid = str(uuid4())
-        self._client_id: Optional[str] = clientid
-        self._broker: str = broker
-        self._port: int = port
-        self._username: Optional[str] = username
-        self._password: Optional[str] = password
-        self._tls: bool = tls
+
+        self._client_id = clientid
+        self._broker = broker
+        self._port = port
+        self._username = None
+        self._password = None
+        self._tls = tls
         self.messages: dict[str, list[str]] = {}
+
+        if username and password:
+            self._username = username
+            self._password = password
 
         self.client = mqtt.Client(
             callback_api_version=CallbackAPIVersion.VERSION2,
@@ -83,28 +88,31 @@ class MQTTEventWatcher(ExternalEventWatcher):
         self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_message
 
-        self._username = None
-        self._password is None
-        if username and password:
-            self._username = username
-            self._password = password
-        
         if tls:
             try:
                 self.client.tls_set()
                 self.client.tls_insecure_set(True)
             except Exception as e:
                 raise AdapterBuildError(f"Failed to set up TLS: {e}")
-            
-        self._topics_map = {}
-        if start_topics is not None:
-            self._topics_map[metadata_manager.experiment.start] = start_topics
-        
+
+        # topic -> list of events
+        self._topic_event_map: dict[str, list[str]] = {}
+        self._register_topics(start_topics, metadata_manager.experiment.start)
+        self._register_topics(measurement_topics, metadata_manager.experiment.measurement)
+        self._register_topics(stop_topics, metadata_manager.experiment.stop)
+        self._register_topics(error_topics, metadata_manager.error)
+
+
+    def _register_topics(self,topics: Optional[List[str]], event: str):
+        if topics:
+            for topic in topics:
+                self._topic_event_map.setdefault(topic, []).append(event)
 
     def start(self):
         """
         Connects to the MQTT broker and sets a thread looping.
         """
+        super().start()
         try:
             if self._username and self._password:
                 self.client.username_pw_set(self._username, 
@@ -112,10 +120,9 @@ class MQTTEventWatcher(ExternalEventWatcher):
             self.client.connect(self._broker, self._port, 60)
             self.client.loop_start()
             time.sleep(3)
-            for topics in self._topics_map.values():
-                for topic in topics:
-                    self.subscribe(topic)
-                    time.sleep(0.1)
+            for topic in self._topic_event_map.keys():
+                self.subscribe(topic)
+                time.sleep(0.1)
 
         except (socket_error, gaierror, OSError) as e:
             self._handle_exception(
@@ -139,7 +146,7 @@ class MQTTEventWatcher(ExternalEventWatcher):
                     output_module=self))
             
     def on_message(self, client: mqtt.Client, 
-                   userdata: Any, msg: mqtt.MQTTMessage) -> None:
+                userdata: Any, msg: mqtt.MQTTMessage) -> None:
         """
         Callback for when a message is received on a
         subscribed topic.
@@ -150,15 +157,17 @@ class MQTTEventWatcher(ExternalEventWatcher):
                             set in Client() or userdata_set().
             msg (mqtt.MQTTMessage): The received MQTT message.
         """
-        inpcoming_topic = msg.topic
+        incoming_topic = msg.topic
         payload = msg.payload.decode()
-        for event,topics in self._topics_map:
-            for topic in topics:
-                if topic_utilities.is_instance(inpcoming_topic,topic):
-                    full_payload = {"topic" : msg.topic,
-                                    "payload" : payload}
+        full_payload = {"topic": incoming_topic, 
+                        "payload": payload}
+
+        for registered_topic, events in self._topic_event_map.items():
+            if topic_utilities.is_instance(incoming_topic, 
+                                           registered_topic):
+                for event in events:
                     for cb in self._callbacks:
-                        cb(event,full_payload)
+                        cb(event, full_payload)
 
     def subscribe(self, topic: str) -> str:
         """
@@ -288,24 +297,3 @@ class MQTTEventWatcher(ExternalEventWatcher):
             bool: True if the client is connected, False otherwise.
         """
         return self.client.is_connected()
-
-    def _handle_return_code(self, return_code: int) -> Optional[ClientUnreachableError]:
-        """
-        Handle MQTT return codes.
-
-        Args:
-            return_code (int): The return code to handle.
-
-        Returns:
-            Optional[ClientUnreachableError]: An error if one occurred, None otherwise.
-        """
-        if return_code == mqtt.MQTT_ERR_SUCCESS:
-            return None
-        message = {
-            mqtt.MQTT_ERR_NO_CONN: "Can't connect to broker",
-            mqtt.MQTT_ERR_QUEUE_SIZE: "Message queue size limit reached",
-        }.get(return_code, f"Unknown error with return code {return_code}")
-
-        return ClientUnreachableError(
-            message, output_module=self, severity=SeverityLevel.INFO
-        )
