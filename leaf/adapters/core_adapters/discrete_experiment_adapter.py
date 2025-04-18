@@ -5,6 +5,7 @@ from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
+from leaf.modules.phase_modules.error import ErrorPhase
 
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
@@ -56,9 +57,10 @@ class DiscreteExperimentAdapter(EquipmentAdapter):
         measure_p = MeasurePhase(metadata_manager, 
                                  maximum_message_size=maximum_message_size)
         details_p = InitialisationPhase(metadata_manager)
+        error_p = ErrorPhase(metadata_manager)
 
         # Combine into a discrete process
-        phases = [start_p, measure_p, stop_p, details_p]
+        phases = [start_p, measure_p, stop_p, details_p, error_p]
         processes = [DiscreteProcess(output, phases)]
 
         super().__init__(
