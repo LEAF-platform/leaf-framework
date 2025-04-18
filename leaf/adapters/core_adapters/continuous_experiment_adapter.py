@@ -5,6 +5,7 @@ from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf.modules.phase_modules.measure import MeasurePhase
+from leaf.modules.phase_modules.error import ErrorPhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
 
 from leaf_register.metadata import MetadataManager
@@ -58,6 +59,7 @@ class ContinuousExperimentAdapter(EquipmentAdapter):
         stop_p = StopPhase(metadata_manager)
         measure_p = MeasurePhase(metadata_manager, maximum_message_size=maximum_message_size)
         details_p = InitialisationPhase(metadata_manager)
+        error_p = ErrorPhase(metadata_manager)
 
         # Set up continuous and control processes
         measurement_process = ContinousProcess(
@@ -69,7 +71,7 @@ class ContinuousExperimentAdapter(EquipmentAdapter):
 
         self._control_process = ProcessModule(
             output,
-            [start_p, stop_p, details_p],
+            [start_p, stop_p, details_p, error_p],
             metadata_manager=metadata_manager,
             error_holder=error_holder
         )
