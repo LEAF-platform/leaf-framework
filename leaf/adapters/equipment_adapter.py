@@ -17,7 +17,6 @@ from leaf.utility.logger.logger_utils import get_logger
 from leaf.modules.process_modules.process_module import ProcessModule
 from leaf.modules.process_modules.external_event_process import ExternalEventProcess
 
-
 class AbstractInterpreter(ABC):
     """
     Abstract base class for interpreters.

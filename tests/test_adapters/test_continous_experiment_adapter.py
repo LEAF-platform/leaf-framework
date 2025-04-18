@@ -159,6 +159,37 @@ class TestEquipmentAdapter(unittest.TestCase):
         mthread.join()
 
 
+    def test_error_phase(self):
+        self.initialize_experiment()
+        text_watch_file = os.path.join(self._adapter._watcher._path,
+                                       self._adapter._watcher._file_name)
+        if os.path.isfile(text_watch_file):
+            os.remove(text_watch_file)
+        time.sleep(1)
+        
+        topic = self._adapter._metadata_manager.error
+        self.mock_client.subscribe(topic())
+        mthread = Thread(target=self._adapter.start)
+        mthread.start()
+        self.wait_for_adapter_start(self._adapter)
+
+        data = "Mock error string"
+        self._adapter._processes[1].process_input(topic,data)
+
+        timeout = 10
+        cur_count = 0
+        while topic() not in self.mock_client.messages:
+            time.sleep(1)
+            cur_count +=1
+            if cur_count > timeout:
+                self.fail("Message not recieved.")
+        self._adapter.stop()
+        mthread.join()
+        self.assertIn(topic(), self.mock_client.messages)
+        incoming_error = self.mock_client.messages[topic()]
+        self.assertEqual(incoming_error[0]["type"],"HardwareStalledError")
+        self.assertEqual(incoming_error[0]["severity"],"SeverityLevel.WARNING")
+        self.assertIn(data,incoming_error[0]["message"])
 
 
 if __name__ == "__main__":
