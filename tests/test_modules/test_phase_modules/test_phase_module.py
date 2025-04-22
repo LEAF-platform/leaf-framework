@@ -3,7 +3,7 @@ import sys
 import unittest
 import yaml
 import tempfile
-
+import time
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -15,6 +15,7 @@ from leaf.modules.phase_modules.initialisation import InitialisationPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.exceptions import LEAFError
+from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(curr_dir, "..", "..", "test_config.yaml")
@@ -190,6 +191,38 @@ class TestStopPhase(unittest.TestCase):
 
         for k,v in expected_values.items():
             self.assertIn((k,v),res)
+
+
+    def test_stop_phase_with_interpreter(self):
+        class ConcreteInterpreter(AbstractInterpreter):
+            def __init__(self, error_holder = None):
+                super().__init__(error_holder)
+
+            def metadata(self, data):
+                return super().metadata(data)
+
+            def measurement(self, data):
+                return super().measurement(data)
+        
+        interpreter = ConcreteInterpreter()
+        module = StopPhase(metadata_manager=self._metadata_manager)
+        module.set_interpreter(interpreter)
+
+        data = {}
+        interpreter.metadata({})
+        
+        time.sleep(1)
+        res = module.update(data)
+
+        for topic,data in res:
+            if topic == self._metadata_manager.experiment.stop():
+                self.assertIn(interpreter.EXPERIMENT_ID_KEY,data)
+                self.assertIn(interpreter.TIMESTAMP_KEY,data)
+                self.assertIn(interpreter.RUNTIME_KEY,data)
+                break
+        else:
+            self.fail()
+        
 
 class TestInitialisationPhase(unittest.TestCase):
     def setUp(self) -> None:
