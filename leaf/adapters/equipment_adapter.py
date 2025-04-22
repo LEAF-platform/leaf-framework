@@ -39,7 +39,9 @@ class AbstractInterpreter(ABC):
         self.TIMESTAMP_KEY: str = "timestamp"
         self.EXPERIMENT_ID_KEY: str = "experiment_id"
         self.MEASUREMENT_HEADING_KEY: str = "measurement_types"
+        self.RUNTIME_KEY = "run_time"
         self._error_holder = error_holder
+        self._start_time = None
         self._last_measurement = None
         self._is_running = False
 
@@ -58,7 +60,8 @@ class AbstractInterpreter(ABC):
         Returns:
             dict[str, Any]: Parsed metadata dictionary.
         """
-        return {self.TIMESTAMP_KEY: time.time()}
+        self._start_time = time.time()
+        return {self.TIMESTAMP_KEY: self._start_time}
 
     @abstractmethod
     def measurement(self, data: Any) -> Any:
@@ -88,7 +91,14 @@ class AbstractInterpreter(ABC):
         Returns:
             Any: Forwarded or cleaned-up stop payload.
         """
+        if self.TIMESTAMP_KEY not in data:
+            data[self.TIMESTAMP_KEY] = time.time()
+        if self.EXPERIMENT_ID_KEY not in data:
+            data[self.EXPERIMENT_ID_KEY] = self.id
+        if self._start_time is not None:
+            data[self.RUNTIME_KEY] = time.time() - self._start_time
         self._last_measurement = None
+        self._start_time = None
         return data
 
     def _handle_exception(self, exception: LEAFError) -> None:

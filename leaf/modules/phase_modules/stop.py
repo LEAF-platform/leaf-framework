@@ -47,7 +47,6 @@ class StopPhase(ControlPhase):
             except Exception as ex:
                 leaf_exp = InterpreterError(ex)
                 self._handle_exception(leaf_exp)
-                data = []
         data = super().update(data)
         data += [(self._metadata_manager.running(), False)]
         data += [(self._metadata_manager.experiment.start(), None)]
