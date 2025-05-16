@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "leaf-framework"
-version = "0.1.1"
+version = "0.1.3"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = [
-    "Matthew Crowther <nmc215ncl.ac.uk>",
+    "Matthew Crowther <nmc215@ncl.ac.uk>",
     "Brett Metcalfe <brett.metcalfe@hotmail.co.uk>",
     "Bart Nijsse <bart.nijsse@wur.nl>",
     "Jasper Koehorst <jasper.koehorst@wur.nl>"
