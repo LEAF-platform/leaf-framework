@@ -5,8 +5,6 @@
 ###################################
 
 import argparse
-import asyncio
-import json
 import logging
 import os
 import signal
@@ -17,21 +15,20 @@ from typing import Any, Optional, Type
 
 import yaml  # type: ignore
 
-from leaf.utility.logger.logger_utils import get_logger
-from leaf.utility.logger.logger_utils import set_log_dir
-from leaf.modules.output_modules.output_module import OutputModule
-
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-
+from leaf.modules.output_modules.output_module import OutputModule
+from leaf.registry.registry import discover_from_config
+from leaf.utility.logger.logger_utils import get_logger
+from leaf.utility.logger.logger_utils import set_log_dir
 from leaf.utility.running_utilities import build_output_module
 from leaf.utility.running_utilities import handle_disabled_modules
 from leaf.utility.running_utilities import process_instance
 from leaf.utility.running_utilities import run_simulation_in_thread
 from leaf.utility.running_utilities import start_all_adapters_in_threads
-from leaf.registry.registry import discover_from_config
+
 ##################################
 #
 #            VARIABLES
@@ -115,7 +112,15 @@ def welcome_message() -> None:
     logger.info("For more information, visit leaf.systemsbiology.nl")
     logger.info("For help, use the -h flag.")
     logger.info("#" * 40)
-
+    # Obtain all installed adapters
+    from leaf.registry.discovery import get_all_adapter_codes
+    adapter_codes = get_all_adapter_codes()
+    if len(adapter_codes) > 0:
+        logger.info("Installed adapters:")
+        for adapter_code in adapter_codes:
+            logger.info(f"- {adapter_code}")
+    else:
+        logger.warn("No adapters installed.")
 
 def stop_all_adapters() -> None:
     """Gracefully stops all running adapters and joins threads."""
@@ -302,7 +307,7 @@ def main(args: Optional[list[str]] = None) -> None:
     
     # Load configuration file first.
     if not context.args.config or not os.path.exists(context.args.config):
-        logger.error("No configuration file provided.")
+        logger.error("No configuration file provided...")
         # return
     else:
         try:
@@ -338,5 +343,5 @@ def main(args: Optional[list[str]] = None) -> None:
             )
 
 
-if __name__ in {"__main__", "__mp_main__"}:
+if __name__ == "__main__":
     main()

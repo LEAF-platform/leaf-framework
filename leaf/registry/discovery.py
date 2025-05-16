@@ -1,15 +1,17 @@
+import logging
 import os
-import json
 import importlib.util
+import json
+import os
 from importlib.metadata import entry_points
-from typing import Optional, Type, Any, Dict, List
+from typing import Optional, Type, Any, List
 
-from leaf.error_handler.exceptions import AdapterBuildError
+from leaf.utility.logger.logger_utils import get_logger
+from leaf.adapters.equipment_adapter import EquipmentAdapter
+from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
+from leaf.modules.output_modules.output_module import OutputModule
 from leaf.registry.loader import load_class_from_file
 from leaf.registry.utils import ADAPTER_ID_KEY
-from leaf.adapters.equipment_adapter import EquipmentAdapter
-from leaf.modules.output_modules.output_module import OutputModule
-from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 
 # Base directories for discovery
 root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
@@ -21,6 +23,7 @@ default_equipment_locations = [core_adapter_dir, functional_adapter_dir]
 output_module_dir = os.path.join(root_dir, "modules", "output_modules")
 input_module_dir = os.path.join(root_dir, "modules", "input_modules")
 
+logger = get_logger(__name__, log_file="discovery.log",  log_level=logging.DEBUG)
 
 def discover_entry_point_equipment(
     needed_codes: set[str] = None,
@@ -56,7 +59,8 @@ def discover_entry_point_equipment(
                 cls = entry_point.load()
                 discovered.append((adapter_id, cls))
 
-        except Exception:
+        except Exception as e:
+            logger.error("Failed loading adapter (%s) :: %s", entry_point.module, e)
             continue
 
     return discovered
@@ -150,12 +154,10 @@ def discover_external_inputs(
     return discovered
 
 
-def get_all_adapter_codes() -> Dict[str, List[str]]:
+def get_all_adapter_codes() -> List[str]:
     '''
     Returns all the adapter codes available.
     '''
-    from leaf.registry import discovery
-
-    available_equipment = discovery.discover_entry_point_equipment()
+    available_equipment = discover_entry_point_equipment()
     equipment_codes = [code for code, _ in available_equipment]
     return equipment_codes
