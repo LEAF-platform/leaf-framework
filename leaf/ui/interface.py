@@ -1,9 +1,14 @@
 import logging
 
+import httpx
+
 from leaf.registry.discovery import get_all_adapter_codes
 from nicegui import ui
 
 logger = logging.getLogger()
+
+# Define adapter_content outside to maintain scope
+adapter_content = ui.column()
 
 class LogElementHandler(logging.Handler):
     """A logging handler that emits messages to a log element."""
@@ -19,7 +24,24 @@ class LogElementHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-def start_nicegui():
+
+def load_content() -> None:
+    url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-marketplace/-/raw/main/adapters.json?ref_type=heads"
+    response = httpx.get(url)
+    adapter_content.clear()  # Clear previous content
+    data = response.json()
+
+    for adapter in data:
+        with adapter_content:
+            ui.label(f"Adapter: {adapter['name']}")
+            ui.button("Install", on_click=lambda a=adapter: install_adapter(a))
+
+
+def install_adapter(adapter) -> None:
+    print(f"Installing {adapter['name']}...")
+
+
+def start_nicegui() -> None:
     ui.page('/')
     
       # Add favicon
@@ -62,11 +84,12 @@ def start_nicegui():
                 ui.label(adapter_code).classes('text-xl font-bold')
             # Create a dialog to install adapters
             with ui.dialog() as install_adapters, ui.card():
-                ui.label('Hello world!')
+                global adapter_content
+                adapter_content = ui.label('Loading...')
                 ui.button('Close', on_click=install_adapters.close)
 
             # Button to open the dialog
-            ui.button('Install Adapters', on_click=install_adapters.open).classes('bg-blue-500 text-white font-bold py-2 px-4 rounded')
+            ui.button('Install Adapters', on_click=lambda: [load_content(), install_adapters.open()]).classes('bg-blue-500 text-white font-bold py-2 px-4 rounded')
 
         # Documentation tab
         with ui.tab_panel(docs_tab):
