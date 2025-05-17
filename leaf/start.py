@@ -13,7 +13,9 @@ import threading
 import time
 from typing import Any, Optional, Type
 
+from dateparser.data.date_translation_data import el
 import yaml  # type: ignore
+from leaf.ui.interface import start_nicegui
 
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
@@ -302,6 +304,11 @@ def create_configuration(args: argparse.Namespace) -> None:
 
 def main(args: Optional[list[str]] = None) -> None:
     """Main entry point for the LEAF proxy."""
+    # Start NiceGUI in a separate thread
+
+    nicegui_thread = threading.Thread(target=start_nicegui, daemon=True)
+    nicegui_thread.start()
+
     welcome_message()
     context.args = parse_args(args)
     
@@ -341,7 +348,7 @@ def main(args: Optional[list[str]] = None) -> None:
                 context.output,
                 context.error_handler,
             )
-
-
-if __name__ == "__main__":
-    main()
+    # Wait for NiceGUI thread to finish
+    nicegui_thread.join()
+    logger.info("NiceGUI thread has finished.")
+    logger.info("LEAF Proxy has stopped.")
