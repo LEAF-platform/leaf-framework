@@ -26,13 +26,13 @@ input_module_dir = os.path.join(root_dir, "modules", "input_modules")
 logger = get_logger(__name__, log_file="discovery.log",  log_level=logging.DEBUG)
 
 def discover_entry_point_equipment(
-    needed_codes: set[str] = None,
+    needed_codes: set[str],
     group: str = "leaf.adapters",
-) -> list[tuple[str, Type[Any]]]:
+) -> list[tuple[str, Any, Any]]:
     """
-    Discover only needed equipment adapters exposed via setuptools entry points.
+    Discover only necessary equipment adapters exposed via setuptools entry points.
     """
-    discovered: list[tuple[str, Type[Any], Type[Any]]] = []
+    discovered: list[tuple[str, Any, Any]] = []
 
     for entry_point in entry_points(group=group):
         try:
@@ -49,7 +49,7 @@ def discover_entry_point_equipment(
 
             with open(device_json_path, "r") as f:
                 device_info = json.load(f)
-                adapter_id = device_info.get("adapter_id")
+                adapter_id: str = device_info.get("adapter_id")
 
                 if needed_codes is not None and (
                     not adapter_id or adapter_id.lower() not in needed_codes
@@ -69,11 +69,11 @@ def discover_entry_point_equipment(
 def discover_local_equipment(
     needed_codes: set[str],
     base_dirs: Optional[list[str]] = None,
-) -> list[tuple[str, Type[EquipmentAdapter]]]:
+) -> list[tuple[str, Type[EquipmentAdapter], str]]:
     """
     Discover and load only the required equipment adapters from local paths.
     """
-    discovered: list[tuple[str, Type[EquipmentAdapter]]] = []
+    discovered: list[tuple[str, Type[EquipmentAdapter], str]] = []
     search_dirs = list(set((base_dirs or []) + default_equipment_locations))
 
     for base in search_dirs:
@@ -92,7 +92,7 @@ def discover_local_equipment(
 
                     if code and code.lower() in needed_codes:
                         cls = load_class_from_file(py_fp, base_class=EquipmentAdapter)
-                        discovered.append((code, cls))
+                        discovered.append((code, cls, 'local'))
 
                 except Exception:
                     continue
