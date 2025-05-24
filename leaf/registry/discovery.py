@@ -32,7 +32,7 @@ def discover_entry_point_equipment(
     """
     Discover only needed equipment adapters exposed via setuptools entry points.
     """
-    discovered: list[tuple[str, Type[Any]]] = []
+    discovered: list[tuple[str, Type[Any], Type[Any]]] = []
 
     for entry_point in entry_points(group=group):
         try:
@@ -57,7 +57,7 @@ def discover_entry_point_equipment(
                     continue
 
                 cls = entry_point.load()
-                discovered.append((adapter_id, cls))
+                discovered.append((adapter_id, cls, entry_point))
 
         except Exception as e:
             logger.error("Failed loading adapter (%s) :: %s", entry_point.module, e)
@@ -154,10 +154,26 @@ def discover_external_inputs(
     return discovered
 
 
-def get_all_adapter_codes() -> List[str]:
+def get_all_adapter_codes() -> list[dict[str, str]]:
     '''
-    Returns all the adapter codes available.
+    Returns all the adapter info available.
     '''
     available_equipment = discover_entry_point_equipment()
-    equipment_codes = [code for code, _ in available_equipment]
-    return equipment_codes
+    # Dictionary with more information than just the name
+    equipment: list[dict[str, str]] = []
+    for code, cls, entry_point in available_equipment:
+        module = {}
+        module['code'] = code
+        module['label'] = code
+        module['name'] = code
+
+        module['class'] = cls
+        # Group, module, name
+        module['group'] = entry_point.group
+        module['module'] = entry_point.module
+        module['name'] = entry_point.name
+        # Add to the set
+        equipment.append(module)
+
+    # equipment_codes = [code for code, _, _ in available_equipment]
+    return equipment # equipment_codes

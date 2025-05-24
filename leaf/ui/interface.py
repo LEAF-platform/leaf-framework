@@ -1,4 +1,8 @@
 import logging
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -30,15 +34,23 @@ def load_content() -> None:
     response = httpx.get(url)
     adapter_content.clear()  # Clear previous content
     data = response.json()
-
+    # Get the list of installed adapters to filter out
+    installed_adapters = get_all_adapter_codes()
     for adapter in data:
         with adapter_content:
-            ui.label(f"Adapter: {adapter['name']}")
-            ui.button("Install", on_click=lambda a=adapter: install_adapter(a))
+            with ui.card().classes('max-w-lg'):
+                # Top right corner for the installation button
+                ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes('absolute top-2 right-2 bg-blue-500 text-white font-bold py-1 px-2 rounded')
+                ui.label(f"Adapter: {adapter['name']}")
+                ui.label(f"Description: {adapter['description']}")
 
 
-def install_adapter(adapter) -> None:
-    print(f"Installing {adapter['name']}...")
+def install_adapter(adapter: dict[Any, Any]) -> None:
+    print(f"Installing {adapter}...")
+    repository = adapter['repository']
+    # Pip install the adapter
+    subprocess.check_call([sys.executable, "-m", "pip", "install", f'git+{repository}'])
+    ui.navigate.reload()
 
 
 def start_nicegui() -> None:
@@ -61,13 +73,47 @@ def start_nicegui() -> None:
 
     with ui.tab_panels(tabs, value=logs_tab).classes('w-full'):
         # Configuration tab
-        with ui.tab_panels(tabs, value=config_tab).classes('w-full'):
+        with ui.tab_panel(config_tab).classes('w-full'):
             ui.label('LEAF Configuration').classes('text-xl font-bold')
+            # Code editor for YAML
+            from leaf.start import context
+            import os
+            curr_dir: Path = Path(os.path.dirname(os.path.realpath(__file__)))
+            configuration_path: Path = curr_dir / ".." / 'config' / 'configuration.yaml'
+            if os.path.exists(configuration_path):
+                with open(configuration_path, 'r') as file:
+                        context.config_yaml = file.read()
+            else:
+                logger.error("Configuration file not found")
+                context.config_yaml = '''# No configuration file found'''
+
+            with ui.row().classes('w-full'):
+                # Change width to 50% and height to 500px
+                editor = ui.codemirror(value=context.config_yaml, language="YAML").classes('w-1/2 h-96')
+                # Markdown next to the editor
+                ui.markdown('''
+                        # Configuration File
+                        The configuration file is a YAML file that defines the equipment instances and their requirements.
+                        The file is loaded when the application starts and can be modified in this editor.
+                        ''').classes('w-1/4 h-96')
+
+            # Button to start/restart the adapters
+            def restart_app() -> None:
+                # Write new configuration to file
+                logger.debug("Writing new configuration to file... " + str(configuration_path) + " with content: " + editor.value)
+                with open(configuration_path, 'w') as file:
+                    file.write(editor.value)
+                logger.info("Restarting...")
+                os.execl(sys.executable, sys.executable, *sys.argv)
+
+            # Button to restart the app and sent the editor.value to the restart_app function
+            ui.button('Restart App', on_click=restart_app)
+
 
         # Logs tab
         with ui.tab_panel(logs_tab):
             ui.label('LEAF Logs').classes('text-xl font-bold')
-            log = ui.log(max_lines=10).classes('w-full')
+            log = ui.log(max_lines=1000).classes('w-full', 'h-96')
             handler = LogElementHandler(log)
             logger.addHandler(handler)
             ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
@@ -75,18 +121,22 @@ def start_nicegui() -> None:
 
         # Plugins tab
         with ui.tab_panel(adapters_tab):
-            # Obtain a list of all available adapters
-            adapter_codes = get_all_adapter_codes()
+
+            # Acquire a list of all available adapters
+            adapters = get_all_adapter_codes()
             # Create a list of adapter names
             ui.label("Available Adapters:").classes('text-xl font-bold')
-            for adapter_code in adapter_codes:
+            for adapter in adapters:
                 # Create a button for each adapter
-                ui.label(adapter_code).classes('text-xl font-bold')
+                ui.label(adapter['code']).classes('text-xl font-bold')
             # Create a dialog to install adapters
             with ui.dialog() as install_adapters, ui.card():
+                # Just a black X button in the top right corner
+                ui.button('', icon='close', on_click=install_adapters.close).props('flat round').classes('absolute top-2 right-2')
+                ui.label('') # Empty label to create space for the button
                 global adapter_content
-                adapter_content = ui.label('Loading...')
-                ui.button('Close', on_click=install_adapters.close)
+                adapter_content = ui.label('')
+
 
             # Button to open the dialog
             ui.button('Install Adapters', on_click=lambda: [load_content(), install_adapters.open()]).classes('bg-blue-500 text-white font-bold py-2 px-4 rounded')
