@@ -113,7 +113,7 @@ def start_nicegui() -> None:
         # Logs tab
         with ui.tab_panel(logs_tab):
             ui.label('LEAF Logs').classes('text-xl font-bold')
-            log = ui.log(max_lines=1000).classes('w-full', 'h-96')
+            log = ui.log(max_lines=1000).classes('w-full h-96 overflow-y-auto')
             handler = LogElementHandler(log)
             logger.addHandler(handler)
             ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
