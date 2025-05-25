@@ -26,7 +26,7 @@ input_module_dir = os.path.join(root_dir, "modules", "input_modules")
 logger = get_logger(__name__, log_file="discovery.log",  log_level=logging.DEBUG)
 
 def discover_entry_point_equipment(
-    needed_codes: set[str],
+    needed_codes: set[str] = None,
     group: str = "leaf.adapters",
 ) -> list[tuple[str, Any, Any]]:
     """
