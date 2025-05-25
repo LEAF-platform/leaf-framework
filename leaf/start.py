@@ -95,6 +95,8 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
         default=None
     )
 
+    parser.add_argument("--shutdown", action="store_true", help=argparse.SUPPRESS)
+
     return parser.parse_args(args=args)
 
 
@@ -311,15 +313,21 @@ def create_configuration(args: argparse.Namespace) -> None:
 
 def main(args: Optional[list[str]] = None) -> None:
     """Main entry point for the LEAF proxy."""
-    # Start NiceGUI in a separate thread
+    context = AppContext()
+    context.args = parse_args(args)
 
+    if context.args.shutdown:
+        logger.info("Shutdown signal received. Shutting down the LEAF framework.")
+        return
+
+    logger.info("Context arguments parsed: %s", context.args)
+
+    # Start NiceGUI in a separate thread
     nicegui_thread = threading.Thread(target=start_nicegui, daemon=True)
     nicegui_thread.start()
 
     welcome_message()
-    context = AppContext()
-    context.args = parse_args(args)
-    
+
     # Load configuration file first.
 
     if not context.args.config or not os.path.exists(context.args.config):
