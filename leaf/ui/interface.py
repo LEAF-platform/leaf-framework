@@ -1,13 +1,14 @@
 import logging
 import subprocess
 import sys
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import httpx
 
 from leaf.registry.discovery import get_all_adapter_codes
-from nicegui import ui
+from nicegui import ui, app
 
 logger = logging.getLogger()
 
@@ -98,16 +99,25 @@ def start_nicegui() -> None:
                         ''').classes('w-1/4 h-96')
 
             # Button to start/restart the adapters
-            def restart_app() -> None:
+            def restart_app(restart: bool) -> None:
                 # Write new configuration to file
-                logger.debug("Writing new configuration to file... " + str(configuration_path) + " with content: " + editor.value)
-                with open(configuration_path, 'w') as file:
-                    file.write(editor.value)
-                logger.info("Restarting...")
-                os.execl(sys.executable, sys.executable, *sys.argv)
+                if restart:
+                    logger.debug("Writing new configuration to file... " + str(configuration_path) + " with content: " + editor.value)
+                    with open(configuration_path, 'w') as file:
+                        file.write(editor.value)
+                    logger.info("Restarting...")
+                    os.execl(sys.executable, sys.executable, *sys.argv)
+                else:
+                    # Close the current window and shutdown the app
+                    ui.run_javascript('window.open(location.href, "_self", "");window.close()')
+                    os.execl(sys.executable, sys.executable, sys.argv[0], "--shutdown")
 
-            # Button to restart the app and sent the editor.value to the restart_app function
-            ui.button('Restart App', on_click=restart_app)
+
+            with ui.row().classes('w-full'):
+                # Button to restart the app and sent the editor.value to the restart_app function
+                ui.button('Restart App', on_click=partial(restart_app, True))
+                ui.button('Stop App', on_click=partial(restart_app, False))
+
 
 
         # Logs tab
