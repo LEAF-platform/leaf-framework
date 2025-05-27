@@ -375,3 +375,14 @@ def main(args: Optional[list[str]] = None) -> None:
     nicegui_thread.join()
     logger.info("NiceGUI thread has finished.")
     logger.info("LEAF Proxy has stopped.")
+
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1:])
+    except Exception as e:
+        logger.error("An error occurred in the main execution.", exc_info=e)
+        sys.exit(1)
+    finally:
+        logger.info("Exiting LEAF Proxy.")
+        sys.exit(0)
