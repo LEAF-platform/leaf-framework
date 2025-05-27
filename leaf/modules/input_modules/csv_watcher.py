@@ -30,7 +30,8 @@ class CSVWatcher(FileWatcher):
         metadata_manager: MetadataManager,
         callbacks: Optional[List[EventCallback]] = None,
         error_holder: Optional[ErrorHolder] = None,
-        delimiter: str = ";"
+        delimiter: Optional[str] = ";",
+        return_data: Optional[bool] = True,
     ) -> None:
         """
         Initialise the CSVWatcher.
@@ -41,12 +42,14 @@ class CSVWatcher(FileWatcher):
             callbacks (Optional[List[EventCallback]]): Callback functions triggered on file events.
             error_holder (Optional[ErrorHolder]): Optional error handler to capture and manage exceptions.
             delimiter (str): Delimiter used in the CSV file (default is ";").
+            return_data (Optional[bool]): Returns the data (content of file) is true else, return filename.
         """
         super().__init__(
             file_path,
             metadata_manager,
             callbacks=callbacks,
-            error_holder=error_holder
+            error_holder=error_holder,
+            return_data=return_data
         )
         self._delimiter: str = delimiter
 
@@ -62,8 +65,11 @@ class CSVWatcher(FileWatcher):
             if fp is None:
                 return
             self._last_created = time.time()
-            with open(fp, "r", encoding="latin-1") as file:
-                data = list(csv.reader(file, delimiter=self._delimiter))
+            if self._return_data:
+                with open(fp, "r", encoding="latin-1") as file:
+                    data = list(csv.reader(file, delimiter=self._delimiter))
+            else:
+                data = fp
         except Exception as e:
             self._file_event_exception(e, "creation")
         else:
@@ -81,8 +87,11 @@ class CSVWatcher(FileWatcher):
             fp = self._get_filepath(event)
             if fp is None or not self._is_last_modified():
                 return
-            with open(fp, "r", encoding="latin-1") as file:
-                data = list(csv.reader(file, delimiter=self._delimiter))
+            if self._return_data:
+                with open(fp, "r", encoding="latin-1") as file:
+                    data = list(csv.reader(file, delimiter=self._delimiter))
+            else:
+                data = fp
         except Exception as e:
             self._file_event_exception(e, "modification")
         else:

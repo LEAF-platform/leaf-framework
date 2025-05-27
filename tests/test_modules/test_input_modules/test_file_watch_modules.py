@@ -135,6 +135,119 @@ class TestFileWatcher(unittest.TestCase):
             self.assertEqual(len(topics[metadata.experiment.stop()]), 
                              num_create)
 
+    def test_watch_directory(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            def create_file(filepath, interval, count):
+                for _ in range(count):
+                    if os.path.isfile(filepath):
+                        os.remove(filepath)
+                    headers = ["Timestamp"] + [
+                        f"TestHeading{str(h)}" for h in range(0, 10)
+                    ]
+                    with open(filepath, "w", newline="") as file:
+                        writer = csv.writer(file)
+                        writer.writerow(headers)
+                    time.sleep(interval)
+
+            def mod_file(filename, interval, count):
+                for _ in range(count):
+                    now = datetime.now()
+                    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+                    with open(filename, "a") as file:
+                        file.write(f"{timestamp}\n")
+                    time.sleep(interval)
+
+            topics = {}
+            def mock_callback(topic,data):
+                nonlocal topics
+                topic = topic()
+                if topic not in topics:
+                    topics[topic] = []
+                topics[topic].append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir,metadata,
+                                  callbacks=[mock_callback])
+            num_create = 3
+            interval = 2
+            watcher.start()
+            creation_file = os.path.join(test_dir,"tmp.txt")
+            mthread = Thread(target=create_file, args=(creation_file, 
+                                                       interval, 
+                                                       num_create))
+            mthread.start()
+            mthread.join()
+            time.sleep(1)
+            watcher.stop()
+            self.assertEqual(len(topics[metadata.experiment.start()]), 
+                             num_create)
+
+
+
+            num_mod = 3
+            interval = 2
+            metadata = MetadataManager()
+            watcher = FileWatcher(creation_file,metadata,
+                                  callbacks=[mock_callback])
+            watcher.start()
+            mthread = Thread(target=mod_file, args=(creation_file, 
+                                                    interval, num_mod))
+            mthread.start()
+            mthread.join()
+            time.sleep(1)
+            watcher.stop()
+            self.assertEqual(len(topics[metadata.experiment.measurement()]), num_mod)
+
+    def test_watch_directory_return_filepath(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            def create_file(filepath, interval):
+                if os.path.isfile(filepath):
+                    os.remove(filepath)
+                headers = ["Timestamp"] + [
+                    f"TestHeading{str(h)}" for h in range(0, 10)
+                ]
+                with open(filepath, "w", newline="") as file:
+                    writer = csv.writer(file)
+                    writer.writerow(headers)
+                time.sleep(interval)
+
+            def mod_file(filename, interval):
+                now = datetime.now()
+                timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+                with open(filename, "a") as file:
+                    file.write(f"{timestamp}\n")
+                time.sleep(interval)
+
+            topics = {}
+            creation_file = os.path.join(test_dir,"tmp.txt")
+            def mock_callback(topic,data):
+                nonlocal topics
+                topic = topic()
+                self.assertEqual(data,creation_file)
+                if topic not in topics:
+                    topics[topic] = []
+                topics[topic].append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir,metadata,
+                                  callbacks=[mock_callback],
+                                  return_data=False)
+            interval = 2
+            watcher.start()
+            
+            mthread = Thread(target=create_file, args=(creation_file, 
+                                                       interval))
+            mthread.start()
+            mthread.join()
+            time.sleep(1)
+            self.assertEqual(len(topics[metadata.experiment.start()]),1)
+            mthread = Thread(target=mod_file, args=(creation_file, 
+                                                    interval))
+            mthread.start()
+            mthread.join()
+            time.sleep(1)
+            watcher.stop()
+            self.assertEqual(len(topics[metadata.experiment.measurement()]),1)
 
 if __name__ == "__main__":
     unittest.main()
