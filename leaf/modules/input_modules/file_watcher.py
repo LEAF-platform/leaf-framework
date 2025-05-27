@@ -133,6 +133,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             fp = self._get_filepath(event)
             if fp is None:
                 return
+            if not os.path.isfile(fp):
+                logger.debug(f"This is not a file: {fp}")
+                return
             self._last_created = time.time()
             with open(fp, "r") as file:
                 data = file.read()
@@ -149,7 +152,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         """
         try:
             fp = self._get_filepath(event)
-            if fp is None or not self._is_last_modified():
+            if fp is None or not self._is_last_modified() or not os.path.isfile(fp):
                 return
             with open(fp, "r") as file:
                 data = file.read()
