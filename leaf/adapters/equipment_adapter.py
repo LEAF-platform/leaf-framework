@@ -91,12 +91,13 @@ class AbstractInterpreter(ABC):
         Returns:
             Any: Forwarded or cleaned-up stop payload.
         """
-        if self.TIMESTAMP_KEY not in data:
-            data[self.TIMESTAMP_KEY] = time.time()
-        if self.EXPERIMENT_ID_KEY not in data:
-            data[self.EXPERIMENT_ID_KEY] = self.id
-        if self._start_time is not None:
-            data[self.RUNTIME_KEY] = time.time() - self._start_time
+        if isinstance(data,dict):
+            if self.TIMESTAMP_KEY not in data:
+                data[self.TIMESTAMP_KEY] = time.time()
+            if self.EXPERIMENT_ID_KEY not in data:
+                data[self.EXPERIMENT_ID_KEY] = self.id
+            if self._start_time is not None:
+                data[self.RUNTIME_KEY] = time.time() - self._start_time
         self._last_measurement = None
         self._start_time = None
         return data

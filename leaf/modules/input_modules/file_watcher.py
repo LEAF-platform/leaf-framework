@@ -35,6 +35,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         metadata_manager: MetadataManager,
         callbacks: Optional[List[Callable[[str, str], None]]] = None,
         error_holder: Optional[ErrorHolder] = None,
+        return_data:Optional[bool]=True
     ) -> None:
         """
         Initialise FileWatcher.
@@ -44,6 +45,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             metadata_manager (MetadataManager): Metadata manager for associated data.
             callbacks (Optional[List[Callable]]): Callbacks for file events.
             error_holder (Optional[ErrorHolder]): Optional error holder for capturing exceptions.
+            return_data (Optional[bool]): Returns the data (content of file) is true else, return filename.
 
         Raises:
             AdapterBuildError: Raised if the provided file path is invalid.
@@ -67,9 +69,11 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         except TypeError:
             raise AdapterBuildError(f"{path} is not a valid path for FileWatcher.")
 
+        self._return_data = return_data
         self._observer = Observer()
         self._observing = False
         self._observer.schedule(self, self._path, recursive=False)
+
 
         self._last_created: Optional[float] = None
         self._last_modified: Optional[float] = None
@@ -134,8 +138,11 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             if fp is None:
                 return
             self._last_created = time.time()
-            with open(fp, "r") as file:
-                data = file.read()
+            if self._return_data:
+                with open(fp, "r") as file:
+                    data = file.read()
+            else:
+                data = fp
         except Exception as e:
             self._file_event_exception(e, "creation")
         self._dispatch_callback(self._term_map[self.on_created], data)
@@ -151,8 +158,11 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             fp = self._get_filepath(event)
             if fp is None or not self._is_last_modified():
                 return
-            with open(fp, "r") as file:
-                data = file.read()
+            if self._return_data:
+                with open(fp, "r") as file:
+                    data = file.read()
+            else:
+                data = fp
         except Exception as e:
             self._file_event_exception(e, "modification")
         self._dispatch_callback(self._term_map[self.on_modified], data)
@@ -164,10 +174,16 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Args:
             event (FileSystemEvent): Event object indicating a file deletion.
         """
+        fp = self._get_filepath(event)
+        if fp is None:
+            return
         if self._file_name is None or event.src_path.endswith(self._file_name):
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            if self._return_data:
+                data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                data = fp
             self._dispatch_callback(self._term_map[self.on_deleted], 
-                                    timestamp)
+                                    data)
 
     def _get_filepath(self, event: FileSystemEvent) -> Optional[str]:
         """
@@ -180,7 +196,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             Optional[str]: Full file path if it matches the watched file, otherwise None.
         """
         if self._file_name is None:
-            return event.src_path
+            if os.path.isfile(event.src_path):
+                return event.src_path
+            return None
         elif event.src_path.endswith(self._file_name):
             return os.path.join(self._path, self._file_name)
         return None
