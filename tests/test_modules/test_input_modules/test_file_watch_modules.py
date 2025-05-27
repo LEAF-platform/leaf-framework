@@ -55,7 +55,6 @@ class TestFileWatcher(unittest.TestCase):
 
     def test_file_watcher_creation(self):
         with tempfile.TemporaryDirectory() as test_dir:
-
             def create_file(filepath, interval, count):
                 for _ in range(count):
                     if os.path.isfile(filepath):
@@ -135,6 +134,46 @@ class TestFileWatcher(unittest.TestCase):
             self.assertEqual(len(topics[metadata.experiment.stop()]), 
                              num_create)
 
+
+    def test_folder_watcher_file_creation(self):
+        # Test the creation of files in a directory that is being watched
+        with tempfile.TemporaryDirectory() as test_dir:
+            def create_file(filepath, interval, count):
+                for _ in range(count):
+                    if os.path.isfile(filepath):
+                        os.remove(filepath)
+                    headers = ["Timestamp"] + [
+                        f"TestHeading{str(h)}" for h in range(0, 10)
+                    ]
+                    with open(filepath, "w", newline="") as file:
+                        writer = csv.writer(file)
+                        writer.writerow(headers)
+                    time.sleep(interval)
+
+            topics = {}
+            def mock_callback(topic,data):
+                nonlocal topics
+                topic = topic()
+                if topic not in topics:
+                    topics[topic] = []
+                topics[topic].append(data)
+
+            creation_file = os.path.join(test_dir, "test_file_watcher_creation.csv")
+            metadata = MetadataManager()
+            # Create a watcher for the directory
+            watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback])
+            num_create = 3
+            interval = 2
+            watcher.start()
+            mthread = Thread(target=create_file, args=(creation_file,
+                                                       interval,
+                                                       num_create))
+            mthread.start()
+            mthread.join()
+            time.sleep(1)
+            watcher.stop()
+            self.assertEqual(len(topics[metadata.experiment.start()]),
+                             num_create)
 
 if __name__ == "__main__":
     unittest.main()
