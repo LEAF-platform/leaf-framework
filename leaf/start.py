@@ -78,8 +78,17 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     )
 
 
-    parser.add_argument("--debug", action="store_true",
-                        help="Enable debug logging.")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging.")
+
+    # Gui argument
+    parser.add_argument(
+        "--nogui",
+        action="store_true",
+        help="Run the proxy without the NiceGUI interface. Useful for headless environments.",
+    )
         
     parser.add_argument(
         "-c",
@@ -323,13 +332,16 @@ def main(args: Optional[list[str]] = None) -> None:
     logger.info("Context arguments parsed: %s", context.args)
 
     # Start NiceGUI in a separate thread
-    nicegui_thread = threading.Thread(target=start_nicegui, daemon=True)
-    nicegui_thread.start()
+    if not context.args.nogui:
+        logger.info("Running LEAF with NiceGUI interface.")
+        nicegui_thread = threading.Thread(target=start_nicegui, daemon=True)
+        nicegui_thread.start()
+    else:
+        logger.info("Running LEAF in headless mode without NiceGUI interface.")
 
     welcome_message()
 
     # Load configuration file first.
-
     if not context.args.config or not os.path.exists(context.args.config):
         logger.error("No configuration file provided...")
         # Load default configuration
