@@ -96,7 +96,10 @@ class TestContinousProcess(unittest.TestCase):
         self.metadata_manager.add_instance_value("institute",ins_id)
         self.metadata_manager.add_instance_value("instance_id",instance_id)
 
-        self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
+        directory = os.path.dirname(self.text_watch_file)
+        filename = os.path.basename(self.text_watch_file)
+        self.watcher = FileWatcher(directory, self.metadata_manager,
+                                   filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         self._phase = MeasurePhase(self.metadata_manager)
         self._module = ContinousProcess(output,self._phase)
@@ -145,7 +148,9 @@ class TestDiscreteProcess(unittest.TestCase):
         self.metadata_manager.add_instance_value("institute",ins_id)
         self.metadata_manager.add_instance_value("instance_id",instance_id)
         
-        self.watcher = FileWatcher(self.text_watch_file, self.metadata_manager)
+        directory = os.path.dirname(self.text_watch_file)
+        filename = os.path.basename(self.text_watch_file)
+        self.watcher = FileWatcher(directory, self.metadata_manager,filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, 
                       clientid=None)
 

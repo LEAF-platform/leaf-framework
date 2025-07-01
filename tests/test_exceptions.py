@@ -27,7 +27,6 @@ from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.keydb import KEYDB
 from leaf.modules.output_modules.file import FILE
 from leaf.modules.input_modules.file_watcher import FileWatcher
-from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
@@ -91,7 +90,9 @@ class MockEquipment(EquipmentAdapter):
     def __init__(self, instance_data,equipment_data,
                   fp, error_holder=None) -> None:
         metadata_manager = MetadataManager()
-        watcher = FileWatcher(fp, metadata_manager)
+        directory = os.path.dirname(fp)
+        filename = os.path.basename(fp)
+        watcher = FileWatcher(directory, metadata_manager,filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         start_p = ControlPhase(metadata_manager.experiment.start, metadata_manager)
         stop_p = ControlPhase(metadata_manager.experiment.stop, metadata_manager)
@@ -628,12 +629,12 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         unique_instance_id = str(uuid.uuid4())
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
-        self.file_path = os.path.join(self.temp_dir.name, unique_file_name)
 
         self.metadata_manager = MagicMock()
         self.file_watcher = FileWatcher(
-            self.file_path,
-            metadata_manager=self.metadata_manager)
+            self.temp_dir.name,
+            metadata_manager=self.metadata_manager,
+            filenames=unique_file_name)
 
     @patch("leaf.modules.input_modules.file_watcher.Observer.start")
     def test_file_watcher_start_os_error(self, mock_observer_start) -> None:
@@ -667,9 +668,12 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
 
     @patch("builtins.open", new_callable=mock_open)
     def test_csv_watcher_on_created_parse_error(self, mock_open_file) -> None:
-        # Setup CSVWatcher and simulate csv.Error during file reading
-        csv_watcher = CSVWatcher(self.file_path, 
-                                 metadata_manager=self.metadata_manager
+        # Setup Watcher and simulate csv.Error during file reading
+        directory = os.path.dirname(self.file_path)
+        filename = os.path.basename(self.file_path)
+        csv_watcher = FileWatcher(directory, 
+                                 metadata_manager=self.metadata_manager,
+                                 filenames=filename
         )
         mock_open_file.side_effect = csv_error("CSV parsing failed")
         mock_event = MagicMock()

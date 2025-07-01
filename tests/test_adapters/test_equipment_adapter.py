@@ -86,7 +86,10 @@ class MockEquipmentAdapter(EquipmentAdapter):
     def __init__(self, instance_data,equipment_data, fp,
                  experiment_timeout=None):
         metadata_manager = MetadataManager()
-        watcher = FileWatcher(fp, metadata_manager)
+        directory = os.path.dirname(fp)
+        filename = os.path.basename(fp)
+        watcher = FileWatcher(directory, metadata_manager,
+                              filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         start_p = ControlPhase(metadata_manager.experiment.start)
         stop_p = ControlPhase(metadata_manager.experiment.stop)
@@ -165,7 +168,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         timeout = 30
         cur_count = 0
         while not adapter.is_running():
-            time.sleep(0.5)
+            time.sleep(1)
             cur_count += 1
             if cur_count > timeout:
                 self.fail("Unable to initialise.")
@@ -184,8 +187,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_start(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         if self.start_topic in self.mock_client.messages:
             del self.mock_client.messages[self.start_topic]
         mthread = Thread(target=self._adapter.start)
@@ -202,8 +205,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_stop(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         mthread = Thread(target=self._adapter.start)
         mthread.start()
         self.wait_for_adapter_start(self._adapter)
@@ -225,8 +228,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_update(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
         time.sleep(1)

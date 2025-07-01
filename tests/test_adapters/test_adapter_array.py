@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.adapters.core_adapters.discrete_experiment_adapter import DiscreteExperimentAdapter
-from leaf.modules.input_modules.csv_watcher import CSVWatcher
+from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
@@ -105,7 +105,8 @@ class TestAdapterArray(unittest.TestCase):
         equipment_data = {"adapter_id" : f"Equipment_{unique_id1}",}
         metadata_manager1 = MetadataManager()
         metadata_manager1.add_equipment_data(equipment_data)
-        watcher1 = CSVWatcher(self.watch_file1,metadata_manager1)
+        watcher1 = FileWatcher(self.temp_dir1.name,metadata_manager1,
+                               filenames=f"TestAdapterArray_{unique_id1}.txt")
         self._adapter = DiscreteExperimentAdapter(instance_data1, watcher1,
                                          self.output,
                                          MockBioreactorInterpreter(),
@@ -117,7 +118,8 @@ class TestAdapterArray(unittest.TestCase):
 
         metadata_manager2 = MetadataManager()
         metadata_manager2.add_equipment_data(equipment_data2)
-        watcher2 = CSVWatcher(self.watch_file2,metadata_manager2)
+        watcher2 = FileWatcher(self.temp_dir2.name,metadata_manager2,
+                               filenames=f"TestAdapterArray_{unique_id2}.txt")
         self._adapter2 = DiscreteExperimentAdapter(instance_data2, watcher2, 
                                           self.output,
                                           MockBioreactorInterpreter(),

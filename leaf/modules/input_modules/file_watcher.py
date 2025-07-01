@@ -89,6 +89,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         )
 
         self._paths = [paths] if isinstance(paths, str) else paths
+        self._paths = [p if p != "" else "." for p in paths]
         if isinstance(filenames, str):
             self._filenames = [filenames]
         else:
@@ -118,7 +119,6 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         try:
             self._observer = Observer()
             for path in self._paths:
-                os.makedirs(path, exist_ok=True)
                 self._observer.schedule(self, path, recursive=False)
             if not self._observer.is_alive():
                 self._observer.start()
