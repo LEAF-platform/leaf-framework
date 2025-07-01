@@ -57,8 +57,8 @@ class MockBioreactorInterpreter(AbstractInterpreter):
         return
     
 def _create_file(adapter) -> None:
-    watch_file = os.path.join(adapter._watcher._path,
-                              adapter._watcher._file_name)
+    watch_file = os.path.join(adapter._watcher._paths[0],
+                              adapter._watcher._filenames[0])
     if os.path.isfile(watch_file):
         os.remove(watch_file)
     shutil.copyfile(initial_file, watch_file)
@@ -66,8 +66,8 @@ def _create_file(adapter) -> None:
 
 
 def _modify_file(adapter) -> None:
-    watch_file = os.path.join(adapter._watcher._path,
-                              adapter._watcher._file_name)
+    watch_file = os.path.join(adapter._watcher._paths[0],
+                              adapter._watcher._filenames[0])
     with open(measurement_file, "r") as src:
         content = src.read()
     with open(watch_file, "a") as dest:
@@ -76,8 +76,8 @@ def _modify_file(adapter) -> None:
 
 
 def _delete_file(adapter) -> None:
-    watch_file = os.path.join(adapter._watcher._path,
-                              adapter._watcher._file_name)
+    watch_file = os.path.join(adapter._watcher._paths[0],
+                              adapter._watcher._filenames[0])
     if os.path.isfile(watch_file):
         os.remove(watch_file)
 
@@ -91,10 +91,10 @@ class TestAdapterArray(unittest.TestCase):
         unique_id1 = str(uuid.uuid4())
         unique_id2 = str(uuid.uuid4())
         self.watch_file1 = os.path.join(
-            self.temp_dir1.name, f"TestAdapterArray_{unique_id1}.txt"
+            self.temp_dir1.name, f"TestAdapterArray_{unique_id1}.csv"
         )
         self.watch_file2 = os.path.join(
-            self.temp_dir2.name, f"TestAdapterArray_{unique_id2}.txt"
+            self.temp_dir2.name, f"TestAdapterArray_{unique_id2}.csv"
         )
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         self.output = MQTT(broker, port, username=un, password=pw)
@@ -106,7 +106,7 @@ class TestAdapterArray(unittest.TestCase):
         metadata_manager1 = MetadataManager()
         metadata_manager1.add_equipment_data(equipment_data)
         watcher1 = FileWatcher(self.temp_dir1.name,metadata_manager1,
-                               filenames=f"TestAdapterArray_{unique_id1}.txt")
+                               filenames=f"TestAdapterArray_{unique_id1}.csv")
         self._adapter = DiscreteExperimentAdapter(instance_data1, watcher1,
                                          self.output,
                                          MockBioreactorInterpreter(),
@@ -119,7 +119,7 @@ class TestAdapterArray(unittest.TestCase):
         metadata_manager2 = MetadataManager()
         metadata_manager2.add_equipment_data(equipment_data2)
         watcher2 = FileWatcher(self.temp_dir2.name,metadata_manager2,
-                               filenames=f"TestAdapterArray_{unique_id2}.txt")
+                               filenames=f"TestAdapterArray_{unique_id2}.csv")
         self._adapter2 = DiscreteExperimentAdapter(instance_data2, watcher2, 
                                           self.output,
                                           MockBioreactorInterpreter(),

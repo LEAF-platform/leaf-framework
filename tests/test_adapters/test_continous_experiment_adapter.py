@@ -163,8 +163,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_error_phase(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
         time.sleep(1)

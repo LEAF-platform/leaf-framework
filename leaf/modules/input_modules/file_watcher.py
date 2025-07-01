@@ -87,7 +87,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             callbacks=callbacks,
             error_holder=error_holder,
         )
-
+        if paths is None:
+            excp = AdapterBuildError("No directory provided")
+            self._handle_exception(excp)
         self._paths = [paths] if isinstance(paths, str) else paths
         self._paths = [p if p != "" else "." for p in self._paths]
         if isinstance(filenames, str):
@@ -250,12 +252,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         reader = file_readers.get(ext)
 
         if reader:
-            try:
-                return reader(fp)
-            except Exception as e:
-                msg = f"Error using reader for '{ext}': {e}"
-                self._handle_exception(InputError(msg))
-                return None
+            return reader(fp)
 
         try:
             with open(fp, "r", encoding="utf-8") as file:
@@ -274,9 +271,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             event_type (str): Type of event that triggered the exception.
         """
         if isinstance(error, FileNotFoundError):
-            message = f"File not found during {event_type} event."
+            message = f"File not found during {event_type} event"
         elif isinstance(error, PermissionError):
-            message = f"Permission denied when accessing file during {event_type} event."
+            message = f"Permission denied when accessing file during {event_type} event"
         elif isinstance(error, IOError):
             message = f"I/O error during {event_type} event: {error}"
         elif isinstance(error, UnicodeDecodeError):
@@ -298,9 +295,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             InputError: Custom error based on the OS error code.
         """
         if e.errno == errno.EACCES:
-            return InputError("Permission denied: Unable to access one or more watch paths.")
+            return InputError("Permission denied: Unable to access one or more watch paths")
         elif e.errno == errno.ENOSPC:
-            return InputError("Inotify watch limit reached. Cannot add more watches.")
+            return InputError("Inotify watch limit reached. Cannot add more watches")
         elif e.errno == errno.ENOENT:
-            return InputError("One or more watch paths do not exist.")
+            return InputError("One or more watch paths do not exist")
         return InputError(f"Unexpected OS error: {e}")
