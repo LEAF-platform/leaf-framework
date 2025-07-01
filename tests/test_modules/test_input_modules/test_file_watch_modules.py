@@ -16,6 +16,19 @@ from leaf_register.metadata import MetadataManager
 
 
 class TestFileWatcher(unittest.TestCase):
+    def _write_csv_file(self, filepath, rows, delimiter=","):
+        with open(filepath, "w", newline="") as file:
+            writer = csv.writer(file, delimiter=delimiter)
+            for row in rows:
+                writer.writerow(row)
+
+    def _write_file(self, path, rows, delimiter="\t"):
+        with open(path, "w", newline="") as f:
+            writer = csv.writer(f, delimiter=delimiter)
+            for row in rows:
+                writer.writerow(row)
+
+
     def test_file_watcher_change(self):
         with tempfile.TemporaryDirectory() as test_dir:
             def mod_file(filename, interval, count):
@@ -34,7 +47,8 @@ class TestFileWatcher(unittest.TestCase):
                     topics[topic] = []
                 topics[topic].append(data)
 
-            text_watch_file = os.path.join(test_dir, "test_file_watcher_change.txt")
+            test_fn = "test_file_watcher_change.txt"
+            text_watch_file = os.path.join(test_dir, test_fn)
             if not os.path.isfile(text_watch_file):
                 with open(text_watch_file, "w"):
                     pass
@@ -42,8 +56,9 @@ class TestFileWatcher(unittest.TestCase):
             num_mod = 3
             interval = 2
             metadata = MetadataManager()
-            watcher = FileWatcher(text_watch_file,metadata,
-                                  callbacks=[mock_callback])
+            watcher = FileWatcher(test_dir,metadata,
+                                  callbacks=[mock_callback],
+                                  filenames=test_fn)
             watcher.start()
             mthread = Thread(target=mod_file, args=(text_watch_file, 
                                                     interval, num_mod))
@@ -76,14 +91,16 @@ class TestFileWatcher(unittest.TestCase):
                     topics[topic] = []
                 topics[topic].append(data)
 
-            creation_file = os.path.join(test_dir, 
-                                         "test_file_watcher_creation.csv")
+            test_fn = "test_file_watcher_creation.csv"
+            creation_dir = test_dir
             metadata = MetadataManager()
-            watcher = FileWatcher(creation_file,metadata,
-                                  callbacks=[mock_callback])
+            watcher = FileWatcher(creation_dir,metadata,
+                                  callbacks=[mock_callback],
+                                  filenames=test_fn)
             num_create = 3
             interval = 2
             watcher.start()
+            creation_file = os.path.join(creation_dir,test_fn)
             mthread = Thread(target=create_file, args=(creation_file, 
                                                        interval, 
                                                        num_create))
@@ -117,16 +134,19 @@ class TestFileWatcher(unittest.TestCase):
                 if topic not in topics:
                     topics[topic] = []
                 topics[topic].append(data)
-
-            deletion_file = os.path.join(test_dir, "test_file_watcher_deletion.csv")
+            
+            test_filename = "test_file_watcher_deletion.csv"
+            delete_dir = test_dir
             metadata = MetadataManager()
-            watcher = FileWatcher(deletion_file,metadata,
-                                  callbacks=[mock_callback])
+            watcher = FileWatcher(delete_dir,metadata,
+                                  callbacks=[mock_callback],
+                                  filenames=test_filename)
             num_create = 3
             interval = 2
             watcher.start()
+            delete_fn = os.path.join(delete_dir,test_filename)
             mthread = Thread(
-                target=delete_file, args=(deletion_file, interval, num_create)
+                target=delete_file, args=(delete_fn, interval, num_create)
             )
             mthread.start()
             mthread.join()
@@ -171,8 +191,9 @@ class TestFileWatcher(unittest.TestCase):
             num_create = 3
             interval = 2
             watcher.start()
-            creation_file = os.path.join(test_dir,"tmp.txt")
-            mthread = Thread(target=create_file, args=(creation_file, 
+            tmp_fn = "tmp.txt"
+            creation_dir = os.path.join(test_dir,tmp_fn)
+            mthread = Thread(target=create_file, args=(creation_dir, 
                                                        interval, 
                                                        num_create))
             mthread.start()
@@ -187,10 +208,11 @@ class TestFileWatcher(unittest.TestCase):
             num_mod = 3
             interval = 2
             metadata = MetadataManager()
-            watcher = FileWatcher(creation_file,metadata,
-                                  callbacks=[mock_callback])
+            watcher = FileWatcher(test_dir,metadata,
+                                  callbacks=[mock_callback],
+                                  filenames=tmp_fn)
             watcher.start()
-            mthread = Thread(target=mod_file, args=(creation_file, 
+            mthread = Thread(target=mod_file, args=(creation_dir, 
                                                     interval, num_mod))
             mthread.start()
             mthread.join()
@@ -219,7 +241,8 @@ class TestFileWatcher(unittest.TestCase):
                 time.sleep(interval)
 
             topics = {}
-            creation_file = os.path.join(test_dir,"tmp.txt")
+            tmp_fn = "tmp.txt"
+            creation_dir = os.path.join(test_dir)
             def mock_callback(topic,data):
                 nonlocal topics
                 topic = topic()
@@ -231,10 +254,11 @@ class TestFileWatcher(unittest.TestCase):
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir,metadata,
                                   callbacks=[mock_callback],
-                                  return_data=False)
+                                  return_data=False,
+                                  filenames=tmp_fn)
             interval = 2
             watcher.start()
-            
+            creation_file = os.path.join(creation_dir,tmp_fn)
             mthread = Thread(target=create_file, args=(creation_file, 
                                                        interval))
             mthread.start()
@@ -248,6 +272,347 @@ class TestFileWatcher(unittest.TestCase):
             time.sleep(1)
             watcher.stop()
             self.assertEqual(len(topics[metadata.experiment.measurement()]),1)
+
+    def test_csv_file_creation(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            csv_file = os.path.join(test_dir, "test.csv")
+            topics = {}
+
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], filenames="test.csv")
+            watcher.start()
+
+            self._write_csv_file(csv_file, [["Time", "Value"], ["1", "100"]])
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics[metadata.experiment.start()]), 1)
+
+    def test_csv_file_modification(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            csv_file = os.path.join(test_dir, "test.csv")
+            self._write_csv_file(csv_file, [["Time", "Value"]])
+
+            topics = {}
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], filenames="test.csv")
+            watcher.start()
+
+            with open(csv_file, "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["2", "200"])
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics[metadata.experiment.measurement()]), 1)
+
+    def test_csv_file_deletion(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            csv_file = os.path.join(test_dir, "test.csv")
+            self._write_csv_file(csv_file, [["Time", "Value"]])
+
+            topics = {}
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], filenames="test.csv")
+            watcher.start()
+
+            os.remove(csv_file)
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics[metadata.experiment.stop()]), 1)
+
+    def test_csv_directory_watching(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            csv_file = os.path.join(test_dir, "dirwatch.csv")
+            topics = {}
+
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback])
+            watcher.start()
+
+            self._write_csv_file(csv_file, [["Time", "Val"], ["3", "300"]])
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics[metadata.experiment.start()]), 1)
+
+    def test_csv_return_filepath_only(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            csv_file = os.path.join(test_dir, "justpath.csv")
+            topics = {}
+
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                self.assertEqual(data, csv_file)
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], return_data=False, filenames="justpath.csv")
+            watcher.start()
+
+            self._write_csv_file(csv_file, [["A", "B"], ["X", "Y"]])
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics[metadata.experiment.start()]), 1)
+
+    def test_tsv_creation_and_callback(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            test_filename = "test_data.tsv"
+            file_path = os.path.join(test_dir, test_filename)
+
+            headers = ["Name", "Age", "Country"]
+            row = ["Alice", "30", "USA"]
+
+            topics = {}
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                if topic not in topics:
+                    topics[topic] = []
+                topics[topic].append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(
+                test_dir,
+                metadata_manager=metadata,
+                callbacks=[mock_callback],
+                filenames=test_filename,
+            )
+            watcher.start()
+
+            with open(file_path, "w", newline="") as f:
+                writer = csv.writer(f, delimiter="\t")
+                writer.writerow(headers)
+                writer.writerow(row)
+
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics[metadata.experiment.start()]), 1)
+            self.assertIn(headers, topics[metadata.experiment.start()][0])
+            self.assertIn(row, topics[metadata.experiment.start()][0])
+
+    def test_tsv_modification(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            test_filename = "test_data.tsv"
+            file_path = os.path.join(test_dir, test_filename)
+
+            with open(file_path, "w", newline="") as f:
+                writer = csv.writer(f, delimiter="\t")
+                writer.writerow(["Header1", "Header2"])
+
+            topics = {}
+            def mock_callback(topic, data):
+                nonlocal topics
+                topic = topic()
+                if topic not in topics:
+                    topics[topic] = []
+                topics[topic].append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(
+                test_dir,
+                metadata_manager=metadata,
+                callbacks=[mock_callback],
+                filenames=test_filename,
+            )
+            watcher.start()
+
+            def modify_file():
+                with open(file_path, "a", newline="") as f:
+                    writer = csv.writer(f, delimiter="\t")
+                    writer.writerow(["Val1", "Val2"])
+                time.sleep(0.5)
+
+            mod_thread = Thread(target=modify_file)
+            mod_thread.start()
+            mod_thread.join()
+
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertGreaterEqual(len(topics[metadata.experiment.measurement()]), 1)
+            found_row = any("Val1" in row for row in topics[metadata.experiment.measurement()][0])
+            self.assertTrue(found_row)
+
+    def test_any_file_content(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_csv = os.path.join(tmpdir, "data.csv")
+            file_txt = os.path.join(tmpdir, "data.txt")
+            file_tsv = os.path.join(tmpdir, "data.tsv")
+
+            topics = {}
+            def mock_cb(topic, data):
+                nonlocal topics
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(
+                tmpdir,
+                metadata_manager=metadata,
+                callbacks=[mock_cb],
+                return_data=True,
+            )
+            watcher.start()
+
+            # Create files *after* watcher starts
+            self._write_file(file_csv, [["A", "B"], ["1", "2"]], delimiter=",")
+            self._write_file(file_tsv, [["X", "Y"], ["9", "8"]], delimiter="\t")
+            with open(file_txt, "w") as f:
+                f.write("just some text")
+
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertGreaterEqual(len(topics.get(metadata.experiment.start(), [])), 2)
+
+    def test_csv_only_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_csv = os.path.join(tmpdir, "test.csv")
+            file_txt = os.path.join(tmpdir, "skip.txt")
+            file_tsv = os.path.join(tmpdir, "skip.tsv")
+
+            topics = {}
+            def mock_cb(topic, data):
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(
+                tmpdir,
+                metadata_manager=metadata,
+                callbacks=[mock_cb],
+                return_data=False,
+                filenames=[".csv"],
+            )
+            watcher.start()
+            time.sleep(1)
+
+            self._write_file(file_csv, [["col1", "col2"]], delimiter=",")
+            with open(file_txt, "w") as f:
+                f.write("txt")
+            self._write_file(file_tsv, [["tab1", "tab2"]], delimiter="\t")
+
+            time.sleep(1)
+            watcher.stop()
+
+            paths = topics.get(metadata.experiment.start(), [])
+            self.assertEqual(len(paths), 1)
+            self.assertTrue(paths[0].endswith(".csv"))
+
+    def test_malformed_csv_fallback(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bad_path = os.path.join(tmpdir, "bad.csv")
+
+            topics = {}
+            def cb(topic, data):
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(tmpdir, metadata, callbacks=[cb], filenames="bad.csv")
+            watcher.start()
+            with open(bad_path, "w") as f:
+                f.write('"\n"\n')
+
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics.get(metadata.experiment.start(), [])), 1)
+
+    def test_multiple_files_simultaneously(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            f1 = os.path.join(tmpdir, "data1.csv")
+            f2 = os.path.join(tmpdir, "data2.tsv")
+
+            topics = {}
+            def cb(topic, data):
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(
+                tmpdir,
+                metadata,
+                callbacks=[cb],
+                filenames=["data1.csv", "data2.tsv"],
+            )
+            watcher.start()
+
+            # Create files AFTER watcher starts
+            self._write_csv_file(f1, [["A", "B"]])
+            self._write_file(f2, [["X", "Y"]], delimiter="\t")
+
+            time.sleep(1)
+            watcher.stop()
+
+            self.assertEqual(len(topics.get(metadata.experiment.start(), [])), 2)
+
+    def test_multiple_supported_filetypes_content(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_file = os.path.join(tmpdir, "test1.csv")
+            tsv_file = os.path.join(tmpdir, "test2.tsv")
+            txt_file = os.path.join(tmpdir, "test3.txt")
+
+            topics = {}
+            def cb(topic, data):
+                topic = topic()
+                topics.setdefault(topic, []).append(data)
+
+            metadata = MetadataManager()
+            watcher = FileWatcher(
+                tmpdir,
+                metadata,
+                callbacks=[cb],
+                return_data=True,
+                filenames=[".csv", ".tsv", ".txt"]
+            )
+            watcher.start()
+
+            # Create files AFTER watcher starts
+            self._write_file(csv_file, [["A", "B"], ["1", "2"]], delimiter=",")
+            self._write_file(tsv_file, [["X", "Y"], ["9", "8"]], delimiter="\t")
+            with open(txt_file, "w", encoding="utf-8") as f:
+                f.write("Hello world\nSecond line")
+
+            time.sleep(1)
+            watcher.stop()
+
+            events = topics.get(metadata.experiment.start(), [])
+            self.assertEqual(len(events), 3)
+
+            csv_data = next((d for d in events if isinstance(d, list) and ["A", "B"] in d), None)
+            tsv_data = next((d for d in events if isinstance(d, list) and ["X", "Y"] in d), None)
+            txt_data = next((d for d in events if isinstance(d, str) and "Hello world" in d), None)
+
+            self.assertIsNotNone(csv_data, "CSV content missing or failed to parse")
+            self.assertIsNotNone(tsv_data, "TSV content missing or failed to parse")
+            self.assertIsNotNone(txt_data, "TXT content missing or failed to parse")
+
 
 if __name__ == "__main__":
     unittest.main()

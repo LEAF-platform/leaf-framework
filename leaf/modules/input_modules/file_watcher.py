@@ -1,11 +1,14 @@
 import os
 import time
 import errno
+import fnmatch
 import logging
+import csv
 from datetime import datetime
 from typing import Optional
 from typing import Callable
 from typing import List
+from typing import Union
 
 from watchdog.events import FileSystemEvent
 from watchdog.events import FileSystemEventHandler
@@ -22,6 +25,34 @@ logger = get_logger(__name__, log_file="input_module.log",
                     log_level=logging.DEBUG)
 
 
+def _read_csv(fp: str, encodings=["utf-8", "latin-1"], 
+             delimiters=[";", ",", "\t", "|"]):
+    if not isinstance(delimiters,list):
+        delimiters = [delimiters]
+    for encoding in encodings:
+        for delim in delimiters:
+            try:
+                with open(fp, "r", encoding=encoding) as f:
+                    reader = csv.reader(f, delimiter=delim)
+                    data = list(reader)
+                    if data and len(data[0]) > 1:
+                        return data
+            except (csv.Error, UnicodeDecodeError, FileNotFoundError):
+                continue
+    return None
+
+
+def _read_txt(fp: str) -> str:
+    with open(fp, "r", encoding="utf-8") as file:
+        return file.read()
+
+file_readers = {
+    ".csv": lambda fp: _read_csv(fp, delimiters=[";", ",", "\t", "|"]),
+    ".tsv": lambda fp: _read_csv(fp, delimiters="\t"),
+    ".txt": _read_txt,
+}
+
+
 class FileWatcher(FileSystemEventHandler, EventWatcher):
     """
     Monitors a specific file for creation, modification, and deletion events.
@@ -31,17 +62,18 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
 
     def __init__(
         self,
-        path: str,
+        paths: Union[str, List[str]],
         metadata_manager: MetadataManager,
         callbacks: Optional[List[Callable[[str, str], None]]] = None,
         error_holder: Optional[ErrorHolder] = None,
-        return_data:Optional[bool]=True
+        return_data: Optional[bool] = True,
+        filenames: Optional[Union[str, List[str]]] = None
     ) -> None:
         """
         Initialise FileWatcher.
 
         Args:
-            path (str): Path to the file or directory to monitor.
+            paths (Union[str, List[str]]): One or more directories to monitor.
             metadata_manager (MetadataManager): Metadata manager for associated data.
             callbacks (Optional[List[Callable]]): Callbacks for file events.
             error_holder (Optional[ErrorHolder]): Optional error holder for capturing exceptions.
@@ -56,24 +88,13 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             error_holder=error_holder,
         )
 
-        logger.debug(f"Initialising FileWatcher with file path {path}")
-
-        try:
-            if os.path.isdir(path):
-                self._path = path
-                self._file_name = None
-            else:
-                self._path, self._file_name = os.path.split(path)
-                if not self._path:
-                    self._path = "."
-        except TypeError:
-            raise AdapterBuildError(f"{path} is not a valid path for FileWatcher.")
-
+        self._paths = [paths] if isinstance(paths, str) else paths
+        if isinstance(filenames, str):
+            self._filenames = [filenames]
+        else:
+            self._filenames = filenames
         self._return_data = return_data
-        self._observer = Observer()
         self._observing = False
-        self._observer.schedule(self, self._path, recursive=False)
-
 
         self._last_created: Optional[float] = None
         self._last_modified: Optional[float] = None
@@ -94,10 +115,11 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             logger.warning("FileWatcher is already running.")
             return
 
-        os.makedirs(self._path, exist_ok=True)
         try:
             self._observer = Observer()
-            self._observer.schedule(self, self._path, recursive=False)
+            for path in self._paths:
+                os.makedirs(path, exist_ok=True)
+                self._observer.schedule(self, path, recursive=False)
             if not self._observer.is_alive():
                 self._observer.start()
             super().start()
@@ -139,8 +161,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
                 return
             self._last_created = time.time()
             if self._return_data:
-                with open(fp, "r") as file:
-                    data = file.read()
+                data = self._read_file_by_extension(fp)
             else:
                 data = fp
         except Exception as e:
@@ -159,8 +180,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             if fp is None or not self._is_last_modified():
                 return
             if self._return_data:
-                with open(fp, "r") as file:
-                    data = file.read()
+                data = self._read_file_by_extension(fp)
             else:
                 data = fp
         except Exception as e:
@@ -174,18 +194,19 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Args:
             event (FileSystemEvent): Event object indicating a file deletion.
         """
-        fp = self._get_filepath(event)
+        fp = self._get_filepath(event,file_exists=False)
         if fp is None:
             return
-        if self._file_name is None or event.src_path.endswith(self._file_name):
-            if self._return_data:
-                data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                data = fp
-            self._dispatch_callback(self._term_map[self.on_deleted], 
-                                    data)
 
-    def _get_filepath(self, event: FileSystemEvent) -> Optional[str]:
+        if self._return_data:
+            data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            data = fp
+        self._dispatch_callback(self._term_map[self.on_deleted], 
+                                data)
+
+    def _get_filepath(self, event: FileSystemEvent,
+                      file_exists = True) -> Optional[str]:
         """
         Retrieve the full file path for the event if it matches the watched file.
 
@@ -195,13 +216,19 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Returns:
             Optional[str]: Full file path if it matches the watched file, otherwise None.
         """
-        if self._file_name is None:
-            if os.path.isfile(event.src_path):
-                return event.src_path
+        if not os.path.isfile(event.src_path) and file_exists:
             return None
-        elif event.src_path.endswith(self._file_name):
-            return os.path.join(self._path, self._file_name)
-        return None
+
+        filename = os.path.basename(event.src_path)
+        if self._filenames:
+            for pattern in self._filenames:
+                if pattern.startswith("."):
+                    if filename.endswith(pattern):
+                        return event.src_path
+                elif fnmatch.fnmatch(filename, pattern):
+                    return event.src_path
+            return None
+        return event.src_path
 
     def _is_last_modified(self) -> bool:
         """
@@ -218,6 +245,26 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             return True
         return False
 
+    def _read_file_by_extension(self, fp: str):
+        ext = os.path.splitext(fp)[1].lower()
+        reader = file_readers.get(ext)
+
+        if reader:
+            try:
+                return reader(fp)
+            except Exception as e:
+                msg = f"Error using reader for '{ext}': {e}"
+                self._handle_exception(InputError(msg))
+                return None
+
+        try:
+            with open(fp, "r", encoding="utf-8") as file:
+                return file.read()
+        except Exception as e:
+            msg = f"Failed to read file '{fp}' as plain text: {e}"
+            self._handle_exception(InputError(msg))
+            return None
+
     def _file_event_exception(self, error: Exception, event_type: str) -> None:
         """
         Log and handle exceptions during file events.
@@ -226,18 +273,18 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             error (Exception): Exception encountered during event handling.
             event_type (str): Type of event that triggered the exception.
         """
-        file_name = self._file_name or "unspecified"
         if isinstance(error, FileNotFoundError):
-            message = f"File not found during {event_type} event: {file_name}"
+            message = f"File not found during {event_type} event."
         elif isinstance(error, PermissionError):
-            message = f"Permission denied when accessing file during {event_type} event: {file_name}"
+            message = f"Permission denied when accessing file during {event_type} event."
         elif isinstance(error, IOError):
-            message = f"I/O error during {event_type} event in file {file_name}: {error}"
+            message = f"I/O error during {event_type} event: {error}"
         elif isinstance(error, UnicodeDecodeError):
-            message = f"Encoding error while reading file {file_name} during {event_type} event: {error}"
+            message = f"Encoding error while reading file during {event_type} event: {error}"
         else:
-            message = f"Error during {event_type} event in file {file_name}: {error}"
+            message = f"Error during {event_type} event: {error}"
         self._handle_exception(InputError(message))
+
 
 
     def _create_input_error(self, e: OSError) -> InputError:
@@ -251,9 +298,9 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
             InputError: Custom error based on the OS error code.
         """
         if e.errno == errno.EACCES:
-            return InputError(f"Permission denied: Unable to access {self._path}")
+            return InputError("Permission denied: Unable to access one or more watch paths.")
         elif e.errno == errno.ENOSPC:
             return InputError("Inotify watch limit reached. Cannot add more watches.")
         elif e.errno == errno.ENOENT:
-            return InputError(f"Watch file does not exist: {self._path}")
+            return InputError("One or more watch paths do not exist.")
         return InputError(f"Unexpected OS error: {e}")
