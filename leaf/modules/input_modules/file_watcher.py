@@ -89,7 +89,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         )
 
         self._paths = [paths] if isinstance(paths, str) else paths
-        self._paths = [p if p != "" else "." for p in paths]
+        self._paths = [p if p != "" else "." for p in self._paths]
         if isinstance(filenames, str):
             self._filenames = [filenames]
         else:
