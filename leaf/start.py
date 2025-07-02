@@ -332,6 +332,7 @@ def main(args: Optional[list[str]] = None) -> None:
     logger.info("Context arguments parsed: %s", context.args)
 
     # Start NiceGUI in a separate thread
+    nicegui_thread: threading.Thread|None = None
     if not context.args.nogui:
         logger.info("Running LEAF with NiceGUI interface.")
         nicegui_thread = threading.Thread(target=start_nicegui, daemon=True)
@@ -384,9 +385,10 @@ def main(args: Optional[list[str]] = None) -> None:
                 context.error_handler,
             )
     # Wait for NiceGUI thread to finish
-    nicegui_thread.join()
-    logger.info("NiceGUI thread has finished.")
-    logger.info("LEAF Proxy has stopped.")
+    if nicegui_thread is not None:
+        nicegui_thread.join()
+        logger.info("NiceGUI thread has finished.")
+        logger.info("LEAF Proxy has stopped.")
 
 
 if __name__ == "__main__":
