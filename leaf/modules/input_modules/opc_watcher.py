@@ -8,6 +8,8 @@ try:
     from opcua.ua import DataChangeNotification   # type: ignore
     OPCUA_AVAILABLE = True
 except ImportError:
+    from leaf.start import logger
+    logger.warning("OPC UA library not available. OPCWatcher will not function.")
     OPCUA_AVAILABLE = False
     Client = Node = Subscription = DataChangeNotification = None  # Placeholders
 
