@@ -75,7 +75,14 @@ class MeasurePhase(PhaseModule):
                 leaf_exp = InterpreterError(ex)
                 self._handle_exception(leaf_exp)
                 return None
-            
+
+            if isinstance(result, bool):
+                if not result:
+                    return None
+                else:
+                    excp = AdapterLogicError("Interpreter returned boolean True value, expected data.")
+                    self._handle_exception(excp)
+                    return None
             if result is None:
                 excp = AdapterLogicError(
                     "Interpreter couldn't parse measurement, likely metadata has been "
