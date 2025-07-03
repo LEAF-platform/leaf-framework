@@ -79,7 +79,7 @@ class MeasurePhase(PhaseModule):
             if result is False:
                 # Case when the interpreter 
                 # doesnt want to send a message.
-                return result
+                return None
             
             if result is None:
                 excp = AdapterLogicError(
