@@ -31,10 +31,11 @@ publish:
   stage: publish
   image: python:3.12
   before_script:
-    - echo pip install poetry
-    - echo poetry config pypi-token.pypi "$PYPI_TOKEN"
-    - echo poetry build
+    - pip install poetry
+    - poetry config pypi-token.pypi "$PYPI_TOKEN"
+    - poetry config --list | grep pypi-token
+    - poetry build
   script:
-    - echo poetry publish
+    - poetry publish
   only:
     - dev  # restrict to dev branch
