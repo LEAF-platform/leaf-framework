@@ -32,7 +32,7 @@ publish:
   image: python:3.12
   before_script:
     - pip install poetry
-    - poetry config pypi-token.testpypi "$PYPI_TOKEN"
+    - poetry config pypi-token.pypi "$PYPI_TOKEN"
     - poetry build
   script:
     - poetry publish
