@@ -64,6 +64,20 @@ def start_nicegui(port: int = 8080) -> None:
     with ui.header().style('background-color: rgb(133, 171, 215); color: white; padding: 10px;'):
         with ui.row().classes('justify-between items-center w-full'):
             ui.label('LEAF Monitoring System').classes('text-2xl font-bold')
+            # Add a sun icon for light mode toggle
+            dark = ui.dark_mode()
+            is_dark = {'state': False}
+
+            def toggle_mode():
+                if is_dark['state']:
+                    dark.disable()
+                    button.icon = 'light_mode'  # sun icon
+                else:
+                    dark.enable()
+                    button.icon = 'dark_mode'  # moon icon
+                is_dark['state'] = not is_dark['state']
+
+            button = ui.button('', icon='light_mode', on_click=toggle_mode).props('flat round').classes('text-white bg-transparent hover:bg-blue-700 focus:bg-blue-700')
 
     # Tabs
     with ui.tabs().classes('w-full') as tabs:
