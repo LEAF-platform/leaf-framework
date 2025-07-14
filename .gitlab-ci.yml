@@ -1,6 +1,7 @@
 # Define stages of the pipeline
 stages:
   - test
+  - publish
 
 # Job to run tests
 test:
@@ -24,3 +25,16 @@ test:
     paths:
       - test-reports/
   timeout: 20m
+
+
+publish:
+  stage: publish
+  image: python:3.12
+  before_script:
+    - pip install poetry
+    - poetry config pypi-token.testpypi "$PYPI_TOKEN"
+    - poetry build
+  script:
+    - poetry publish
+  only:
+    - dev  # restrict to dev branch
