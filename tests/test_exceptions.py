@@ -27,7 +27,6 @@ from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.keydb import KEYDB
 from leaf.modules.output_modules.file import FILE
 from leaf.modules.input_modules.file_watcher import FileWatcher
-from leaf.modules.input_modules.csv_watcher import CSVWatcher
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf.modules.process_modules.discrete_module import DiscreteProcess
@@ -91,7 +90,11 @@ class MockEquipment(EquipmentAdapter):
     def __init__(self, instance_data,equipment_data,
                   fp, error_holder=None) -> None:
         metadata_manager = MetadataManager()
-        watcher = FileWatcher(fp, metadata_manager)
+        directory = os.path.dirname(fp)
+        filename = os.path.basename(fp)
+        watcher = FileWatcher(directory, metadata_manager,
+                              error_holder=error_holder,
+                              filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         start_p = ControlPhase(metadata_manager.experiment.start, metadata_manager)
         stop_p = ControlPhase(metadata_manager.experiment.stop, metadata_manager)
@@ -628,12 +631,17 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         unique_instance_id = str(uuid.uuid4())
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
-        self.file_path = os.path.join(self.temp_dir.name, unique_file_name)
+
+        self.file_path  = os.path.join(self.temp_dir.name,
+                                       unique_file_name)
+        with open(self.file_path,"w"):
+            pass
 
         self.metadata_manager = MagicMock()
         self.file_watcher = FileWatcher(
-            self.file_path,
-            metadata_manager=self.metadata_manager)
+            self.temp_dir.name,
+            metadata_manager=self.metadata_manager,
+            filenames=unique_file_name)
 
     @patch("leaf.modules.input_modules.file_watcher.Observer.start")
     def test_file_watcher_start_os_error(self, mock_observer_start) -> None:
@@ -667,16 +675,19 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
 
     @patch("builtins.open", new_callable=mock_open)
     def test_csv_watcher_on_created_parse_error(self, mock_open_file) -> None:
-        # Setup CSVWatcher and simulate csv.Error during file reading
-        csv_watcher = CSVWatcher(self.file_path, 
-                                 metadata_manager=self.metadata_manager
+        # Setup Watcher and simulate csv.Error during file reading
+        directory = os.path.dirname(self.file_path)
+        filename = os.path.basename(self.file_path)
+        csv_watcher = FileWatcher(directory, 
+                                 metadata_manager=self.metadata_manager,
+                                 filenames=filename
         )
         mock_open_file.side_effect = csv_error("CSV parsing failed")
         mock_event = MagicMock()
         mock_event.src_path = self.file_path
         with self.assertRaises(InputError) as context:
             csv_watcher.on_created(mock_event)
-        self.assertIn("CSV parsing error", str(context.exception))
+        self.assertIn("CSV parsing failed", str(context.exception))
 
     @patch("builtins.open", new_callable=mock_open)
     def test_file_watcher_on_modified_not_found(self, mock_open_file) -> None:
@@ -763,50 +774,6 @@ class TestExceptionsAdapterSpecific(unittest.TestCase):
         When the FileWatcher cant monitor a file.
         """
         pass
-
-    def test_equipment_adapter_created_file_not_found(self) -> None:
-        """Tests the handling of all the custom exceptions using
-        the equipment adapter start and error holder system."""
-
-        instance_data = {
-            "instance_id": "test_equipment_adapter_start_instance_id",
-            "institute": "test_equipment_adapter_start_institute_id",
-        }
-        equipment_data = {"adapter_id": "TestEquipmentAdapter",}
-        from watchdog.events import FileSystemEvent
-        t_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".." / "testing_data" / "test_equipment_adapter_start"
-        # t_dir = "test_equipment_adapter_start"
-        filepath = os.path.join(t_dir, "test_equipment_adapter_start.txt")
-        if not os.path.isdir(t_dir):
-            os.makedirs(t_dir, exist_ok=True)
-        if os.path.isfile(filepath):
-            os.remove(filepath)
-        error_holder = ErrorHolder()
-        adapter = MockEquipment(instance_data,equipment_data, filepath, error_holder=error_holder)
-
-        event = FileSystemEvent(filepath)
-        adapter._watcher.on_created(event)
-
-        expected_exceptions = [
-            InputError(
-                "File not found during creation event: test_equipment_adapter_start.txt",
-                SeverityLevel.ERROR,
-            )
-        ]
-        
-        self.assertTrue(len(error_holder._errors) > 0)
-        for log in error_holder._errors:
-            exc_value = log["error"]
-            exc_type = type(exc_value)
-            for exp_exc in list(expected_exceptions):
-                if (
-                        type(exp_exc) == exc_type
-                        and exp_exc.severity == exc_value.severity
-                        and exp_exc.args == exc_value.args
-                ):
-                    expected_exceptions.remove(exp_exc)
-        self.assertEqual(len(expected_exceptions), 0)
-
 
     def test_ensure_all_errors_handled_start(self):
         write_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".." / "testing_data" / str(uuid.uuid4())

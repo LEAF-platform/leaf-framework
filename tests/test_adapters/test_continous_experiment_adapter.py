@@ -60,7 +60,9 @@ class MockEquipmentAdapter(ContinuousExperimentAdapter):
     def __init__(self, instance_data,equipment_data, fp,
                  experiment_timeout=None):
         metadata_manager = MetadataManager()
-        watcher = FileWatcher(fp, metadata_manager)
+        directory = os.path.dirname(fp)
+        filename = os.path.basename(fp)
+        watcher = FileWatcher(directory, metadata_manager,filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         error_holder = ErrorHolder()
         metadata_manager.add_instance_data(instance_data)
@@ -161,8 +163,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_error_phase(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
         time.sleep(1)

@@ -68,7 +68,10 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 class MockEquipmentAdapter(EquipmentAdapter):
     def __init__(self, instance_data, equipment_data, fp, experiment_timeout=None):
         metadata_manager = MetadataManager()
-        watcher = FileWatcher(fp, metadata_manager)
+        directory = os.path.dirname(fp)
+        filename = os.path.basename(fp)
+        watcher = FileWatcher(directory, metadata_manager,
+                              filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         start_p = ControlPhase(metadata_manager.experiment.start)
         stop_p = ControlPhase(metadata_manager.experiment.stop)

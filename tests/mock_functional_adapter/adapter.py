@@ -5,7 +5,7 @@ from leaf_register.metadata import MetadataManager
 
 from leaf.adapters.core_adapters.discrete_experiment_adapter import DiscreteExperimentAdapter
 from leaf.error_handler.error_holder import ErrorHolder
-from leaf.modules.input_modules.csv_watcher import CSVWatcher
+from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.input_modules.external_event_watcher import ExternalEventWatcher
 from leaf.modules.output_modules.output_module import OutputModule
 from tests.mock_functional_adapter.interpreter import MockInterpreter
@@ -26,7 +26,10 @@ class MockFunctionalAdapter(DiscreteExperimentAdapter):
         external_watcher: ExternalEventWatcher = None,
     ):
         metadata_manager = MetadataManager()
-        watcher = CSVWatcher(write_file, metadata_manager)
+        directory = os.path.dirname(write_file)  # '/home/user/documents'
+        filename = os.path.basename(write_file)  # 'data.csv'
+        watcher = FileWatcher(directory, metadata_manager,
+                              filenames=filename)
         interpreter = MockInterpreter(error_holder=error_holder)
 
         super().__init__(

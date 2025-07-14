@@ -89,6 +89,14 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Run the proxy without the NiceGUI interface. Useful for headless environments.",
     )
+
+    # Port argument
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port to run the NiceGUI interface on. Default is 8080.",
+    )
         
     parser.add_argument(
         "-c",
@@ -335,7 +343,7 @@ def main(args: Optional[list[str]] = None) -> None:
     nicegui_thread: threading.Thread|None = None
     if not context.args.nogui:
         logger.info("Running LEAF with NiceGUI interface.")
-        nicegui_thread = threading.Thread(target=start_nicegui, daemon=True)
+        nicegui_thread = threading.Thread(target=start_nicegui, args=(context.args.port,), daemon=True)
         nicegui_thread.start()
     else:
         logger.info("Running LEAF in headless mode without NiceGUI interface.")

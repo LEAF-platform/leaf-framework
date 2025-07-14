@@ -7,7 +7,12 @@ try:
     from opcua import Client, Node, Subscription  # type: ignore
     from opcua.ua import DataChangeNotification   # type: ignore
     OPCUA_AVAILABLE = True
+    # Suppress OPC UA library logging to avoid cluttering the output
+    import logging
+    logging.getLogger('opcua').setLevel(logging.WARNING)
 except ImportError:
+    from leaf.start import logger
+    logger.warning("OPC UA library not available. OPCWatcher will not function.")
     OPCUA_AVAILABLE = False
     Client = Node = Subscription = DataChangeNotification = None  # Placeholders
 
@@ -61,6 +66,9 @@ class OPCWatcher(EventWatcher):
         """
         Start the OPCWatcher
         """
+        if not OPCUA_AVAILABLE:
+            raise Exception("OPC UA library is not available. Cannot start OPCWatcher.")
+
         print(f"Starting OPCWatcher on {self._host}:{self._port}")
         self._client = Client(f"opc.tcp://{self._host}:{self._port}")
         self._client.connect()

@@ -54,7 +54,7 @@ def install_adapter(adapter: dict[Any, Any]) -> None:
     ui.navigate.reload()
 
 
-def start_nicegui() -> None:
+def start_nicegui(port: int = 8080) -> None:
     ui.page('/')
     
       # Add favicon
@@ -174,4 +174,4 @@ def start_nicegui() -> None:
                     For more detailed documentation, visit [leaf.systemsbiology.nl](https://leaf.systemsbiology.nl)
                     ''')
 
-    ui.run(reload=False)
+    ui.run(reload=False, port=port)

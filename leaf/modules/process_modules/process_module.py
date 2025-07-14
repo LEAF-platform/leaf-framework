@@ -73,6 +73,8 @@ class ProcessModule:
                 if phase_data is None:
                     continue
                 for topic_val, data in phase_data:
+                    if data is None:
+                        continue
                     self._output.transmit(topic_val, data)
 
     def set_interpreter(self, interpreter: 'AbstractInterpreter') -> None:
