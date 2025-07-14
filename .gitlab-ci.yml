@@ -33,7 +33,6 @@ publish:
   before_script:
     - pip install poetry
     - poetry config pypi-token.pypi "$PYPI_TOKEN"
-    - poetry config --list | grep pypi-token
     - poetry build
   script:
     poetry publish
