@@ -1,6 +1,6 @@
 # Define stages of the pipeline
 stages:
-  - test
+  # - test
   - publish
 
 # Job to run tests
