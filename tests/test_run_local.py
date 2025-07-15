@@ -7,4 +7,4 @@ import leaf.start
 @unittest.skip("Skipping test for local")
 class TestLocal(unittest.TestCase):
     def test_local(self) -> None:
-        leaf.start.main([])
+        leaf.start.main(["--port", "8081"])

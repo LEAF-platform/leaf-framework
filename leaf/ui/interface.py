@@ -31,7 +31,7 @@ class LogElementHandler(logging.Handler):
 
 
 def load_content() -> None:
-    url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-marketplace/-/raw/main/adapters.json?ref_type=heads"
+    url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-marketplace/-/raw/main/adapter_cache.json"
     response = httpx.get(url)
     adapter_content.clear()  # Clear previous content
     data = response.json()
@@ -43,12 +43,12 @@ def load_content() -> None:
                 # Top right corner for the installation button
                 ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes('absolute top-2 right-2 bg-blue-500 text-white font-bold py-1 px-2 rounded')
                 ui.label(f"Adapter: {adapter['name']}")
-                ui.label(f"Description: {adapter['description']}")
+                # ui.label(f"Description: {adapter['description']}")
 
 
 def install_adapter(adapter: dict[Any, Any]) -> None:
     print(f"Installing {adapter}...")
-    repository = adapter['repository']
+    repository = adapter['repo_url']
     # Pip install the adapter
     subprocess.check_call([sys.executable, "-m", "pip", "install", f'git+{repository}'])
     ui.navigate.reload()
@@ -60,12 +60,14 @@ def start_nicegui(port: int = 8080) -> None:
       # Add favicon
     ui.add_head_html('<link rel="icon" type="image/x-icon" href="https://nicegui.io/favicon.ico">')
 
+    # Dark mode toggle
+    dark = ui.dark_mode()
+
     # Header layout
     with ui.header().style('background-color: rgb(133, 171, 215); color: white; padding: 10px;'):
         with ui.row().classes('justify-between items-center w-full'):
             ui.label('LEAF Monitoring System').classes('text-2xl font-bold')
             # Add a sun icon for light mode toggle
-            dark = ui.dark_mode()
             is_dark = {'state': False}
 
             def toggle_mode():
@@ -104,7 +106,8 @@ def start_nicegui(port: int = 8080) -> None:
 
             with ui.row().classes('w-full'):
                 # Change width to 50% and height to 500px
-                editor = ui.codemirror(value=context.config_yaml, language="YAML").classes('w-1/2 h-96')
+                editor = ui.codemirror(value=context.config_yaml, language="YAML", theme='basicDark').classes('w-1/2 h-96')
+
                 # Markdown next to the editor
                 ui.markdown('''
                         # Configuration File
