@@ -1,6 +1,8 @@
 import logging
+import os
 import subprocess
 import sys
+import time
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -30,24 +32,24 @@ class LogElementHandler(logging.Handler):
             self.handleError(record)
 
 
-def load_content() -> None:
-    url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-marketplace/-/raw/main/adapter_cache.json"
-    response = httpx.get(url)
-    adapter_content.clear()  # Clear previous content
-    data = response.json()
-    # Get the list of installed adapters to filter out
-    installed_adapters = get_all_adapter_codes()
-    with ui.row().classes('w-full'):
-        for index, adapter in enumerate(data):
-            if index % 4 == 0 and index != 0:
-                # Create a new row every 4 adapters
-                ui.row().classes('w-full')
-            with adapter_content:
-                with ui.card().classes('max-w-lg'):
-                    # Top right corner for the installation button
-                    ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes('absolute top-2 right-2 bg-blue-500 text-white font-bold py-1 px-2 rounded')
-                    ui.label(f"Adapter: {adapter['name']}")
-                    # ui.label(f"Description: {adapter['description']}")
+# def load_content() -> None:
+#     url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-marketplace/-/raw/main/adapter_cache.json"
+#     response = httpx.get(url)
+#     adapter_content.clear()  # Clear previous content
+#     data = response.json()
+#     # Get the list of installed adapters to filter out
+#     installed_adapters = get_all_adapter_codes()
+#     with ui.row().classes('w-full'):
+#         for index, adapter in enumerate(data):
+#             if index % 4 == 0 and index != 0:
+#                 # Create a new row every 4 adapters
+#                 ui.row().classes('w-full')
+#             with adapter_content:
+#                 with ui.card().classes('max-w-lg'):
+#                     # Top right corner for the installation button
+#                     ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes('absolute top-2 right-2 bg-blue-500 text-white font-bold py-1 px-2 rounded')
+#                     ui.label(f"Adapter: {adapter['name']}")
+#                     # ui.label(f"Description: {adapter['description']}")
 
 
 def install_adapter(adapter: dict[Any, Any]) -> None:
@@ -68,7 +70,41 @@ def install_adapter(adapter: dict[Any, Any]) -> None:
 
     logger.info(f"Installed {adapter['name']}:\n{result.stdout}")
     ui.notify(f"Installed {adapter['name']}")
-    # ui.navigate.reload()
+    time.sleep(1)
+
+    logger.info("Restarting...")
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+def uninstall_adapter(installed_adapter: dict) -> None:
+    print(f"Uninstalling {installed_adapter}...")
+    # repository = adapter['repo_url']
+    package_name = installed_adapter.get('name')  # or parse from repo_url if missing
+
+    if not package_name:
+        print(f"Cannot uninstall adapter without package name: {installed_adapter}")
+        return
+
+    logger.info(f"Uninstalling {package_name}...")
+    ui.notify(f"Uninstalling {package_name}", color='red')
+
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "uninstall", "-y", package_name],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    if result.returncode == 0:
+        print(f"Uninstalled {package_name} successfully.")
+        # Restart the application to apply changes
+        logger.info(f"Uninstalled {package_name} successfully.")
+        ui.notify(f"Uninstalled {package_name}")
+        time.sleep(1)
+        logger.info("Restarting...")
+        os.execl(sys.executable, sys.executable, *sys.argv)
+    else:
+        print(f"Failed to uninstall {package_name}.\nError: {result.stderr}")
+
 
 
 def start_nicegui(port: int = 8080) -> None:
@@ -173,21 +209,15 @@ def start_nicegui(port: int = 8080) -> None:
             with ui.row().classes('w-full'):
                 # Get the list of installed adapters
                 installed_adapters = get_all_adapter_codes()
-                for adapter in installed_adapters:
-                    def uninstall_adapter(a=adapter):
-                        logger.info(f"Uninstalling {a}...")
-                        # Here you would implement the actual uninstallation logic
-                        # For now, just log the action
-                        ui.notify(f"Uninstalled {a}")
-                        # Reload the page to reflect changes
-                        # ui.navigate.reload()
+                for installed_adapter in installed_adapters:
+                    print(installed_adapter)
                     # Create a button for each adapter
                     with ui.card().tight().classes(
                             'w-[200px] h-[200px] flex flex-col justify-start p-4 shadow-md border border-gray-100 rounded-lg hover:shadow-lg hover:-translate-y-1 transition-all duration-200'):
-                        ui.label(adapter['code']).classes('text-xl font-bold text-center truncate w-full')
-                        ui.label(adapter['name']).classes('text-sm text-gray-500 text-center truncate w-full')
+                        ui.label(installed_adapter['code']).classes('text-xl font-bold text-center truncate w-full')
+                        ui.label(installed_adapter['name']).classes('text-sm text-gray-500 text-center truncate w-full')
                         ui.element('div').classes('flex-grow')
-                        ui.button('Uninstall', on_click=...).classes(
+                        ui.button('Uninstall', on_click=lambda _:uninstall_adapter(installed_adapter)).classes(
                             'text-xs bg-red-500 text-white font-semibold py-1 px-2 rounded w-full'
                         ).props('flat round')
                         # Bottom row for installing new adapters
