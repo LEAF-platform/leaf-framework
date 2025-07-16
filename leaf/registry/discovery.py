@@ -35,6 +35,7 @@ def discover_entry_point_equipment(
     discovered: list[tuple[str, Any, Any]] = []
 
     for entry_point in entry_points(group=group):
+        logger.debug("Found entry point: %s", entry_point)
         try:
             module_path = entry_point.module
             spec = importlib.util.find_spec(module_path)
@@ -45,6 +46,7 @@ def discover_entry_point_equipment(
             device_json_path = os.path.join(module_dir, "device.json")
 
             if not os.path.exists(device_json_path):
+                logger.warning("Missing device.json for %s", module_path)
                 continue
 
             with open(device_json_path, "r") as f:
@@ -155,23 +157,23 @@ def discover_external_inputs(
 
 
 def get_all_adapter_codes() -> list[dict[str, str]]:
-    '''
+    """
     Returns all the adapter info available.
-    '''
+    """
     available_equipment = discover_entry_point_equipment()
     # Dictionary with more information than just the name
     equipment: list[dict[str, str]] = []
     for code, cls, entry_point in available_equipment:
-        module = {}
-        module['code'] = code
-        module['label'] = code
-        module['name'] = code
+        module = {
+            'code': code,
+            'label': code,
+            'name': entry_point.name,
+            'class': cls,
+            'group': entry_point.group,
+            'module': entry_point.module
+        }
 
-        module['class'] = cls
         # Group, module, name
-        module['group'] = entry_point.group
-        module['module'] = entry_point.module
-        module['name'] = entry_point.name
         # Add to the set
         equipment.append(module)
 
