@@ -37,21 +37,38 @@ def load_content() -> None:
     data = response.json()
     # Get the list of installed adapters to filter out
     installed_adapters = get_all_adapter_codes()
-    for adapter in data:
-        with adapter_content:
-            with ui.card().classes('max-w-lg'):
-                # Top right corner for the installation button
-                ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes('absolute top-2 right-2 bg-blue-500 text-white font-bold py-1 px-2 rounded')
-                ui.label(f"Adapter: {adapter['name']}")
-                # ui.label(f"Description: {adapter['description']}")
+    with ui.row().classes('w-full'):
+        for index, adapter in enumerate(data):
+            if index % 4 == 0 and index != 0:
+                # Create a new row every 4 adapters
+                ui.row().classes('w-full')
+            with adapter_content:
+                with ui.card().classes('max-w-lg'):
+                    # Top right corner for the installation button
+                    ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes('absolute top-2 right-2 bg-blue-500 text-white font-bold py-1 px-2 rounded')
+                    ui.label(f"Adapter: {adapter['name']}")
+                    # ui.label(f"Description: {adapter['description']}")
 
 
 def install_adapter(adapter: dict[Any, Any]) -> None:
     print(f"Installing {adapter}...")
     repository = adapter['repo_url']
-    # Pip install the adapter
-    subprocess.check_call([sys.executable, "-m", "pip", "install", f'git+{repository}'])
-    ui.navigate.reload()
+
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", f'git+{repository}'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    if result.returncode != 0:
+        logger.error(f"Failed to install {adapter['name']}: {result.stderr}")
+        ui.notify(f"Failed to install {adapter['name']}", color='red')
+        return
+
+    logger.info(f"Installed {adapter['name']}:\n{result.stdout}")
+    ui.notify(f"Installed {adapter['name']}")
+    # ui.navigate.reload()
 
 
 def start_nicegui(port: int = 8080) -> None:
@@ -148,25 +165,72 @@ def start_nicegui(port: int = 8080) -> None:
 
         # Plugins tab
         with ui.tab_panel(adapters_tab):
+            # Create a two rows layout
 
-            # Acquire a list of all available adapters
-            adapters = get_all_adapter_codes()
-            # Create a list of adapter names
-            ui.label("Available Adapters:").classes('text-xl font-bold')
-            for adapter in adapters:
-                # Create a button for each adapter
-                ui.label(adapter['code']).classes('text-xl font-bold')
-            # Create a dialog to install adapters
-            with ui.dialog() as install_adapters, ui.card():
-                # Just a black X button in the top right corner
-                ui.button('', icon='close', on_click=install_adapters.close).props('flat round').classes('absolute top-2 right-2')
-                ui.label('') # Empty label to create space for the button
-                global adapter_content
-                adapter_content = ui.label('')
-
-
-            # Button to open the dialog
-            ui.button('Install Adapters', on_click=lambda: [load_content(), install_adapters.open()]).classes('bg-blue-500 text-white font-bold py-2 px-4 rounded')
+            # Top row installed adapters
+            with ui.row().classes('w-full'):
+                ui.label('Installed Adapters:').classes('text-xl font-bold')
+            with ui.row().classes('w-full'):
+                # Get the list of installed adapters
+                installed_adapters = get_all_adapter_codes()
+                for adapter in installed_adapters:
+                    def uninstall_adapter(a=adapter):
+                        logger.info(f"Uninstalling {a}...")
+                        # Here you would implement the actual uninstallation logic
+                        # For now, just log the action
+                        ui.notify(f"Uninstalled {a}")
+                        # Reload the page to reflect changes
+                        # ui.navigate.reload()
+                    # Create a button for each adapter
+                    with ui.card().tight().classes(
+                            'w-[200px] h-[200px] flex flex-col justify-start p-4 shadow-md border border-gray-100 rounded-lg hover:shadow-lg hover:-translate-y-1 transition-all duration-200'):
+                        ui.label(adapter['code']).classes('text-xl font-bold text-center truncate w-full')
+                        ui.label(adapter['name']).classes('text-sm text-gray-500 text-center truncate w-full')
+                        ui.element('div').classes('flex-grow')
+                        ui.button('Uninstall', on_click=...).classes(
+                            'text-xs bg-red-500 text-white font-semibold py-1 px-2 rounded w-full'
+                        ).props('flat round')
+                        # Bottom row for installing new adapters
+            with ui.row().classes('w-full'):
+                ui.label('Install New Adapters:').classes('text-xl font-bold')
+            # Load content for available adapters
+            # #load_content()
+            url = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-marketplace/-/raw/main/adapter_cache.json"
+            response = httpx.get(url)
+            adapter_content.clear()  # Clear previous content
+            data = response.json()
+            with ui.row().classes('w-full flex-wrap gap-4'):
+                for adapter in data:
+                    with ui.card().tight().classes(
+                            'w-[200px] h-[200px] flex flex-col justify-start p-4 shadow-md border border-gray-100 rounded-lg '
+                            'hover:shadow-lg hover:-translate-y-1 transition-all duration-200'
+                    ):
+                        ui.label(adapter['adapter_id']).classes('text-xl font-bold text-center truncate w-full')
+                        ui.label(adapter.get('name', '')).classes('text-sm text-gray-500 text-center truncate w-full')
+                        ui.element('div').classes('flex-grow')
+                        ui.button("Install", on_click=lambda a=adapter: install_adapter(a)).classes(
+                            'text-xs bg-blue-500 text-white font-semibold py-1 px-2 rounded w-full'
+                        ).props('flat round')
+            #             # ui.label(f"Description: {adapter['description']}")
+            #
+            # # Acquire a list of all available adapters
+            # adapters = get_all_adapter_codes()
+            # # Create a list of adapter names
+            # ui.label("Available Adapters:").classes('text-xl font-bold')
+            # for adapter in adapters:
+            #     # Create a button for each adapter
+            #     ui.label(adapter['code']).classes('text-xl font-bold')
+            # # Create a dialog to install adapters
+            # with ui.dialog() as install_adapters, ui.card():
+            #     # Just a black X button in the top right corner
+            #     ui.button('', icon='close', on_click=install_adapters.close).props('flat round').classes('absolute top-2 right-2')
+            #     ui.label('') # Empty label to create space for the button
+            #     # global adapter_content
+            #     # adapter_content = ui.label('')
+            #
+            #
+            # # Button to open the dialog
+            # ui.button('Install Adapters', on_click=lambda: [load_content(), install_adapters.open()]).classes('bg-blue-500 text-white font-bold py-2 px-4 rounded')
 
         # Documentation tab
         with ui.tab_panel(docs_tab):
