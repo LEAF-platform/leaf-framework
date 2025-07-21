@@ -52,6 +52,8 @@ def output_messages(output_module: OutputModule) -> None:
 def get_existing_ids(output_module: OutputModule, 
                      time_to_sleep: float = 5.0) -> list[str]:
     """Returns instance IDs of equipment already present in the system."""
+    if not isinstance(output_module,MQTT):
+        return []
     topic = topic_utilities.details()
     logger.debug(f"Setting up subscription to {topic}")
     output_module.subscribe(topic)
