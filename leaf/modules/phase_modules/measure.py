@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Any
 from typing import Optional
@@ -10,7 +11,9 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterLogicError
 from leaf.error_handler.exceptions import InterpreterError
 from leaf.modules.phase_modules.phase import PhaseModule
+from leaf.utility.logger.logger_utils import get_logger
 
+logger = get_logger(__name__, log_file="measure.log",  log_level=logging.DEBUG)
 
 class MeasurePhase(PhaseModule):
     """
@@ -95,7 +98,12 @@ class MeasurePhase(PhaseModule):
                     for i in range(0, len(result), self._maximum_message_size)
                 ]
                 messages = []
-                for chunk in chunks:
+                for index, chunk in enumerate(chunks):
+                    if index % 10 == 0:
+                        logger.debug(
+                            f"Sending chunk {index + 1} of {len(chunks)} "
+                            f"with {len(chunk)} measurements."
+                        )
                     messages.append(self._form_message(exp_id, chunk))
                     time.sleep(0.1)
                 return messages
