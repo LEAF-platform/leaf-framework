@@ -1,6 +1,7 @@
 # Define stages of the pipeline
 stages:
-  - test
+  # - test
+  - versioning
   - publish
 
 # Job to run tests
@@ -26,6 +27,16 @@ test:
       - test-reports/
   timeout: 20m
 
+versioning:
+  stage: version
+  script:
+    - latest_tag=$(git describe --tags --abbrev=0)
+    - commit_count=$(git rev-list ${latest_tag}..HEAD --count)
+    - base_version=${latest_tag#v}
+    - new_version="${base_version}.${commit_count}"
+    - echo "New version: $new_version"
+    # update version in pyproject.toml without committing or tagging
+    - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
 
 publish:
   stage: publish
