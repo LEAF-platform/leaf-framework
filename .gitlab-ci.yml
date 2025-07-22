@@ -32,6 +32,7 @@ publish:
   image: python:3.12
   before_script:
     - pip install poetry
+    - poetry config virtualenvs.create false
     - poetry config pypi-token.pypi "$PYPI_TOKEN"
   script:
     - latest_tag=$(git describe --tags --abbrev=0)
@@ -43,6 +44,8 @@ publish:
     - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
     - cat pyproject.toml
     # And publish
+    - poetry config virtualenvs.create false
+    - poetry build
     - poetry publish --build
   # only:
     # - dev  # restrict to dev branch
