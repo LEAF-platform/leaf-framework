@@ -41,6 +41,7 @@ publish:
     - echo "New version $new_version"
     # update version in pyproject.toml without committing or tagging
     - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
+    - cat pyproject.toml
     # And publish
     - poetry build
     - poetry publish
