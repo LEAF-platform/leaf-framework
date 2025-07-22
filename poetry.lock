@@ -902,17 +902,15 @@ files = [
 
 [[package]]
 name = "influxobject"
-version = "0.0.4"
+version = "0.0.6"
 description = "Influx Object Package"
 optional = false
-python-versions = ">=3.6"
+python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "influxobject-0.0.4.tar.gz", hash = "sha256:c9b7005651ab80e248c518dc47ab00e0395c592db463856d4a86c495ee6d40a8"},
+    {file = "influxobject-0.0.6-py3-none-any.whl", hash = "sha256:4798cd7919f59d65d62e66bb52a124de4ec779359143baa49d1dfe2731f1082b"},
+    {file = "influxobject-0.0.6.tar.gz", hash = "sha256:e2b1bd42b72de30374675e2747d3d847b74d1b6aeccc37e314b260748a9359d8"},
 ]
-
-[package.extras]
-dev = ["check-manifest"]
 
 [[package]]
 name = "iniconfig"
@@ -955,6 +953,21 @@ MarkupSafe = ">=2.0"
 
 [package.extras]
 i18n = ["Babel (>=2.7)"]
+
+[[package]]
+name = "leaf-hello-world"
+version = "0.1.0"
+description = "Leaf Adapter with a basic Hello World function. Creating a hello world message every x interval."
+optional = false
+python-versions = "<4.0,>=3.12"
+groups = ["main"]
+files = [
+    {file = "leaf_hello_world-0.1.0-py3-none-any.whl", hash = "sha256:f09eed1d2707067dcd36b5e33d67cc87ed3017d17229147699d44014180d38eb"},
+    {file = "leaf_hello_world-0.1.0.tar.gz", hash = "sha256:30e49fb498d05f4c3f60251fc3d99ec73a25ad9d238f2ba8a5a204cb6afd895e"},
+]
+
+[package.dependencies]
+leaf-framework = "*"
 
 [[package]]
 name = "leaf-register"
@@ -2567,4 +2580,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "2fcca54d02598e6bc573ab399a6c4e0bf40a95d58bb4f993b0dd991eaf273089"
+content-hash = "7b4bfa0ade3fd924bd068af5c9913ce8fa3abc35e1ea2a46a632eabdcf11eaf6"
