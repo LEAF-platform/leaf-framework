@@ -42,11 +42,12 @@ publish:
     - echo "New version $new_version"
     # update version in pyproject.toml without committing or tagging
     - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
-    - cat pyproject.toml
+    - head -n 10 pyproject.toml
     # And publish
     - poetry config virtualenvs.create false
     - poetry build
     - poetry publish --build
+    - ls -l dist/
   # only:
     # - dev  # restrict to dev branch
 
