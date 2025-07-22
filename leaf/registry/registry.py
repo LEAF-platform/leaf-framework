@@ -84,7 +84,7 @@ def discover_from_config(config: dict[str, Any], external_path: str = None) -> N
         discovery.discover_entry_point_equipment(equipment_codes)
         + discovery.discover_local_equipment(equipment_codes, [external_path] if external_path else [])
     )
-    for code, cls in discovered_equipment:
+    for code, cls, group in discovered_equipment:
         register("equipment", code, cls)
 
     # Discover and register outputs
