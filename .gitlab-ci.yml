@@ -1,7 +1,7 @@
 # Define stages of the pipeline
 stages:
   # - test
-  - versioning
+  # - versioning
   - publish
 
 # Job to run tests
@@ -33,7 +33,6 @@ publish:
   before_script:
     - pip install poetry
     - poetry config pypi-token.pypi "$PYPI_TOKEN"
-    - poetry build
   script:
     - latest_tag=$(git describe --tags --abbrev=0)
     - commit_count=$(git rev-list ${latest_tag}..HEAD --count)
@@ -43,6 +42,7 @@ publish:
     # update version in pyproject.toml without committing or tagging
     - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
     # And publish
+    - poetry build
     - poetry publish
   # only:
     # - dev  # restrict to dev branch
