@@ -46,8 +46,9 @@ publish:
     # And publish
     - poetry config virtualenvs.create false
     - poetry build
-    - poetry publish --build
     - ls -l dist/
+    - poetry publish
+    
   # only:
     # - dev  # restrict to dev branch
 
