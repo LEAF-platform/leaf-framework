@@ -47,6 +47,6 @@ publish:
     - poetry build
   script:
     - poetry publish
-  only:
-    - dev  # restrict to dev branch
+  # only:
+    # - dev  # restrict to dev branch
 
