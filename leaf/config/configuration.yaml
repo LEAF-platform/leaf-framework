@@ -1,0 +1,13 @@
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: HelloWorld
+      data:
+        instance_id: frodo_1_reactor
+        institute: WageningenUniversity
+      requirements:
+        interval: 1
+
+OUTPUTS:
+  - plugin: MQTT
+    broker: localhost
+    port: 1883

@@ -28,13 +28,14 @@ logger = get_logger(__name__, log_file="discovery.log",  log_level=logging.DEBUG
 def discover_entry_point_equipment(
     needed_codes: set[str] = None,
     group: str = "leaf.adapters",
-) -> list[tuple[str, Type[Any]]]:
+) -> list[tuple[str, Any, Any]]:
     """
-    Discover only needed equipment adapters exposed via setuptools entry points.
+    Discover only necessary equipment adapters exposed via setuptools entry points.
     """
-    discovered: list[tuple[str, Type[Any]]] = []
+    discovered: list[tuple[str, Any, Any]] = []
 
     for entry_point in entry_points(group=group):
+        logger.debug("Found entry point: %s", entry_point)
         try:
             module_path = entry_point.module
             spec = importlib.util.find_spec(module_path)
@@ -45,11 +46,12 @@ def discover_entry_point_equipment(
             device_json_path = os.path.join(module_dir, "device.json")
 
             if not os.path.exists(device_json_path):
+                logger.warning("Missing device.json for %s", module_path)
                 continue
 
             with open(device_json_path, "r") as f:
                 device_info = json.load(f)
-                adapter_id = device_info.get("adapter_id")
+                adapter_id: str = device_info.get("adapter_id")
 
                 if needed_codes is not None and (
                     not adapter_id or adapter_id.lower() not in needed_codes
@@ -57,7 +59,7 @@ def discover_entry_point_equipment(
                     continue
 
                 cls = entry_point.load()
-                discovered.append((adapter_id, cls))
+                discovered.append((adapter_id, cls, entry_point))
 
         except Exception as e:
             logger.error("Failed loading adapter (%s) :: %s", entry_point.module, e)
@@ -69,11 +71,11 @@ def discover_entry_point_equipment(
 def discover_local_equipment(
     needed_codes: set[str],
     base_dirs: Optional[list[str]] = None,
-) -> list[tuple[str, Type[EquipmentAdapter]]]:
+) -> list[tuple[str, Type[EquipmentAdapter], str]]:
     """
     Discover and load only the required equipment adapters from local paths.
     """
-    discovered: list[tuple[str, Type[EquipmentAdapter]]] = []
+    discovered: list[tuple[str, Type[EquipmentAdapter], str]] = []
     search_dirs = list(set((base_dirs or []) + default_equipment_locations))
 
     for base in search_dirs:
@@ -92,7 +94,7 @@ def discover_local_equipment(
 
                     if code and code.lower() in needed_codes:
                         cls = load_class_from_file(py_fp, base_class=EquipmentAdapter)
-                        discovered.append((code, cls))
+                        discovered.append((code, cls, 'local'))
 
                 except Exception:
                     continue
@@ -154,10 +156,26 @@ def discover_external_inputs(
     return discovered
 
 
-def get_all_adapter_codes() -> List[str]:
-    '''
-    Returns all the adapter codes available.
-    '''
+def get_all_adapter_codes() -> list[dict[str, str]]:
+    """
+    Returns all the adapter info available.
+    """
     available_equipment = discover_entry_point_equipment()
-    equipment_codes = [code for code, _ in available_equipment]
-    return equipment_codes
+    # Dictionary with more information than just the name
+    equipment: list[dict[str, str]] = []
+    for code, cls, entry_point in available_equipment:
+        module = {
+            'code': code,
+            'label': code,
+            'name': entry_point.name,
+            'class': cls,
+            'group': entry_point.group,
+            'module': entry_point.module
+        }
+
+        # Group, module, name
+        # Add to the set
+        equipment.append(module)
+
+    # equipment_codes = [code for code, _, _ in available_equipment]
+    return equipment # equipment_codes

@@ -13,7 +13,9 @@ import threading
 import time
 from typing import Any, Optional, Type
 
+from dateparser.data.date_translation_data import el
 import yaml  # type: ignore
+from leaf.ui.interface import start_nicegui
 
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
@@ -76,8 +78,25 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     )
 
 
-    parser.add_argument("--debug", action="store_true",
-                        help="Enable debug logging.")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging.")
+
+    # Gui argument
+    parser.add_argument(
+        "--nogui",
+        action="store_true",
+        help="Run the proxy without the NiceGUI interface. Useful for headless environments.",
+    )
+
+    # Port argument
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port to run the NiceGUI interface on. Default is 8080.",
+    )
         
     parser.add_argument(
         "-c",
@@ -92,6 +111,8 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
         help="The path to the directory of the adapter to use.",
         default=None
     )
+
+    parser.add_argument("--shutdown", action="store_true", help=argparse.SUPPRESS)
 
     return parser.parse_args(args=args)
 
@@ -118,7 +139,7 @@ def welcome_message() -> None:
     if len(adapter_codes) > 0:
         logger.info("Installed adapters:")
         for adapter_code in adapter_codes:
-            logger.info(f"- {adapter_code}")
+            logger.info(f"- {adapter_code['code']}")
     else:
         logger.warn("No adapters installed.")
 
@@ -287,9 +308,16 @@ def create_configuration(args: argparse.Namespace) -> None:
     os.makedirs(config_dir, exist_ok=True)
 
     if args.config and os.path.exists(args.config):
+        logger.info(f"Configuration file {args.config} found.")
+        with open(args.config, "r") as src:
+            content = src.read()
         with open(os.path.join(config_dir, CONFIG_FILE_NAME), "w") as dest:
-            with open(args.config, "r") as src:
-                dest.write(src.read())
+            logger.info(f"Configuration file content: {content}")
+            if not content.strip():
+                logger.warning(f"Configuration file {args.config} is empty, skipping copy.")
+            else:
+                dest.write(content)
+                logger.info(f"Configuration file {CONFIG_FILE_NAME} successfully created. with {len(content)} lines.")
 
     args.config = os.path.join(config_dir, CONFIG_FILE_NAME)
 
@@ -302,22 +330,45 @@ def create_configuration(args: argparse.Namespace) -> None:
 
 def main(args: Optional[list[str]] = None) -> None:
     """Main entry point for the LEAF proxy."""
-    welcome_message()
+    context = AppContext()
     context.args = parse_args(args)
-    
+
+    if context.args.shutdown:
+        logger.info("Shutdown signal received. Shutting down the LEAF framework.")
+        return
+
+    logger.info("Context arguments parsed: %s", context.args)
+
+    # Start NiceGUI in a separate thread
+    nicegui_thread: threading.Thread|None = None
+    if not context.args.nogui:
+        logger.info("Running LEAF with NiceGUI interface.")
+        nicegui_thread = threading.Thread(target=start_nicegui, args=(context.args.port,), daemon=True)
+        nicegui_thread.start()
+    else:
+        logger.info("Running LEAF in headless mode without NiceGUI interface.")
+
+    welcome_message()
+
     # Load configuration file first.
     if not context.args.config or not os.path.exists(context.args.config):
         logger.error("No configuration file provided...")
-        # return
-    else:
-        try:
-            with open(context.args.config, "r") as f:
-                config = yaml.safe_load(f)
-                context.config_yaml = yaml.dump(config, indent=4)
-                discover_from_config(config, context.args.path)
-        except yaml.YAMLError as e:
-            logger.error("Failed to parse YAML configuration.", exc_info=e)
-            # return
+        # Load default configuration
+        from pathlib import Path
+        context.args.config = Path(os.path.dirname(os.path.realpath(__file__))) / "config" / "configuration.yaml"
+        logger.info(f"No configuration file provided, using {context.args.config}")
+    try:
+        with open(context.args.config, "r") as f:
+            content = f.read()
+            if not content.strip():
+                logger.error("Configuration file is empty, please provide a valid configuration.")
+                return
+            config = yaml.safe_load(content)
+            context.config_yaml = yaml.dump(config, indent=4)
+            discover_from_config(config, context.args.path)
+    except yaml.YAMLError as e:
+        logger.error("Failed to parse YAML configuration.", exc_info=e)
+        return
 
     if context.args.debug:
         logger.setLevel(logging.DEBUG)
@@ -330,18 +381,30 @@ def main(args: Optional[list[str]] = None) -> None:
     sys.excepthook = handle_exception
 
     if context.config_yaml is not None:
+        logger.info(context.__dict__)
         logger.info(f"Configuration: {context.args.config} loaded.")
         logger.info(f"\n{context.config_yaml}\n")
         context.error_handler = ErrorHolder()
-        context.output = build_output_module(config,
-                                             context.error_handler)
+        context.output = build_output_module(config, context.error_handler)
         if context.output is not None:
             run_adapters(
                 config.get("EQUIPMENT_INSTANCES", []),
                 context.output,
                 context.error_handler,
             )
+    # Wait for NiceGUI thread to finish
+    if nicegui_thread is not None:
+        nicegui_thread.join()
+        logger.info("NiceGUI thread has finished.")
+        logger.info("LEAF Proxy has stopped.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main(sys.argv[1:])
+    except Exception as e:
+        logger.error("An error occurred in the main execution.", exc_info=e)
+        sys.exit(1)
+    finally:
+        logger.info("Exiting LEAF Proxy.")
+        sys.exit(0)
