@@ -43,8 +43,7 @@ publish:
     - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
     - cat pyproject.toml
     # And publish
-    - poetry build
-    - poetry publish
+    - poetry publish --build
   # only:
     # - dev  # restrict to dev branch
 
