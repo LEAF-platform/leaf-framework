@@ -26,16 +26,27 @@ test:
       - test-reports/
   timeout: 20m
 
-
 publish:
   stage: publish
   image: python:3.12
   before_script:
     - pip install poetry
+    - poetry config virtualenvs.create false
     - poetry config pypi-token.pypi "$PYPI_TOKEN"
-    - poetry build
   script:
-    poetry publish
+    - latest_tag=$(git describe --tags --abbrev=0)
+    - commit_count=$(git rev-list ${latest_tag}..HEAD --count)
+    - base_version=${latest_tag#v}
+    - new_version="${base_version}.${commit_count}"
+    - echo "New version $new_version"
+    # update version in pyproject.toml without committing or tagging
+    - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
+    - head -n 10 pyproject.toml
+    # And publish
+    - poetry config virtualenvs.create false
+    - poetry build
+    - ls -l dist/
+    - poetry publish
   only:
-    - dev  # restrict to dev branch
-
+    - main
+    - dev
