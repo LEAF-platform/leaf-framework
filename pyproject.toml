@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "leaf-framework"
-version = "0.1.5"
+version = "0.0.0"
 description = "LabEquipment Adapter Framework (LEAF)"
 authors = [
     "Matthew Crowther <nmc215@ncl.ac.uk>",
@@ -16,6 +16,9 @@ documentation = "https://leaf.systemsbiology.nl"
 packages = [
     { include = "leaf" }         # your actual Python module
 ]
+
+[tool.poetry-dynamic-versioning]
+enable = true
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -46,8 +49,8 @@ mypy = "^1.14.1"
 bump2version = "^1.0.1"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.pytest.ini_options]
 log_cli = true
