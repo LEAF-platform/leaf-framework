@@ -117,20 +117,8 @@ class KEYDB(OutputModule):
             return self.fallback(topic, data)
 
         try:
-            current_value = self._client.get(topic)
-            if current_value:
-                current_list = json.loads(current_value.decode("utf-8"))
-                if not isinstance(current_list, list):
-                    logger.error(
-                        f"Unexpected value format for key '{topic}'. Overwriting."
-                    )
-                    current_list = []
-                current_list.append(data)
-            else:
-                current_list = [data]
-
-            self._client.set(topic, json.dumps(current_list))
-            logger.info(f"Appended data to key '{topic}' in KeyDB.")
+            self._client.lpush(topic, json.dumps(data))
+            logger.info(f"Pushed data to key '{topic}' in KeyDB.")
             return True
         except redis.RedisError as e:
             self._handle_redis_error(e)
