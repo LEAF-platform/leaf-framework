@@ -89,6 +89,7 @@ class KEYDB(OutputModule):
         try:
             self._client = redis.StrictRedis(host=self.host, port=self.port, db=self.db)
             logger.info("Connected to KeyDB.")
+            # TODO Have a thread running to check for content and if present process it to the registered MQTT output module if alive
         except redis.RedisError as e:
             self._handle_redis_error(e)
 
