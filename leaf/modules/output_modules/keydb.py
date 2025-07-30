@@ -3,6 +3,7 @@ import json
 from typing import Optional, Any
 
 import redis
+from redis.typing import ResponseT
 
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
@@ -89,7 +90,6 @@ class KEYDB(OutputModule):
         try:
             self._client = redis.StrictRedis(host=self.host, port=self.port, db=self.db)
             logger.info("Connected to KeyDB.")
-            # TODO Have a thread running to check for content and if present process it to the registered MQTT output module if alive
         except redis.RedisError as e:
             self._handle_redis_error(e)
 
@@ -132,6 +132,15 @@ class KEYDB(OutputModule):
         Returns:
             bool: True if connected, False otherwise.
         """
+        # TODO Have a thread running to check for content and if present process it to the registered MQTT output module if alive
+        topics = self._client.keys()
+        if topics:
+            logger.info(f"Found existing keys in KeyDB: {topics}")
+            for topic in topics:
+                topic = topic.decode("utf-8")
+                self.retrieve(topic)
+        else:
+            logger.debug("No existing keys found in KeyDB.")
         return self._client is not None
 
     def disconnect(self) -> None:
@@ -161,7 +170,7 @@ class KEYDB(OutputModule):
         if self._client is None:
             return None
         try:
-            message = self._client.get(key)
+            message = self._client.lpop(key)
             return message.decode("utf-8") if message else None
         except redis.RedisError as e:
             self._handle_redis_error(e)
@@ -189,31 +198,45 @@ class KEYDB(OutputModule):
 
         try:
             if key is not None:
-                result = self._client.get(key)
+                result = self._client.lpop(key)
                 if result:
-                    self._client.delete(key)
+                    # Content is already popped
+                    # self._client.delete(key)
+                    # If the key is empty after popping, delete it
+                    if self._client.get(key) is None:
+                        self._client.delete(key)
                     return key, json.loads(result.decode("utf-8"))
                 return None
 
-            random_key = self._client.randomkey()
+            random_key: ResponseT = self._client.randomkey()
             if not random_key:
                 logger.info("No keys available in KeyDB.")
                 return None
+            if isinstance(random_key, bytes):
+                # Decode bytes to string if necessary
+                random_key = random_key.decode("utf-8")
 
-            random_key = random_key.decode("utf-8")
-            result = self._client.get(random_key)
+
+            logger.debug(f"Popping from key '{random_key}' in KeyDB.")
+            result = self._client.lpop(random_key)
 
             if not result:
                 return None
 
             result = json.loads(result.decode("utf-8"))
-            if isinstance(result, list):
-                popped_value = result.pop(0)
-                if result:
-                    self._client.set(random_key, json.dumps(result))
-                else:
+            if result:
+                # Check if empty
+                if self._client.llen(random_key) is None:
+                    logger.info(f"Key '{random_key}' is empty after popping.")
                     self._client.delete(random_key)
-                return random_key, popped_value
+                return random_key, result
+            # if isinstance(result, list):
+            #     popped_value = result.pop(0)
+            #     if result:
+            #         self._client.set(random_key, json.dumps(result))
+            #     else:
+            #         self._client.delete(random_key)
+            #     return random_key, popped_value
 
             logger.error(
                 f"Unexpected value type for key '{random_key}'. Deleting key."

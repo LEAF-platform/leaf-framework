@@ -88,6 +88,7 @@ class MQTT(OutputModule):
         self._password: Optional[str] = password
         self._tls: bool = tls
         self.messages: dict[str, list[str]] = {}
+        self.sending_success: dict[str,bool] = {}
 
         self.client = mqtt.Client(
             callback_api_version=CallbackAPIVersion.VERSION2,
@@ -174,7 +175,10 @@ class MQTT(OutputModule):
                 f"{self.__class__.__name__} - transmit called with module disabled."
             )
             return False
-
+        # Register the topic in sending_success if not already present
+        if topic not in self.sending_success:
+            self.sending_success[topic] = False
+        # Check if the client is connected before attempting to publish
         if not self.client.is_connected():
             return self.fallback(topic, data)
         if data == "":
@@ -196,8 +200,29 @@ class MQTT(OutputModule):
 
         error = self._handle_return_code(result.rc)
         if error is not None:
+            self.sending_success[topic] = False
             self._handle_exception(error)
             return self.fallback(topic, data)
+
+        # If successfully published, check if the fallback has data on the topic
+        # Only do this once to avoid unnecessary calls
+        if not self.sending_success[topic]:
+            # To prevent recursion in case the fallback also tries to publish
+            self.sending_success[topic] = True
+            if self._fallback is not None:
+                while True:
+                    fallback_data = self._fallback.retrieve(topic)
+                    if fallback_data is not None:
+                        logger.info(
+                            f"Fallback data found for topic {topic}, publishing now."
+                        )
+                        self.transmit(topic, fallback_data)
+                    else:
+                        logger.info(
+                            f"No fallback data found for topic {topic}, stopping fallback."
+                        )
+                        break
+
         return True
 
     def flush(self, topic: str) -> None:
@@ -237,6 +262,7 @@ class MQTT(OutputModule):
         rc: int,
         metadata: Optional[Any] = None,
     ) -> None:
+
         """
         Callback for when the client connects to the broker.
 
@@ -311,6 +337,7 @@ class MQTT(OutputModule):
             rc (int): The disconnection result code.
             properties (Optional[Any]): Additional metadata (if any).
         """
+        global MAX_RECONNECT_COUNT
         if not self.is_enabled():
             logger.warning(
                 f"{self.__class__.__name__} - disconnect called with module disabled."
@@ -324,7 +351,9 @@ class MQTT(OutputModule):
                 try:
                     client.reconnect()
                     return
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Reconnect attempt {reconnect_count + 1} failed: {e}")
+
                     reconnect_delay = min(
                         reconnect_delay * RECONNECT_RATE, MAX_RECONNECT_DELAY
                     )
@@ -332,6 +361,7 @@ class MQTT(OutputModule):
             self._handle_exception(
                 ClientUnreachableError("Failed to reconnect.", output_module=self)
             )
+
 
     def on_log(
         self, client: mqtt.Client, userdata: Any, paho_log_level: int, message: str
