@@ -1,3 +1,12 @@
+EQUIPMENT_INSTANCES:
+  - equipment:
+      adapter: HelloWorld
+      data:
+        instance_id: example_hello_world_id1
+        institute: example_hello_world_institute1
+      requirements:
+        interval: 1
+
 OUTPUTS:
   - plugin: MQTT
     broker: localhost
