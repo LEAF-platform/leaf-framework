@@ -24,7 +24,7 @@ test:
       junit: test-reports/*.xml
     paths:
       - test-reports/
-  timeout: 20m
+  timeout: 30m
 
 publish:
   stage: publish
