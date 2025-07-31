@@ -71,7 +71,7 @@ class TestFallbacks(unittest.TestCase):
         self.assertNotIn(mock_topic, self._mock_client.messages)
         res = list(self._keydb.pop(mock_topic))
         self.assertEqual(mock_topic,res[0])
-        self.assertEqual(mock_data,json.loads(res[1][0]))
+        self.assertEqual(mock_data,json.loads(res[1]))
 
     def test_fallback_file(self) -> None:
         mock_topic = f"test_fallback/{uuid4()}"
