@@ -51,7 +51,7 @@ logger = get_logger(__name__, log_file=LOG_FILE,
 adapters: list[Any] = []
 adapter_threads: list[threading.Thread] = []
 
-output_disable_time = 500
+output_disable_time = 10
 
 
 class AppContext:
@@ -288,6 +288,8 @@ def run_adapters(
                     logger.info(f"Informational error: {error}", 
                                 exc_info=error)
 
+            if not output.is_enabled():
+                logger.debug("Output module is disabled, attempting to reconnect.")
             handle_disabled_modules(output, output_disable_time)
 
     except KeyboardInterrupt:
@@ -351,6 +353,10 @@ def main(args: Optional[list[str]] = None) -> None:
     welcome_message()
 
     # Load configuration file first.
+    if not os.path.exists(context.args.config):
+        raise FileNotFoundError(
+            f"Configuration file {context.args.config} does not exist. Please provide a valid configuration file."
+        )
     if not context.args.config or not os.path.exists(context.args.config):
         logger.error("No configuration file provided...")
         # Load default configuration
@@ -387,6 +393,7 @@ def main(args: Optional[list[str]] = None) -> None:
         context.error_handler = ErrorHolder()
         context.output = build_output_module(config, context.error_handler)
         if context.output is not None:
+            logger.debug("Output module built successfully.")
             run_adapters(
                 config.get("EQUIPMENT_INSTANCES", []),
                 context.output,

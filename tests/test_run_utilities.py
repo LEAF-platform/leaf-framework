@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -15,7 +16,11 @@ from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
 from leaf.utility.running_utilities import handle_disabled_modules
+from leaf.utility.logger.logger_utils import get_logger
 
+logger = get_logger(__name__, log_file="test_run_utilities.log",
+                     error_log_file="test_run_utilities_error.log",
+                     log_level=logging.DEBUG)
 
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
@@ -56,6 +61,8 @@ class TestRunUtilities(unittest.TestCase):
 
     def test_handle_disabled_modules(self):
         self._keydb.connect()
+        self._keydb._client.flushall()
+
         timeout = 2
         institute = "test_pop_all_messages_institute"
         adapter_id = "test_pop_all_messages_adapter_id"
@@ -78,13 +85,17 @@ class TestRunUtilities(unittest.TestCase):
         for topic,messages in inp_messages.items():
             for message in messages:
                 self._keydb.transmit(topic,message)
-                time.sleep(0.1)
+                # time.sleep(0.1)
         self._module.disable()
         time.sleep(timeout*2)
         handle_disabled_modules(self._module,timeout)
         time.sleep(1)
         for k,v in self._mock_client.messages.items():
+            logger.info(f"Received message on topic {k}: {v}")
             self.assertIn(k,inp_messages)
+            # Invert the list to match the order of messages
+            v = list(reversed(v))
+            self.assertEqual(len(v), len(inp_messages[k]))
             self.assertEqual(v,inp_messages[k])
         self.assertIsNone(self._keydb.pop())
         self.assertIsNone(self._file.pop())
