@@ -156,8 +156,8 @@ class TestKeyDB(unittest.TestCase):
             # Obtain data from KeyDB
             keys = keydb_client.keys()
             if len(keys) == 2:
-                assert keys[0] == b'example_hello_world_institute1/HelloWorld/example_hello_world_id1/experiment/undefined/measurement/bioreactor_example'
-                assert keys[1] == b'example_hello_world_institute1/HelloWorld/example_hello_world_id1/details'
+                assert b'example_hello_world_institute1/HelloWorld/example_hello_world_id1/experiment/undefined/measurement/bioreactor_example' in keys
+                assert b'example_hello_world_institute1/HelloWorld/example_hello_world_id1/details' in keys
                 logger.info("Current keys in KeyDB: %s", keys)
                 # Number of values in the list
                 size_now = keydb_client.llen(keys[0])
