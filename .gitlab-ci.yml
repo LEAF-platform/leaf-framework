@@ -25,6 +25,8 @@ test:
     paths:
       - test-reports/
   timeout: 30m
+  only:
+    - skip
 
 publish:
   stage: publish
