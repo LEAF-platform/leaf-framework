@@ -44,7 +44,7 @@ class TestFallbacks(unittest.TestCase):
         self.file_store_path = os.path.join(self.temp_dir.name, "local.json")
         
         self._file = FILE(self.file_store_path)
-        self._keydb: KEYDB = KEYDB(db_host, fallback=self._file)
+        self._keydb: KEYDB = KEYDB(db_host, fallback=self._file, db=2)
         self._keydb.connect()
         self._module = MQTT(broker, port, username=un, password=pw, 
                              clientid=None, fallback=self._keydb)
@@ -71,7 +71,7 @@ class TestFallbacks(unittest.TestCase):
         self.assertNotIn(mock_topic, self._mock_client.messages)
         res = list(self._keydb.pop(mock_topic))
         self.assertEqual(mock_topic,res[0])
-        self.assertEqual(mock_data,json.loads(res[1]))
+        self.assertEqual(mock_data,res[1])
 
     def test_fallback_file(self) -> None:
         mock_topic = f"test_fallback/{uuid4()}"
@@ -118,10 +118,14 @@ class TestFallbacks(unittest.TestCase):
             for message in messages:
                 self._keydb.transmit(topic,message)
                 time.sleep(0.1)
-        
+
         messages = list(self._module.pop_all_messages())
         self.assertTrue(len(messages) > 0)
         for topic,message in messages:
+            inp_messages[topic] = [
+                json.loads(item) if isinstance(item, str) else item
+                for item in inp_messages[topic]
+            ]
             self.assertIn(topic,inp_messages)
             self.assertIn(message,inp_messages[topic])
         self.assertIsNone(self._keydb.pop())
