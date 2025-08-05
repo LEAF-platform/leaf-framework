@@ -217,6 +217,8 @@ class MQTT(OutputModule):
                             f"Fallback data found for topic {topic}, publishing now."
                         )
                         self.transmit(topic, fallback_data)
+                        # Sleep 0.05 seconds to allow the message to be processed
+                        time.sleep(0.05)
                     else:
                         logger.info(
                             f"No fallback data found for topic {topic}, stopping fallback."
