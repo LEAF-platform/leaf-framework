@@ -17,7 +17,7 @@ test:
     - poetry show  # Check installed dependencies
   script:
     - poetry show pytest-xdist  # Verify pytest-xdist is installed
-    - poetry run pytest tests/ --junitxml=test-reports/report.xml
+    - poetry run pytest -n auto --forked tests/ --junitxml=test-reports/report.xml
   artifacts:
     when: always
     reports:
