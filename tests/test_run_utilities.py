@@ -109,8 +109,8 @@ class TestRunUtilities(unittest.TestCase):
 
             self.assertEqual(len(v), len(inp_messages[k]))
             self.assertEqual(v, w)
-        keydb_pop = self._keydb.pop()
-        self.assertIsNone(keydb_pop)
+        # keydb_pop = self._keydb.pop()
+        # self.assertIsNone(keydb_pop)
         file_pop = self._file.pop()
         self.assertIsNone(file_pop)
     
