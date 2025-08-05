@@ -190,8 +190,9 @@ class TestDiscreteProcess(unittest.TestCase):
 
         for k, v in self.mock_client.messages.items():
             print(f"Received message on topic {k}: {v}")
-            if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}"):
+            if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}") and k.endswith('start'):
                 if self.metadata_manager.experiment.start() == k:
+                    print(f"Start phase message matched: {k}")
                     fail = False
                     break
         else:
@@ -202,11 +203,11 @@ class TestDiscreteProcess(unittest.TestCase):
 
         fail = True
         for k, v in self.mock_client.messages.items():
-            print(f"Received message on topic {k}: {v}")
             # These modifications are necessary to match the expected topic structure when running tests in parallel
             if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}"):
                 if self.metadata_manager.experiment.measurement(experiment_id=self._mock_experiment,
                                                                 measurement="unknown") == k:
+                    print(f"Measurement phase message matched: {k}")
                     fail = False
                     break
         else:
@@ -220,6 +221,7 @@ class TestDiscreteProcess(unittest.TestCase):
         for k, v in self.mock_client.messages.items():
             if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}") and k.endswith('stop'):
                 if self.metadata_manager.experiment.stop() == k:
+                    print(f"Stop phase message matched: {k}")
                     fail = False
                     break
         else:
