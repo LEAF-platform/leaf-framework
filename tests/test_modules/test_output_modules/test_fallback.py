@@ -156,11 +156,11 @@ class TestFallbacks(unittest.TestCase):
         manager.add_instance_value("instance_id",instance_id)
         
         keydb_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                         measurement=measurement_id) : ["A","B","C"],
-                                                         manager.experiment.start() : ["D","E","F"]}
+                                                         measurement=measurement_id) : ['"A":"A"', '"B":"B"','"C":"C"'],
+                                                         manager.experiment.start() : ['"D":"D"', '"E":"E"','"F":"F"']}
         file_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                         measurement=measurement_id) : ["G","H","I"],
-                                                         manager.experiment.start() : ["j","K","L"]}
+                                                         measurement=measurement_id) : ['"G":"G"', '"H":"H"','"I":"I"'],
+                                                         manager.experiment.start() : ['"J":"J"', '"K":"K"','"L":"L"']}
         for topic,messages in keydb_messages.items():
             for message in messages:
                 self._keydb.transmit(topic,message)

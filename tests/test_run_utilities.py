@@ -76,8 +76,8 @@ class TestRunUtilities(unittest.TestCase):
         manager.add_instance_value("instance_id",instance_id)
 
         inp_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                   measurement=measurement_id) : ["A","B","C"],
-                        manager.experiment.start() : ["D","E","F"]}
+                                                   measurement=measurement_id) : ['{"A":"A"}', '{"B":"B"}','{"C":"C"}'],
+                        manager.experiment.start() : ['{"D":"D"}', '{"E":"E"}','{"F":"F"}']}
         
         for topic in inp_messages.keys():
             self._mock_client.subscribe(topic)
