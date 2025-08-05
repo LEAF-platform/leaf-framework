@@ -138,15 +138,15 @@ class TestDiscreteProcess(unittest.TestCase):
         self.text_watch_file = tempfile.NamedTemporaryFile(delete=False).name
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
-        ins_id = str(uuid.uuid4())
-        adapter_id = str(uuid.uuid4())
-        instance_id = str(uuid.uuid4())
-        self.mock_client.subscribe(f'{ins_id}/{adapter_id}/{instance_id}/#')
+        self.ins_id = str(uuid.uuid4())
+        self.adapter_id = str(uuid.uuid4())
+        self.instance_id = str(uuid.uuid4())
+        self.mock_client.subscribe(f'{self.ins_id}/{self.adapter_id}/{self.instance_id}/#')
 
         self.metadata_manager = MetadataManager()
-        self.metadata_manager.add_equipment_value("adapter_id",adapter_id)
-        self.metadata_manager.add_instance_value("institute",ins_id)
-        self.metadata_manager.add_instance_value("instance_id",instance_id)
+        self.metadata_manager.add_equipment_value("adapter_id",self.adapter_id)
+        self.metadata_manager.add_instance_value("institute",self.ins_id)
+        self.metadata_manager.add_instance_value("instance_id",self.instance_id)
         
         directory = os.path.dirname(self.text_watch_file)
         filename = os.path.basename(self.text_watch_file)
@@ -191,15 +191,24 @@ class TestDiscreteProcess(unittest.TestCase):
         else:
             self.fail()
 
+        fail = True
         for k, v in self.mock_client.messages.items():
-            if self.metadata_manager.experiment.measurement(experiment_id=self._mock_experiment,
-                                                            measurement="unknown") == k:
-                break
+            print(f"Received message on topic {k}: {v}")
+            # These modifications are necessary to match the expected topic structure when running tests in parallel
+            if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}"):
+                if self.metadata_manager.experiment.measurement(experiment_id=self._mock_experiment,
+                                                                measurement="unknown") == k:
+                    fail = False
+                    break
         else:
             self.fail()
 
         for k, v in self.mock_client.messages.items():
-            if self.metadata_manager.experiment.stop() == k:
-                break
+            if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}") and k.endswith('stop'):
+                if self.metadata_manager.experiment.stop() == k:
+                    break
         else:
+            self.fail()
+
+        if fail:
             self.fail()
