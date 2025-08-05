@@ -162,7 +162,11 @@ class TestContinousProcess(unittest.TestCase):
 
 class TestDiscreteProcess(unittest.TestCase):
     def setUp(self) -> None:
-        self.text_watch_file = tempfile.NamedTemporaryFile(delete=False).name
+
+        custom_tmp_dir = os.path.join(tempfile.gettempdir(), "leaf_temp")
+        os.makedirs(custom_tmp_dir, exist_ok=True)
+
+        self.text_watch_file = tempfile.NamedTemporaryFile(delete=False, dir=custom_tmp_dir).name
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         self.ins_id = str(uuid.uuid4())
