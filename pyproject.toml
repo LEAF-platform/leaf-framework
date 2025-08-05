@@ -38,11 +38,11 @@ watchdog = "~6.0.0"
 leaf = "leaf.start:main"
 
 [tool.poetry.group.test.dependencies]
-pytest-xdist = "^3.6.1"
-pytest = "^8.3.4"
-coverage = "^7.6.8"
-mypy = "^1.14.1"
-#leaf-hello-world = {git = "https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world.git"}
+coverage = "^7.10.2
+mypy = "^1.17.1"
+pytest = "^8.4.1"
+pytest-forked = "^1.6.0"
+pytest-xdist = "^3.8.0"
 
 [tool.poetry.group.dev.dependencies]
 bump2version = "^1.0.1"
