@@ -108,28 +108,27 @@ class KEYDB(OutputModule):
                 False if a fallback was used.
         """
         if data is None:
-            logger.warning(f"No data provided to transmit ({topic}).")
+            logger.warning("No data provided to transmit.")
             return False
-        elif isinstance(data, dict):
+        elif isinstance(data, (dict, list, tuple, int, float, bool)):
             data = json.dumps(data)
         elif isinstance(data, str):
             try:
-                json.loads(data)  # Ensure it's valid JSON
+                # Validate JSON, then normalize as JSON string
+                parsed = json.loads(data)
+                data = json.dumps(parsed)
             except json.JSONDecodeError:
-                logger.error(f"Data is not valid JSON: {data}")
+                logger.error(f"Invalid JSON string: {data}")
                 return False
-        elif isinstance(data, (list, tuple)):
-            # If the length is 1, convert to a single JSON object
-            if isinstance(data, list) and all(isinstance(item, list) for item in data):
-                data = json.dumps(data[0])
-            else:
-                data = json.dumps(data)
+        else:
+            logger.error(f"Unsupported data type: {type(data).__name__}")
+            return False
 
         if self._client is None:
             return self.fallback(topic, data)
 
         try:
-            self._client.lpush(topic, json.dumps(data))
+            self._client.lpush(topic, data)
             logger.info(f"Pushed data to key '{topic}' in KeyDB.")
             return True
         except redis.RedisError as e:
