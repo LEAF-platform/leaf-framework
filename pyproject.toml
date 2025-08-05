@@ -38,7 +38,7 @@ watchdog = "~6.0.0"
 leaf = "leaf.start:main"
 
 [tool.poetry.group.test.dependencies]
-coverage = "^7.10.2
+coverage = "^7.10.2"
 mypy = "^1.17.1"
 pytest = "^8.4.1"
 pytest-forked = "^1.6.0"
