@@ -93,8 +93,8 @@ class TestKeyDB(unittest.TestCase):
                 keys = keydb_client.keys("keydb_test_instance*")
                 print("Current keys in KeyDB:", keys)
                 if len(keys) == 2:
-                    assert keys[0] == b'keydb_test_instance/HelloWorld/example_hello_world_id1/experiment/undefined/measurement/bioreactor_example'
-                    assert keys[1] == b'keydb_test_instance/HelloWorld/example_hello_world_id1/details'
+                    assert keys[0] == b'example_hello_world_institute1/HelloWorld/keydb_test_instance/experiment/undefined/measurement/bioreactor_example'
+                    assert keys[1] == b'example_hello_world_institute1/HelloWorld/keydb_test_instance/details'
                     logger.info("Current keys in KeyDB: %s", keys)
                     # Number of values in the list
                     size_before = keydb_client.llen(keys[0])
