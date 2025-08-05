@@ -110,9 +110,20 @@ class KEYDB(OutputModule):
         if data is None:
             logger.warning(f"No data provided to transmit ({topic}).")
             return False
-
-        if isinstance(data, dict):
+        elif isinstance(data, dict):
             data = json.dumps(data)
+        elif isinstance(data, str):
+            try:
+                json.loads(data)  # Ensure it's valid JSON
+            except json.JSONDecodeError:
+                logger.error(f"Data is not valid JSON: {data}")
+                return False
+        elif isinstance(data, (list, tuple)):
+            # If the length is 1, convert to a single JSON object
+            if isinstance(data, list) and all(isinstance(item, list) for item in data):
+                data = json.dumps(data[0])
+            else:
+                data = json.dumps(data)
 
         if self._client is None:
             return self.fallback(topic, data)
