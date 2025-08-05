@@ -186,12 +186,18 @@ class TestDiscreteProcess(unittest.TestCase):
         _run_change(_delete_file, self.text_watch_file)
         time.sleep(1)
         
+        fail = True
+
         for k, v in self.mock_client.messages.items():
             print(f"Received message on topic {k}: {v}")
             if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}"):
                 if self.metadata_manager.experiment.start() == k:
+                    fail = False
                     break
         else:
+            self.fail()
+        
+        if fail:
             self.fail()
 
         fail = True
@@ -206,9 +212,15 @@ class TestDiscreteProcess(unittest.TestCase):
         else:
             self.fail()
 
+        if fail:
+            self.fail()
+
+        fail = True
+
         for k, v in self.mock_client.messages.items():
             if k.startswith(f"{self.ins_id}/{self.adapter_id}/{self.instance_id}") and k.endswith('stop'):
                 if self.metadata_manager.experiment.stop() == k:
+                    fail = False
                     break
         else:
             self.fail()

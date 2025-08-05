@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -75,30 +76,43 @@ class TestRunUtilities(unittest.TestCase):
         manager.add_instance_value("institute",institute)
         manager.add_instance_value("instance_id",instance_id)
 
-        inp_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                   measurement=measurement_id) : ['{"A":"A"}', '{"B":"B"}','{"C":"C"}'],
-                        manager.experiment.start() : ['{"D":"D"}', '{"E":"E"}','{"F":"F"}']}
-        
+        measurement_topic = manager.experiment.measurement(experiment_id=experiment_id, measurement=measurement_id)
+        start_topic = manager.experiment.start()
+
+        inp_messages = {
+            measurement_topic: ['{"A":"A"}', '{"B":"B"}', '{"C":"C"}'],
+            start_topic: ['{"D":"D"}', '{"E":"E"}', '{"F":"F"}']
+        }
+
         for topic in inp_messages.keys():
             self._mock_client.subscribe(topic)
 
-        for topic,messages in inp_messages.items():
+        for topic, messages in inp_messages.items():
             for message in messages:
                 self._keydb.transmit(topic,message)
-                # time.sleep(0.1)
+                time.sleep(0.1)
         self._module.disable()
         time.sleep(timeout*2)
-        handle_disabled_modules(self._module,timeout)
+        handle_disabled_modules(self._module, timeout)
         time.sleep(1)
-        for k,v in self._mock_client.messages.items():
-            logger.info(f"Received message on topic {k}: {v}")
-            self.assertIn(k,inp_messages)
+        for k, v in self._mock_client.messages.items():
+            # Skip other topics for parallel tests
+            if not k.startswith(institute):
+                continue
+            self.assertIn(k, inp_messages)
             # Invert the list to match the order of messages
             v = list(reversed(v))
+            w = [json.loads(item) for item in inp_messages[k]]
+
+            print(f"Expected messages for topic {k}: {w}")
+            print(f"Received messages for topic {k}: {v}")
+
             self.assertEqual(len(v), len(inp_messages[k]))
-            self.assertEqual(v,inp_messages[k])
-        self.assertIsNone(self._keydb.pop())
-        self.assertIsNone(self._file.pop())
+            self.assertEqual(v, w)
+        keydb_pop = self._keydb.pop()
+        self.assertIsNone(keydb_pop)
+        file_pop = self._file.pop()
+        self.assertIsNone(file_pop)
     
 
     '''
