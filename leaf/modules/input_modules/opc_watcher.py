@@ -57,7 +57,7 @@ class OPCWatcher(EventWatcher):
         self.logger = logger
 
     def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
-        self.logger.info(f"OPC datachange_notification: node={node.nodeid.Identifier}, value={val}")
+        self.logger.debug(f"OPC datachange_notification: node={node.nodeid.Identifier}, value={val}")
         self._dispatch_callback(self._metadata_manager.experiment.measurement, {
             "node": node.nodeid.Identifier,
             "value":val,
