@@ -3,6 +3,9 @@ stages:
   - test
   - publish
 
+variables:
+  GIT_DEPTH: 0  # Full history
+
 # Job to run tests
 test:
   stage: test
