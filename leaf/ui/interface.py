@@ -189,7 +189,6 @@ def start_nicegui(port: int = 8080) -> None:
                 ui.button('Stop App', on_click=partial(restart_app, False))
 
 
-
         # Logs tab
         with ui.tab_panel(logs_tab):
             ui.label('LEAF Logs').classes('text-xl font-bold')
@@ -197,11 +196,11 @@ def start_nicegui(port: int = 8080) -> None:
             handler = LogElementHandler(log)
             logger.addHandler(handler)
             ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
-            logger.info("bla?")
+            logger.info("logger interface connected...")
 
         # Plugins tab
         with ui.tab_panel(adapters_tab):
-            # Create a two rows layout
+            # Create a two-row layout
 
             # Top row installed adapters
             with ui.row().classes('w-full'):

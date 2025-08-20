@@ -117,12 +117,16 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         if self._observing:
             logger.warning("FileWatcher is already running.")
             return
+        else:
+            logger.info("Starting FileWatcher...")
 
         try:
             self._observer = Observer()
             for path in self._paths:
+                logger.debug(f"Watching path: {path}")
                 self._observer.schedule(self, path, recursive=False)
             if not self._observer.is_alive():
+                logger.debug("Starting observer thread...")
                 self._observer.start()
             super().start()
             self._observing = True
@@ -142,6 +146,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         if not self._observing:
             logger.warning("FileWatcher is not running.")
             return
+        logger.info("Stopping FileWatcher...")
 
         self._observer.stop()
         self._observer.join()
@@ -156,6 +161,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Args:
             event (FileSystemEvent): Event object indicating a file creation.
         """
+        logger.debug(f"Received file creation event: {event}")
         data = {}
         try:
             fp = self._get_filepath(event)
@@ -177,13 +183,17 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Args:
             event (FileSystemEvent): Event object indicating a file modification.
         """
+        logger.debug(f"Received file modification event: {event}")
         try:
             fp = self._get_filepath(event)
             if fp is None or not self._is_last_modified():
+                logger.debug("Modification event ignored due to debounce delay or file not found.")
                 return
             if self._return_data:
+                logger.debug("Reading file content...")
                 data = self._read_file_by_extension(fp)
             else:
+                logger.debug("Returning file path instead of content...")
                 data = fp
         except Exception as e:
             self._file_event_exception(e, "modification")
@@ -196,6 +206,7 @@ class FileWatcher(FileSystemEventHandler, EventWatcher):
         Args:
             event (FileSystemEvent): Event object indicating a file deletion.
         """
+        logger.debug(f"Received file deletion event: {event}")
         fp = self._get_filepath(event,file_exists=False)
         if fp is None:
             return
