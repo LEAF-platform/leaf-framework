@@ -47,6 +47,8 @@ def get_logger(name: str, log_file: Optional[str] = None,
         error_file_handler.setFormatter(formatter)
         logger.addHandler(error_file_handler)
 
+    logger.setLevel(log_level)
+
     return logger
 
 
