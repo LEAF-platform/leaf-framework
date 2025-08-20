@@ -53,8 +53,11 @@ class OPCWatcher(EventWatcher):
         self._sub: Subscription|None = None
         self._handler = self._dispatch_callback
         self._handles: list[Any] = []
+        from leaf.start import logger
+        self.logger = logger
 
     def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
+        self.logger.info(f"OPC datachange_notification: node={node.nodeid.Identifier}, value={val}")
         self._dispatch_callback(self._metadata_manager.experiment.measurement, {
             "node": node.nodeid.Identifier,
             "value":val,
@@ -69,7 +72,7 @@ class OPCWatcher(EventWatcher):
         if not OPCUA_AVAILABLE:
             raise Exception("OPC UA library is not available. Cannot start OPCWatcher.")
 
-        print(f"Starting OPCWatcher on {self._host}:{self._port}")
+        self.logger.info(f"Starting OPCWatcher on {self._host}:{self._port}")
         self._client = Client(f"opc.tcp://{self._host}:{self._port}")
         self._client.connect()
 
@@ -77,12 +80,12 @@ class OPCWatcher(EventWatcher):
         objects_node = root.get_child(["0:Objects"])
         # Automatically browse and read nodes to obtain topics user could provide a list of topics.
         if self._topics is None or len(self._topics) == 0:
-            print("No topics provided. Browsing and reading all nodes.")
+            self.logger.info("No topics provided. Browsing and reading all nodes.")
             self._topics = self._browse_and_read(objects_node)
             for topic in self._topics:
-                print(f"Found topic: {topic}")
+                self.logger.info(f"Found topic: {topic}")
 
-        print(f"Number of topics: {len(self._topics)}")
+        self.logger.info(f"Number of topics: {len(self._topics)}")
 
         # Subscribe to topics
         self._subscribe_to_topics()
@@ -103,8 +106,11 @@ class OPCWatcher(EventWatcher):
                 child.get_value()
                 nodes_data.add(child.nodeid.Identifier)
             except Exception as e:
-                from leaf.start import logger
-                logger.error(e)
+                # Skip nodes that don't support value reading (organizational nodes, etc.)
+                if "BadAttributeIdInvalid" in str(e):
+                    self.logger.debug(f"Skipping node {child.nodeid.Identifier} - doesn't support value reading")
+                else:
+                    self.logger.error(f"Error reading node {child.nodeid.Identifier}: {e}")
                 pass
             nodes_data.update(self._browse_and_read(child))  # Recursive call
         return nodes_data
@@ -113,27 +119,25 @@ class OPCWatcher(EventWatcher):
         """
         Subscribe to OPC UA nodes and monitor data changes.
         """
-        from leaf.start import logger
-
         if not self._client:
-            print("Client is not connected.")
+            self.logger.warn("Client is not connected.")
             return
         try:
             self._sub = self._client.create_subscription(1000, self)  # 1s interval
             for topic in self._topics:
                 if topic in self._exclude_topics:
-                    logger.info("Excluded topic: {}".format(topic))
+                    self.logger.info("Excluded topic: {}".format(topic))
                     continue
                 try:
                     node = self._client.get_node(f"ns=2;s={topic}")  # Adjust namespace
                     handle = self._sub.subscribe_data_change(node)
                     self._handles.append(handle)
-                    print(f"Subscribed to: {topic}")
+                    self.logger.info(f"Subscribed to: {topic}")
                 except Exception as e:
-                    print(f"Failed to subscribe to {topic}: {e}")
+                    self.logger.error(f"Failed to subscribe to {topic}: {e}")
                     if "ServiceFault" in str(e):
-                        print("Retrying in 5 seconds...")
+                        self.logger.info("Retrying in 5 seconds...")
                         time.sleep(5)
                         continue  # Try the next topic
         except Exception as e:
-            print(f"Failed to create subscription: {e}")
+            self.logger.info(f"Failed to create subscription: {e}")
