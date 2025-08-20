@@ -318,7 +318,7 @@ class TestEquipmentAdapter(unittest.TestCase):
             mthread.start()
             watcher_timeout = 10
             watcher_count = 0
-            while not _adapter._watcher._observer.is_alive():
+            while not _adapter._watcher.is_running():
                 time.sleep(1)
                 watcher_count += 1
                 if watcher_count > watcher_timeout:
