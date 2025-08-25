@@ -17,7 +17,7 @@ test:
     - poetry lock
     - poetry install
   script:
-    - poetry run pytest -n auto --forked tests/ \
+    - poetry run pytest -n auto tests/ \
       --cov=. \
       --cov-report=term-missing \
       --cov-report=xml:coverage.xml \
