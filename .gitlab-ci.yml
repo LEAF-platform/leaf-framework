@@ -18,11 +18,12 @@ test:
     - poetry install
   script:
     - poetry run pytest -n auto --forked tests/ \
-      --cov=leaf \
+      --cov=. \
       --cov-report=term-missing \
       --cov-report=xml:coverage.xml \
       --cov-report=html:htmlcov \
       --junitxml=test-reports/report.xml
+
   artifacts:
     when: always
     reports:
