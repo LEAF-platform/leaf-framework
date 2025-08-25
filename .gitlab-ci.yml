@@ -16,14 +16,13 @@ test:
     - source /venv/bin/activate
     - poetry lock
     - poetry install
-    - poetry env info  # Debug Poetry environment
-    - poetry show  # Check installed dependencies
   script:
-    - poetry show pytest-xdist  # Verify pytest-xdist is installed
-    - poetry run coverage run -m pytest -n auto --forked tests/ --junitxml=test-reports/report.xml
-    - poetry run coverage report --show-missing
-    - poetry run coverage html
-    - poetry run coverage xml
+    - poetry run pytest -n auto --forked \
+        --cov=leaf \
+        --cov-report=term-missing \
+        --cov-report=xml:coverage.xml \
+        --cov-report=html:htmlcov \
+        --junitxml=test-reports/report.xml
   artifacts:
     when: always
     reports:
@@ -36,6 +35,7 @@ test:
       - htmlcov/
       - coverage.xml
   timeout: 30m
+
 
 publish:
   stage: publish
