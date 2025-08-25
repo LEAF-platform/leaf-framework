@@ -46,6 +46,7 @@ pytest-xdist = "^3.8.0"
 
 [tool.poetry.group.dev.dependencies]
 bump2version = "^1.0.1"
+pytest-cov = "^6.2.1"
 
 [build-system]
 requires = ["poetry-core"]
