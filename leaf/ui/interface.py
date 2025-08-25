@@ -266,11 +266,18 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
     with ui.header().classes('leaf-header').style('padding: 16px; color: white;'):
         with ui.row().classes('justify-between items-center w-full'):
             with ui.row().classes('items-center'):
-                # Leaf logo/icon
-                ui.html('<svg width="32" height="32" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M8 16C8 16 16 8 16 8C16 8 24 16 24 16C24 16 16 24 16 24C16 24 8 16 8 16Z"/></svg>')
-                ui.label('🍃 LEAF').classes('text-3xl font-bold ml-2')
+                import base64
+
+                svg = '''<svg width="32" height="32" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 16C8 16 16 8 16 8C16 8 24 16 24 16C24 16 16 24 16 24C16 24 8 16 8 16Z" fill="#4096FF" stroke="#2563EB" stroke-width="2"/>
+                </svg>'''
+
+                b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+                ui.html(f'<img width="32" height="32" src="data:image/svg+xml;base64,{b64}" />')
+
+                ui.label('LEAF').classes('text-3xl font-bold ml-2')
                 ui.label('Laboratory Equipment Adapter Framework').classes('text-sm opacity-80 ml-4 hidden md:block')
-            
+
             with ui.row().classes('items-center'):
                 # Status indicator
                 with ui.row().classes('items-center mr-4 hidden md:flex'):
@@ -513,11 +520,11 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                         # Main documentation - Left side (50%)
                         with ui.column().classes('w-45/100'):
                             ui.markdown('''
-                            # 🍃 LEAF System Overview
+                            # LEAF System Overview
                             
                             **LEAF (Laboratory Equipment Adapter Framework)** is a powerful system for monitoring laboratory equipment and transmitting data to various cloud destinations.
                             
-                            ## 🚀 Quick Start Guide
+                            ## Quick Start Guide
                             
                             ### Step 1: Configure Your Setup
                             1. Navigate to the **Configuration** tab
@@ -534,7 +541,7 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                             2. Monitor equipment status and data flow
                             3. Debug any issues using the live log feed
                             
-                            ## 📋 Configuration Structure
+                            ## Configuration Structure
                             
                             ### Equipment Instances
                             Define your laboratory equipment with specific adapters:
@@ -565,14 +572,11 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                                 fallback: FILE
                             ```
                             
-                            ## 🔧 Available Plugins
+                            ## Available Adapters
                             
-                            - **MQTT**: Real-time messaging
-                            - **KEYDB**: High-performance database
-                            - **FILE**: Local file storage
-                            - **HTTP**: RESTful API endpoints
+                            See the **Adapters** tab for a full list of available adapters and plugins.
                             
-                            ## 🏥 Use Cases
+                            ## Use Cases
                             
                             - **Bioreactor Monitoring**: Track pH, temperature, dissolved oxygen
                             - **Analytical Instruments**: Connect HPLC, spectrophotometers
@@ -584,7 +588,7 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                         with ui.column().classes('w-45/100'):
                             with ui.card().classes('bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 mb-4'):
                                 with ui.card_section():
-                                    ui.label('🔗 Quick Links').classes('text-lg font-bold text-indigo-800 mb-3')
+                                    ui.label('Quick Links').classes('text-lg font-bold text-indigo-800 mb-3')
                                     with ui.column().classes('gap-2'):
                                         ui.button('🌐 Official Documentation (Pop-up)',
                                                 on_click=lambda: ui.run_javascript('window.open("https://leaf.systemsbiology.nl", "_blank")')).classes(
