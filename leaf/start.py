@@ -353,16 +353,17 @@ def main(args: Optional[list[str]] = None) -> None:
     welcome_message()
 
     # Load configuration file first.
+    if not context.args.config:
+        logger.info("No configuration file provided, using default configuration...")
+        # Load default configuration
+        from pathlib import Path
+        context.args.config = Path(os.path.dirname(os.path.realpath(__file__))) / "config" / "configuration.yaml"
+        logger.info(f"Using default configuration: {context.args.config}")
+    
     if not os.path.exists(context.args.config):
         raise FileNotFoundError(
             f"Configuration file {context.args.config} does not exist. Please provide a valid configuration file."
         )
-    if not context.args.config or not os.path.exists(context.args.config):
-        logger.error("No configuration file provided...")
-        # Load default configuration
-        from pathlib import Path
-        context.args.config = Path(os.path.dirname(os.path.realpath(__file__))) / "config" / "configuration.yaml"
-        logger.info(f"No configuration file provided, using {context.args.config}")
     try:
         with open(context.args.config, "r") as f:
             content = f.read()
