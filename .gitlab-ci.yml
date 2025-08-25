@@ -17,12 +17,12 @@ test:
     - poetry lock
     - poetry install
   script:
-    - poetry run pytest tests -n auto --forked \
-        --cov=leaf \
-        --cov-report=term-missing \
-        --cov-report=xml:coverage.xml \
-        --cov-report=html:htmlcov \
-        --junitxml=test-reports/report.xml
+    - poetry run pytest -n auto --forked tests/ \
+      --cov=leaf \
+      --cov-report=term-missing \
+      --cov-report=xml:coverage.xml \
+      --cov-report=html:htmlcov \
+      --junitxml=test-reports/report.xml
   artifacts:
     when: always
     reports:
