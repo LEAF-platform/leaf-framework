@@ -268,12 +268,14 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
             with ui.row().classes('items-center'):
                 import base64
 
-                svg = '''<svg width="32" height="32" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 16C8 16 16 8 16 8C16 8 24 16 24 16C24 16 16 24 16 24C16 24 8 16 8 16Z" fill="#4096FF" stroke="#2563EB" stroke-width="2"/>
-                </svg>'''
-
-                b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
-                ui.html(f'<img width="32" height="32" src="data:image/svg+xml;base64,{b64}" />')
+                # Load SVG from images/icon.svg
+                curr_dir: Path = Path(os.path.dirname(os.path.realpath(__file__)))
+                svg_path: Path = curr_dir / "images" / "icon.svg"
+                if os.path.exists(svg_path):
+                    with open(svg_path, 'r') as svg_file:
+                        svg = svg_file.read()
+                        b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+                        ui.html(f'<img width="32" height="32" src="data:image/svg+xml;base64,{b64}" />')
 
                 ui.label('LEAF').classes('text-3xl font-bold ml-2')
                 ui.label('Laboratory Equipment Adapter Framework').classes('text-sm opacity-80 ml-4 hidden md:block')
