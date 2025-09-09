@@ -113,6 +113,12 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     )
 
     parser.add_argument("--shutdown", action="store_true", help=argparse.SUPPRESS)
+    
+    parser.add_argument(
+        "--no-signals",
+        action="store_true",
+        help=argparse.SUPPRESS # Hidden option for testing purposes only
+    )
 
     return parser.parse_args(args=args)
 
@@ -383,9 +389,10 @@ def main(args: Optional[list[str]] = None) -> None:
 
     create_configuration(context.args)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    sys.excepthook = handle_exception
+    if not getattr(context.args, 'no_signals', False):
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        sys.excepthook = handle_exception
 
     if context.config_yaml is not None:
         logger.info(context.__dict__)

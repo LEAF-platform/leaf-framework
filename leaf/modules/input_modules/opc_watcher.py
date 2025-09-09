@@ -31,6 +31,7 @@ class OPCWatcher(EventWatcher):
                  port: int,
                  topics: set[str],
                  exclude_topics: list[str],
+                 interval: int = 1,
                  callbacks: Optional[List[Callable[..., Any]]] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -53,6 +54,7 @@ class OPCWatcher(EventWatcher):
         self._sub: Subscription|None = None
         self._handler = self._dispatch_callback
         self._handles: list[Any] = []
+        self._interval = interval
         from leaf.start import logger
         self.logger = logger
 
@@ -123,7 +125,7 @@ class OPCWatcher(EventWatcher):
             self.logger.warn("Client is not connected.")
             return
         try:
-            self._sub = self._client.create_subscription(1000, self)  # 1s interval
+            self._sub = self._client.create_subscription(self._interval * 1000, self)  # second interval converted to ms
             for topic in self._topics:
                 if topic in self._exclude_topics:
                     self.logger.info("Excluded topic: {}".format(topic))
@@ -133,6 +135,14 @@ class OPCWatcher(EventWatcher):
                     handle = self._sub.subscribe_data_change(node)
                     self._handles.append(handle)
                     self.logger.info(f"Subscribed to: {topic}")
+                    # Send a dummy value to trigger the callback
+                    self._dispatch_callback(self._metadata_manager.experiment.measurement, {
+                        "node": node.nodeid.Identifier,
+                        "value": node.get_value(),
+                        "timestamp": time.time(),
+                        "data": None # Are we using this object in the opc measurement adapter?
+                    })
+
                 except Exception as e:
                     self.logger.error(f"Failed to subscribe to {topic}: {e}")
                     if "ServiceFault" in str(e):

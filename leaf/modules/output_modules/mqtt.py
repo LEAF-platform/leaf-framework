@@ -121,6 +121,7 @@ class MQTT(OutputModule):
         """
         Connects to the MQTT broker and sets a thread looping.
         """
+        logger.info(f"Connecting to MQTT broker {self._broker}")
         try:
             if self._username and self._password:
                         self.client.username_pw_set(self._username, self._password)
@@ -137,6 +138,7 @@ class MQTT(OutputModule):
         """
         Disconnect from the MQTT broker and stop the threaded loop.
         """
+        logger.info(f"Disconnecting from MQTT broker {self._broker}")
         if not self.is_enabled():
             logger.warning(
                 f"{self.__class__.__name__} - disconnect called with module disabled."
@@ -281,7 +283,7 @@ class MQTT(OutputModule):
                 f"{self.__class__.__name__} - on_connect called with module disabled."
             )
             return
-        logger.debug(f"Connected: {rc}")
+        logger.info(f"Connected to broker {self._username}@{self._broker}")
         if rc != 0:
             error_messages = {
                 1: "Unacceptable protocol version",
@@ -339,6 +341,7 @@ class MQTT(OutputModule):
             rc (int): The disconnection result code.
             properties (Optional[Any]): Additional metadata (if any).
         """
+        logger.info(f"Disconnected from broker {self._username}@{self._broker}")
         global MAX_RECONNECT_COUNT
         if not self.is_enabled():
             logger.warning(
@@ -387,6 +390,7 @@ class MQTT(OutputModule):
         Returns:
             bool: True if the client is connected, False otherwise.
         """
+        logger.info(f"{self.__class__.__name__} - is_connected")
         return self.client.is_connected()
 
     def on_message(
@@ -424,7 +428,7 @@ class MQTT(OutputModule):
         Returns:
             str: The subscribed topic.
         """
-        logger.debug(f"Subscribing to {topic}")
+        logger.info(f"Subscribing to {topic}")
         self.client.subscribe(topic)
         return topic
 
@@ -438,7 +442,7 @@ class MQTT(OutputModule):
         Returns:
             str: The unsubscribed topic.
         """
-
+        logger.info(f"Unsubscribing from {topic}")
         self.client.unsubscribe(topic)
         return topic
 
@@ -449,6 +453,7 @@ class MQTT(OutputModule):
         Returns:
             bool: True if successfully enabled, False otherwise.
         """
+        logger.info(f"{self.__class__.__name__} - enabled")
         return super().enable()
 
     def disable(self) -> bool:
@@ -458,6 +463,7 @@ class MQTT(OutputModule):
         Returns:
             bool: True if successfully disabled, False otherwise.
         """
+        logger.info(f"{self.__class__.__name__} - disabled")
         return super().disable()
 
     def pop(self, key: Optional[str] = None) -> None:
