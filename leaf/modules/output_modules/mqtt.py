@@ -12,15 +12,17 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError, LEAFError
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
-from leaf.utility.logger.logger_utils import get_logger
 from leaf.modules.output_modules.output_module import OutputModule
+from leaf.utility.logger.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="output_module.log", log_level=logging.DEBUG)
 
 FIRST_RECONNECT_DELAY = 1
 RECONNECT_RATE = 2
 MAX_RECONNECT_COUNT = 12
 MAX_RECONNECT_DELAY = 1
 
-logger = get_logger(__name__, log_file="mqtt.log", log_level=logging.ERROR)
+
 
 
 class MQTT(OutputModule):
@@ -89,6 +91,7 @@ class MQTT(OutputModule):
         self._tls: bool = tls
         self.messages: dict[str, list[str]] = {}
         self.sending_success: dict[str,bool] = {}
+        self._is_reconnect: bool = False
 
         self.client = mqtt.Client(
             callback_api_version=CallbackAPIVersion.VERSION2,
@@ -97,6 +100,7 @@ class MQTT(OutputModule):
             transport=transport,
         )
         self.client.on_connect = self.on_connect
+
         self.client.on_connect_fail = self.on_connect_fail
         self.client.on_disconnect = self.on_disconnect
         self.client.on_log = self.on_log
@@ -222,11 +226,12 @@ class MQTT(OutputModule):
                         # Sleep 0.05 seconds to allow the message to be processed
                         time.sleep(0.05)
                     else:
-                        logger.info(
+                        logger.debug(
                             f"No fallback data found for topic {topic}, stopping fallback."
                         )
                         break
-
+            # Reset the flag after processing fallback data in case new data arrives later
+            self.sending_success[topic] = False
         return True
 
     def flush(self, topic: str) -> None:
@@ -283,7 +288,13 @@ class MQTT(OutputModule):
                 f"{self.__class__.__name__} - on_connect called with module disabled."
             )
             return
-        logger.info(f"Connected to broker {self._username}@{self._broker}")
+        if self._is_reconnect:
+            logger.info(f"Reconnected to broker {self._username}@{self._broker}")
+            self._is_reconnect = False
+            # Fallback data will be sent in transmit method
+        else:
+            logger.info(f"Connected to broker {self._username}@{self._broker}")
+        
         if rc != 0:
             error_messages = {
                 1: "Unacceptable protocol version",
@@ -303,9 +314,6 @@ class MQTT(OutputModule):
         self,
         client: mqtt.Client,
         userdata: Any,
-        flags: dict,
-        rc: int,
-        metadata: Optional[Any] = None,
     ) -> None:
         """
         Callback for when the client fails to connect to the broker.
@@ -314,11 +322,8 @@ class MQTT(OutputModule):
             client (mqtt.Client): The MQTT client instance.
             userdata (Any): The private user data as set in
                             Client() or userdata_set().
-            flags (dict): Response flags sent by the broker.
-            rc (int): The connection result code.
-            metadata (Optional[Any]): Additional metadata (if any).
         """
-        logger.error(f"Connection failed: {rc}")
+        logger.error("Connection failed")
         leaf_error = LEAFError("Failed to connect", SeverityLevel.CRITICAL)
         self._handle_exception(leaf_error)
 
@@ -354,6 +359,7 @@ class MQTT(OutputModule):
             while reconnect_count < MAX_RECONNECT_COUNT:
                 time.sleep(reconnect_delay)
                 try:
+                    self._is_reconnect = True
                     client.reconnect()
                     return
                 except Exception as e:
