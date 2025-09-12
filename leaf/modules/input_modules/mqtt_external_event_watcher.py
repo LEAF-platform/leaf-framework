@@ -213,11 +213,8 @@ class MQTTExternalEventWatcher(ExternalEventWatcher):
 
     def on_connect_fail(
         self,
-        client: mqtt.Client,
-        userdata: Any,
         flags: dict,
         rc: int,
-        metadata: Optional[Any] = None,
     ) -> None:
         """
         Callback for when the client fails to connect to the broker.
