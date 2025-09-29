@@ -11,7 +11,8 @@ try:
     import logging
     logging.getLogger('opcua').setLevel(logging.WARNING)
 except ImportError:
-    from leaf.start import logger
+    from leaf.utility.logger.logger_utils import get_logger
+    logger = get_logger(__name__, log_file="input_module.log")
     logger.warning("OPC UA library not available. OPCWatcher will not function.")
     OPCUA_AVAILABLE = False
     Client = Node = Subscription = DataChangeNotification = None  # Placeholders
@@ -55,8 +56,8 @@ class OPCWatcher(EventWatcher):
         self._handler = self._dispatch_callback
         self._handles: list[Any] = []
         self._interval = interval
-        from leaf.start import logger
-        self.logger = logger
+        from leaf.utility.logger.logger_utils import get_logger
+        self.logger = get_logger(__name__, log_file="input_module.log")
 
     def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
         self.logger.debug(f"OPC datachange_notification: node={node.nodeid.Identifier}, value={val}")

@@ -432,7 +432,7 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                     handler = LogElementHandler(log)
                     logger.addHandler(handler)
                     ui.context.client.on_disconnect(lambda: logger.removeHandler(handler))
-                    logger.info("🚀 Logger interface connected and ready!")
+                    logger.info("Logger interface connected and ready!")
 
         # Adapters tab - Enhanced
         with ui.tab_panel(adapters_tab).classes('w-full p-6'):

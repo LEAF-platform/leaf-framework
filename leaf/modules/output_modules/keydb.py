@@ -9,7 +9,9 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.start import logger
+from leaf.utility.logger.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="output_module.log")
 
 
 class KEYDB(OutputModule):
