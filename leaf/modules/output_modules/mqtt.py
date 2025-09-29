@@ -232,6 +232,9 @@ class MQTT(OutputModule):
                         break
             # Reset the flag after processing fallback data in case new data arrives later
             self.sending_success[topic] = False
+
+        # Reset global failure counter only after successful transmission AND fallback processing
+        OutputModule.reset_failure_count()
         return True
 
     def flush(self, topic: str) -> None:

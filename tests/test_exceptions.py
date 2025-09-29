@@ -328,8 +328,8 @@ class TestExceptionsGeneral(unittest.TestCase):
         # Attempt to transmit data and expect fallback mechanism
         self.file_client.transmit("test_topic", "test_data")
 
-        # Verify the error was handled
-        self.error_holder.add_error.assert_called_once()
+        # Verify the error was handled, called twice due to fallback attempt
+        self.assertEqual(self.error_holder.add_error.call_count, 2)
 
     @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
     def test_file_transmit_invalid_json(self, mock_open_file) -> None:

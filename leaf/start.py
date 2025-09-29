@@ -272,21 +272,24 @@ def run_adapters(
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
                         logger.warning(
-                            f"Client unreachable (attempt {client_warning_retry_count + 1}): {error}", 
+                            f"Client unreachable (attempt {client_warning_retry_count + 1}): {error}",
                             exc_info=error)
-                        if output.is_enabled():
-                            if client_warning_retry_count >= max_warning_retries:
-                                logger.error(f"Disabling client {output.__class__.__name__}.", 
-                                             exc_info=error)
-                                output.disable()
-                                client_warning_retry_count = 0
-                            else:
-                                client_warning_retry_count += 1
-                                output.disconnect()
-                                time.sleep(cooldown_period_warning)
-                                output.connect()
+                        # Only disable/reconnect if the error is from the primary output module
+                        if hasattr(error, 'client') and error.client == output:
+                            if output.is_enabled():
+                                if client_warning_retry_count >= max_warning_retries:
+                                    logger.error(f"Disabling client {output.__class__.__name__}.",
+                                                 exc_info=error)
+                                    output.disable()
+                                    client_warning_retry_count = 0
+                                else:
+                                    client_warning_retry_count += 1
+                                    output.disconnect()
+                                    time.sleep(cooldown_period_warning)
+                                    output.connect()
+                        # If error is from a fallback module, just log it (don't disable primary)
                     else:
-                        logger.warning(f"Warning encountered: {error}", 
+                        logger.warning(f"Warning encountered: {error}",
                                        exc_info=error)
 
                 elif error.severity == SeverityLevel.INFO:

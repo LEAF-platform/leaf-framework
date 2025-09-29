@@ -13,11 +13,11 @@ from leaf.modules.output_modules.mqtt import MQTT
 from leaf.utility.logger.logger_utils import get_logger
 
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
-logger = get_logger(__name__, log_file="input_module.log", log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="input_module.log")
 
 def run_leaf(config):
     logger.info("Starting LEAF process")
-    leaf.start.main(["--nogui", "--config", config])
+    leaf.start.main(["--nogui", "--config", config, "--no-signals"])
 
 class TestKeyDB(unittest.TestCase):
 
@@ -30,12 +30,22 @@ class TestKeyDB(unittest.TestCase):
         self.db.flushdb()
 
     def test_set_and_get(self):
+        """Test basic Redis set and get operations.
+
+        Verifies that a key-value pair can be stored and retrieved correctly
+        from the Redis database.
+        """
         # Set a key-value pair and verify that it can be retrieved
         self.db.set('key', 'value')
         result = self.db.get('key').decode('utf-8')  # Decode from bytes to string
         self.assertEqual(result, 'value')
 
     def test_delete(self):
+        """Test Redis key deletion functionality.
+
+        Verifies that keys can be deleted from Redis and that attempting
+        to retrieve a deleted key returns None.
+        """
         # Set a key-value pair and then delete it
         self.db.set('key', 'value')
         self.db.delete('key')
@@ -43,19 +53,29 @@ class TestKeyDB(unittest.TestCase):
         self.assertIsNone(result)  # Redis returns None if the key doesn't exist
 
     def test_flushdb(self):
+        """Test Redis database flushing (clearing all data).
+
+        Verifies that flushdb removes all keys from the database,
+        making them unavailable for retrieval.
+        """
         # Set multiple key-value pairs and flush the database
         self.db.set('key1', 'value1')
         self.db.set('key2', 'value2')
         self.db.flushdb()
-        
+
         result1 = self.db.get('key1')
         result2 = self.db.get('key2')
-        
+
         self.assertIsNone(result1)  # Both keys should be deleted
         self.assertIsNone(result2)
 
     def test_leaf(self):
+        """Test LEAF application integration with KeyDB output module.
 
+        This test starts the LEAF application with a KeyDB configuration,
+        waits for data to be written to KeyDB, and verifies the data structure
+        and operations (like list length changes after popping elements).
+        """
         config = os.path.join(os.path.dirname(__file__), "..","..","..","tests", "static_files", "test_config_keydb.yaml")
         # Load configuration from the YAML file
         if not os.path.exists(config):
@@ -81,8 +101,9 @@ class TestKeyDB(unittest.TestCase):
             self.fail("Could not connect to KeyDB")
 
         # Start the leaf application in a separate thread
-        thread = threading.Thread(target=run_leaf, daemon=True)
+        thread = threading.Thread(target=run_leaf, args=[config], daemon=True)
         thread.start()
+        # If thread is killed due to error, we want to know
         while True:
             try:
                 # Check if the thread is still alive
@@ -91,10 +112,10 @@ class TestKeyDB(unittest.TestCase):
                     break
                 # Obtain data from KeyDB
                 keys = keydb_client.keys("keydb_test_instance*")
-                print("Current keys in KeyDB:", keys)
+                logger.info("Current keys in KeyDB: %s", keys)
                 if len(keys) == 2:
-                    assert keys[0] == b'example_hello_world_institute1/HelloWorld/keydb_test_instance/experiment/undefined/measurement/bioreactor_example'
-                    assert keys[1] == b'example_hello_world_institute1/HelloWorld/keydb_test_instance/details'
+                    assert keys[0] == b'keydb_test_instance_institute1/HelloWorld/keydb_test_instance/experiment/undefined/measurement/bioreactor_example'
+                    assert keys[1] == b'keydb_test_instance_institute1/HelloWorld/keydb_test_instance/details'
                     logger.info("Current keys in KeyDB: %s", keys)
                     # Number of values in the list
                     size_before = keydb_client.llen(keys[0])
@@ -121,8 +142,18 @@ class TestKeyDB(unittest.TestCase):
     #     signal.signal(signal.SIGTERM, signal_handler)
     #     sys.excepthook = handle_exception
     # for now...
-    @unittest.skip("Skipping test_keydb_switch_to_mqtt due to signal handling issues")
+    # @unittest.skip("Skipping test_keydb_switch_to_mqtt due to signal handling issues")
     def test_keydb_switch_to_mqtt(self):
+        """Test switching from KeyDB to MQTT output mode with message verification.
+
+        This integration test:
+        1. Runs LEAF with KeyDB output to collect messages
+        2. Stores all messages from KeyDB
+        3. Switches to MQTT mode with KeyDB fallback
+        4. Verifies that all previously stored KeyDB messages are sent via MQTT
+
+        This ensures proper failover and message delivery between output modules.
+        """
         config = os.path.join(os.path.dirname(__file__), "..","..","..","tests", "static_files", "test_config_keydb.yaml")
 
         if not os.path.exists(config):
@@ -161,13 +192,13 @@ class TestKeyDB(unittest.TestCase):
                 logger.info("LEAF thread has finished")
                 break
             # Obtain data from KeyDB
-            keys = keydb_client.keys()
             while True:
+                keys = keydb_client.keys()
                 logger.info("Current keys in KeyDB: %s", keys)
-                if b'example_hello_world_institute1/HelloWorld/example_hello_world_id1/experiment/undefined/measurement/bioreactor_example' in keys and b'example_hello_world_institute1/HelloWorld/example_hello_world_id1/details' in keys:
+                if b'keydb_test_instance_institute1/HelloWorld/keydb_test_instance/experiment/undefined/measurement/bioreactor_example' in keys and b'keydb_test_instance_institute1/HelloWorld/keydb_test_instance/details' in keys:
                     logger.info("Current keys in KeyDB: %s", keys)
                     # Number of values in the list
-                    size_now = keydb_client.llen(keys[0])
+                    size_now = keydb_client.llen('keydb_test_instance_institute1/HelloWorld/keydb_test_instance/experiment/undefined/measurement/bioreactor_example')
                     logger.info("Number of values in the list: %d", size_now)
                     if size_now > 5:
                         # Stop the LEAF thread
@@ -194,12 +225,13 @@ class TestKeyDB(unittest.TestCase):
             messages = keydb_client.lrange(key, 0, -1)
             for message in messages:
                 logger.info("Message: %s", message.decode('utf-8'))
-                message_store[key].add(json.loads(message.decode('utf-8')))
+                message_store[key].add(message.decode('utf-8'))
 
         logger.info("Message store: %s", message_store)
 
         # Start LEAF in MQTT mode
         logger.info("Switching LEAF to MQTT mode")
+
         config = os.path.join(os.path.dirname(__file__), "..", "..", "..", "tests", "static_files",
                               "test_config_mqtt_with_keydb_fallback.yaml")
 
@@ -231,7 +263,7 @@ class TestKeyDB(unittest.TestCase):
 
         # Wait for the thread to finish
         while p.is_alive():
-            logger.info(f"Message store: {message_store}")
+            # logger.info(f"Message store: {message_store}")
             if len(message_store) == 0:
                 logger.info("All messages have been received, stopping LEAF")
                 p.terminate()

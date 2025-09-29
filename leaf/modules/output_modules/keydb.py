@@ -130,6 +130,8 @@ class KEYDB(OutputModule):
         try:
             self._client.lpush(topic, data)
             logger.info(f"Pushed data to key '{topic}' in KeyDB {self._client} with {self._client.llen(topic)} rows.")
+            # Reset global failure counter on successful transmission
+            OutputModule.reset_failure_count()
             return True
         except redis.RedisError as e:
             self._handle_redis_error(e)

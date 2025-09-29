@@ -1,11 +1,11 @@
+import csv
 import os
 import sys
-import unittest
-import time
-from threading import Thread
-import csv
-from datetime import datetime
 import tempfile
+import time
+import unittest
+from datetime import datetime
+from threading import Thread
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -313,8 +313,9 @@ class TestFileWatcher(unittest.TestCase):
                 writer.writerow(["2", "200"])
             time.sleep(1)
             watcher.stop()
-
-            self.assertEqual(len(topics[metadata.experiment.measurement()]), 1)
+            # Assert the mock topic received the modified data
+            self.assertEqual(topics['+/+/+/experiment/start'], [[['Time', 'Value'], ['2', '200']]])
+            # self.assertEqual(len(topics[metadata.experiment.measurement()]), 1)
 
     def test_csv_file_deletion(self):
         with tempfile.TemporaryDirectory() as test_dir:
@@ -454,6 +455,7 @@ class TestFileWatcher(unittest.TestCase):
             time.sleep(1)
             watcher.stop()
 
+            print("Topics collected: %s", topics)
             self.assertGreaterEqual(len(topics[metadata.experiment.measurement()]), 1)
             found_row = any("Val1" in row for row in topics[metadata.experiment.measurement()][0])
             self.assertTrue(found_row)
