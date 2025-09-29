@@ -7,6 +7,7 @@ from threading import Thread
 import tempfile
 import yaml
 import uuid
+import logging
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -114,11 +115,36 @@ class MockEquipmentAdapter(EquipmentAdapter):
 class TestEquipmentAdapter(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
+        self._cleanup_loggers()
+
+    def _cleanup_loggers(self):
+        """Clean up all logger handlers to prevent file handle leaks between tests."""
+        # Get all loggers and clear their handlers
+        loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+        loggers.append(logging.getLogger())  # Add root logger
+
+        for logger in loggers:
+            for handler in logger.handlers[:]:
+                handler.close()
+                logger.removeHandler(handler)
 
     def tearDown(self):
-        self._adapter.stop()
-        self.temp_dir.cleanup()
-        self.mock_client.reset_messages()
+        try:
+            if hasattr(self, '_adapter') and self._adapter:
+                self._adapter.stop()
+                # Give threads time to finish cleanup
+                time.sleep(0.5)
+        except Exception:
+            pass
+
+        if hasattr(self, 'temp_dir'):
+            self.temp_dir.cleanup()
+
+        if hasattr(self, 'mock_client'):
+            self.mock_client.reset_messages()
+
+        # Clean up loggers after test completion
+        self._cleanup_loggers()
 
     def initialize_experiment(self,**kwargs):
         """
@@ -157,12 +183,6 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client.subscribe(self.details_topic)
         time.sleep(2)
     
-    
-    def tearDown(self):
-        try:
-            self._adapter.stop()
-        except Exception:
-            pass
 
     def wait_for_adapter_start(self,adapter):
         timeout = 30
@@ -309,7 +329,7 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
-            time.sleep()
+            time.sleep(1)
 
         mthread = Thread(target=_adapter.start)
         unique_logger_name = f"leaf.adapters.equipment_adapter.{_adapter._metadata_manager.get_instance_id()}"
