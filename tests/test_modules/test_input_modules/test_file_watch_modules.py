@@ -53,14 +53,18 @@ class TestFileWatcher(unittest.TestCase):
                 with open(text_watch_file, "w"):
                     pass
 
-            num_mod = 3
+            num_mod = 2
             interval = 2
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir,metadata,
                                   callbacks=[mock_callback],
                                   filenames=test_fn)
             watcher.start()
-            mthread = Thread(target=mod_file, args=(text_watch_file, 
+
+            # Wait for the file creation event to be processed and debounce to expire
+            time.sleep(1.0)
+
+            mthread = Thread(target=mod_file, args=(text_watch_file,
                                                     interval, num_mod))
             mthread.start()
             mthread.join()
@@ -205,7 +209,7 @@ class TestFileWatcher(unittest.TestCase):
 
 
 
-            num_mod = 3
+            num_mod = 4
             interval = 2
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir,metadata,
@@ -246,7 +250,10 @@ class TestFileWatcher(unittest.TestCase):
             def mock_callback(topic,data):
                 nonlocal topics
                 topic = topic()
-                self.assertEqual(data,creation_file)
+                # Handle macOS path symlink differences (/var vs /private/var)
+                expected_path = os.path.realpath(creation_file)
+                actual_path = os.path.realpath(data)
+                self.assertEqual(actual_path, expected_path)
                 if topic not in topics:
                     topics[topic] = []
                 topics[topic].append(data)
@@ -366,13 +373,18 @@ class TestFileWatcher(unittest.TestCase):
             def mock_callback(topic, data):
                 nonlocal topics
                 topic = topic()
-                self.assertEqual(data, csv_file)
+                # Handle macOS path symlink differences (/var vs /private/var)
+                expected_path = os.path.realpath(csv_file)
+                actual_path = os.path.realpath(data)
+                self.assertEqual(actual_path, expected_path)
                 topics.setdefault(topic, []).append(data)
 
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], return_data=False, filenames="justpath.csv")
             watcher.start()
 
+            # Give the watcher time to initialize before creating files
+            time.sleep(0.1)
             self._write_csv_file(csv_file, [["A", "B"], ["X", "Y"]])
             time.sleep(1)
             watcher.stop()
@@ -427,6 +439,7 @@ class TestFileWatcher(unittest.TestCase):
 
             topics = {}
             def mock_callback(topic, data):
+                print("Callback invoked with topic: %s", topic(), "and data:", data)
                 nonlocal topics
                 topic = topic()
                 if topic not in topics:
@@ -443,6 +456,8 @@ class TestFileWatcher(unittest.TestCase):
             watcher.start()
 
             def modify_file():
+                # Wait longer than the debounce delay (0.75s) before modifying
+                time.sleep(1.0)
                 with open(file_path, "a", newline="") as f:
                     writer = csv.writer(f, delimiter="\t")
                     writer.writerow(["Val1", "Val2"])

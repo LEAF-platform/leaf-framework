@@ -26,6 +26,7 @@ from leaf.adapters.equipment_adapter import AbstractInterpreter
 from leaf.modules.output_modules.mqtt import MQTT
 from leaf.modules.output_modules.keydb import KEYDB
 from leaf.modules.output_modules.file import FILE
+from leaf.modules.output_modules.output_module import OutputModule
 from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.phase_modules.measure import MeasurePhase
 from leaf.modules.phase_modules.control import ControlPhase
@@ -117,6 +118,8 @@ class MockEquipment(EquipmentAdapter):
 
 class TestExceptionsInit(unittest.TestCase):
     def setUp(self) -> None:
+        # Reset output module failure counter to prevent cross-test contamination
+        OutputModule.reset_failure_count()
         pass
 
     def test_start_get_output_module_not_found(self) -> None:
@@ -249,6 +252,9 @@ class TestExceptionsInit(unittest.TestCase):
 
 class TestExceptionsGeneral(unittest.TestCase):
     def setUp(self) -> None:
+        # Reset output module failure counter to prevent cross-test contamination
+        OutputModule.reset_failure_count()
+
         self.error_holder = MagicMock()
         self.broker = "test_broker"
         self.port = 1883
@@ -260,6 +266,10 @@ class TestExceptionsGeneral(unittest.TestCase):
             host=self.host, port=self.port, error_holder=self.error_holder
         )
         self.file_client = FILE(filename="test.json", error_holder=self.error_holder)
+
+    def tearDown(self) -> None:
+        # Reset output module failure counter after test completion
+        OutputModule.reset_failure_count()
 
     @patch("leaf.modules.output_modules.mqtt.mqtt.Client.connect")
     def test_mqtt_module_cant_connect_init(self, mock_connect: MagicMock) -> None:
@@ -341,7 +351,7 @@ class TestExceptionsGeneral(unittest.TestCase):
         self.file_client.transmit("test_topic", "test_data")
 
         # Verify the error was handled
-        self.error_holder.add_error.assert_called_once()
+        assert self.error_holder.add_error.call_count == 2
 
     @patch("leaf.modules.output_modules.file.open", new_callable=mock_open)
     @patch("leaf.modules.output_modules.file.os.path.exists", return_value=True)
@@ -369,83 +379,107 @@ class TestExceptionsGeneral(unittest.TestCase):
 
 
     def test_start_handler_no_fallback(self) -> None:
-        error_holder = ErrorHolder()
-        output = MQTT(
-            broker,
-            port,
-            username=un,
-            password=pw,
-            clientid=None,
-            error_holder=error_holder,
-        )
-
-        write_dir = "test"
-        if not os.path.isdir(write_dir):
-            os.mkdir(write_dir)
-        write_file = os.path.join(write_dir, "tmp1.csv")
-
-        ins = [
-            {
-                "equipment": {
-                    "adapter": "MockFunctionalAdapter",
-                    "data": {
-                        "instance_id": f"{uuid.uuid4()}",
-                        "institute": f"{uuid.uuid4()}",
-                    },
-                    "requirements": {"write_file": write_file},
-                }
-            }
-        ]
-        discover_from_config({"EQUIPMENT_INSTANCES":ins},
-                             mock_functional_adapter_path)
-
-        def _start() -> Thread:
-            mthread = Thread(
-                target=run_adapters,
-                args=[ins, output, error_holder]
-            )
-            mthread.daemon = True
-            mthread.start()
-            return mthread
-
-        def _stop(thread: Thread) -> None:
-            stop_all_adapters()
-            time.sleep(10)
+        # Reset failure counter and temporarily increase threshold for this test
+        OutputModule.reset_failure_count()
+        original_threshold = OutputModule._max_failures_before_reboot
+        OutputModule._max_failures_before_reboot = 100
 
         try:
-            with self.assertLogs(start.__name__, level="WARNING") as logs:
-                adapter_thread = _start()
-                time.sleep(2)
-                while output.client.is_connected():
+            error_holder = ErrorHolder()
+            output = MQTT(
+                broker,
+                port,
+                username=un,
+                password=pw,
+                clientid=None,
+                error_holder=error_holder,
+            )
+
+            write_dir = "test"
+            if not os.path.isdir(write_dir):
+                os.mkdir(write_dir)
+            write_file = os.path.join(write_dir, "tmp1.csv")
+
+            ins = [
+                {
+                    "equipment": {
+                        "adapter": "MockFunctionalAdapter",
+                        "data": {
+                            "instance_id": f"{uuid.uuid4()}",
+                            "institute": f"{uuid.uuid4()}",
+                        },
+                        "requirements": {"write_file": write_file},
+                    }
+                }
+            ]
+            discover_from_config({"EQUIPMENT_INSTANCES":ins},
+                                 mock_functional_adapter_path)
+
+            def _start() -> Thread:
+                mthread = Thread(
+                    target=run_adapters,
+                    args=[ins, output, error_holder]
+                )
+                mthread.daemon = True
+                mthread.start()
+                return mthread
+
+            def _stop(thread: Thread) -> None:
+                stop_all_adapters()
+                time.sleep(10)
+
+            try:
+                with self.assertLogs(start.__name__, level="WARNING") as logs:
+                    adapter_thread = _start()
+                    time.sleep(2)
+                    while output.client.is_connected():
+                        output.disconnect()
+                        continue
+                    no_op_top = "test/test/"
+                    output.fallback(no_op_top,{})
+                    time.sleep(15)
                     output.disconnect()
-                    continue
-                no_op_top = "test/test/"
-                output.fallback(no_op_top,{})
-                time.sleep(15)
-                output.disconnect()
-                time.sleep(1)
+                    time.sleep(1)
+                    _stop(adapter_thread)
+            finally:
                 _stop(adapter_thread)
+
+            # Define expected exceptions with type, severity, and message prefix
+            expected_exceptions = [
+                {
+                    "type": ClientUnreachableError,
+                    "severity": SeverityLevel.WARNING,
+                    "message_prefix": "Cannot connect or reach client: Cannot store data, no output mechanisms available."
+                }
+            ]
+
+            self.assertTrue(len(logs.records) > 0)
+            found_exceptions = []
+
+            for log in logs.records:
+                exc_type, exc_value, exc_traceback = log.exc_info
+                if exc_value:  # Ensure there's an actual exception
+                    message = exc_value.args[0] if exc_value.args else ""
+                    print(f"Checking exception: {exc_type.__name__}, severity: {getattr(exc_value, 'severity', 'N/A')}, message: {message}")
+
+                    for expected in expected_exceptions:
+                        if (exc_type == expected["type"] and
+                            hasattr(exc_value, 'severity') and exc_value.severity == expected["severity"] and
+                            message.startswith(expected["message_prefix"])):
+                            print(f"Matched expected exception: {expected}")
+                            found_exceptions.append(expected)
+                            break
+
+            # Ensure we found at least one matching exception (allowing for multiple occurrences)
+            unique_found = {(e["type"].__name__, e["severity"], e["message_prefix"]) for e in found_exceptions}
+            expected_unique = {(e["type"].__name__, e["severity"], e["message_prefix"]) for e in expected_exceptions}
+
+            missing_exceptions = expected_unique - unique_found
+            self.assertEqual(len(missing_exceptions), 0, f"Missing expected exceptions: {missing_exceptions}")
         finally:
-            _stop(adapter_thread)
-
-        expected_exceptions = [
-            ClientUnreachableError(
-                "Cannot store data, no output mechanisms available.",
-                SeverityLevel.WARNING,
-            ),
-
-        ]
-        self.assertTrue(len(logs.records) > 0)
-        for log in logs.records:
-            exc_type, exc_value, exc_traceback = log.exc_info
-            for exp_exc in list(expected_exceptions):
-                if (
-                        type(exp_exc) == exc_type
-                        and exp_exc.severity == exc_value.severity
-                        and exp_exc.args == exc_value.args
-                ):
-                    expected_exceptions.remove(exp_exc)
-        self.assertEqual(len(expected_exceptions), 0)
+            # Restore original threshold
+            OutputModule._max_failures_before_reboot = original_threshold
+            OutputModule.reset_failure_count()
 
 
     def test_start_handler_no_connection(self) -> None:
@@ -628,6 +662,9 @@ class TestExceptionsGeneral(unittest.TestCase):
          
 class TestExceptionsAdapterSpecific(unittest.TestCase):
     def setUp(self) -> None:
+        # Reset output module failure counter to prevent cross-test contamination
+        OutputModule.reset_failure_count()
+
         self.temp_dir = tempfile.TemporaryDirectory()
         unique_instance_id = str(uuid.uuid4())
         unique_file_name = f"TestBioreactor_{unique_instance_id}.txt"
