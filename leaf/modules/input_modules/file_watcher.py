@@ -21,8 +21,7 @@ from leaf.error_handler.exceptions import InputError
 from leaf.modules.input_modules.event_watcher import EventWatcher
 from leaf.utility.logger.logger_utils import get_logger
 
-logger = get_logger(__name__, log_file="input_module.log", 
-                    log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="input_module.log")
 
 
 def _read_csv(fp: str, encodings=["utf-8", "latin-1"], 

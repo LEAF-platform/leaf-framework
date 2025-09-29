@@ -13,7 +13,7 @@ from leaf.error_handler.exceptions import InterpreterError
 from leaf.modules.phase_modules.phase import PhaseModule
 from leaf.utility.logger.logger_utils import get_logger
 
-logger = get_logger(__name__, log_file="measure.log",  log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="measure.log")
 
 class MeasurePhase(PhaseModule):
     """

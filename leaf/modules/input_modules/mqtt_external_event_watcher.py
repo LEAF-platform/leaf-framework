@@ -27,8 +27,7 @@ RECONNECT_RATE = 2
 MAX_RECONNECT_COUNT = 12
 MAX_RECONNECT_DELAY = 1
 
-logger = get_logger(__name__, log_file="input_module.log", 
-                    log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="input_module.log")
 
 class MQTTExternalEventWatcher(ExternalEventWatcher):
     def __init__(self,

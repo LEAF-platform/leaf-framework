@@ -15,7 +15,7 @@ from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.output_modules.output_module import OutputModule
 from leaf.utility.logger.logger_utils import get_logger
 
-logger = get_logger(__name__, log_file="output_module.log", log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="output_module.log")
 
 FIRST_RECONNECT_DELAY = 1
 RECONNECT_RATE = 2

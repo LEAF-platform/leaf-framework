@@ -23,7 +23,7 @@ default_equipment_locations = [core_adapter_dir, functional_adapter_dir]
 output_module_dir = os.path.join(root_dir, "modules", "output_modules")
 input_module_dir = os.path.join(root_dir, "modules", "input_modules")
 
-logger = get_logger(__name__, log_file="discovery.log",  log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="discovery.log")
 
 def discover_entry_point_equipment(
     needed_codes: set[str] = None,

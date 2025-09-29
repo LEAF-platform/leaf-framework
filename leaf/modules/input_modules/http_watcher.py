@@ -15,8 +15,7 @@ from leaf.modules.input_modules.polling_watcher import PollingWatcher
 from leaf.utility.logger.logger_utils import get_logger
 from leaf.error_handler.error_holder import ErrorHolder
 
-logger = get_logger(__name__, log_file="input_module.log", 
-                    log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="input_module.log")
 
 
 class URLState:

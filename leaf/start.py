@@ -25,6 +25,7 @@ from leaf.modules.output_modules.output_module import OutputModule
 from leaf.registry.registry import discover_from_config
 from leaf.utility.logger.logger_utils import get_logger
 from leaf.utility.logger.logger_utils import set_log_dir
+from leaf.utility.logger.logger_utils import set_global_log_level
 from leaf.utility.running_utilities import build_output_module
 from leaf.utility.running_utilities import handle_disabled_modules
 from leaf.utility.running_utilities import process_instance
@@ -44,9 +45,7 @@ ERROR_LOG_FILE = "global_error.log"
 CONFIG_FILE_NAME = "configuration.yaml"
 
 set_log_dir(ERROR_LOG_DIR)
-logger = get_logger(__name__, log_file=LOG_FILE, 
-                    error_log_file=ERROR_LOG_FILE, 
-                    log_level=logging.INFO)
+logger = get_logger(__name__, log_file=LOG_FILE, error_log_file=ERROR_LOG_FILE)
 
 adapters: list[Any] = []
 adapter_threads: list[threading.Thread] = []
@@ -307,6 +306,7 @@ def run_adapters(
         logger.info("Proxy stopped.")
 
     logger.info("All adapter threads have been stopped.")
+    return None
 
 
 def create_configuration(args: argparse.Namespace) -> None:
@@ -384,6 +384,7 @@ def main(args: Optional[list[str]] = None) -> None:
         return
 
     if context.args.debug:
+        set_global_log_level(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
         logger.debug("Debug logging enabled.")
 
