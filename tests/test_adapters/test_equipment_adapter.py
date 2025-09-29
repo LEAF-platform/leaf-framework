@@ -124,9 +124,32 @@ class TestEquipmentAdapter(unittest.TestCase):
         loggers.append(logging.getLogger())  # Add root logger
 
         for logger in loggers:
+            # Close and remove all handlers
             for handler in logger.handlers[:]:
-                handler.close()
+                try:
+                    handler.flush()
+                    handler.close()
+                except (OSError, ValueError):
+                    # Handler may already be closed
+                    pass
                 logger.removeHandler(handler)
+
+            # Clear any disabled state
+            logger.disabled = False
+
+        # Also clear the root logger's handlers
+        root = logging.getLogger()
+        for handler in root.handlers[:]:
+            try:
+                handler.flush()
+                handler.close()
+            except (OSError, ValueError):
+                pass
+            root.removeHandler(handler)
+
+        # Force garbage collection of logger manager dict to ensure clean state
+        logging.root.manager.loggerDict.clear()
+        logging.root.manager.loggerClass = logging.Logger
 
     def tearDown(self):
         try:
