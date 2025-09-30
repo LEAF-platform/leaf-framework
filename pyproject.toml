@@ -63,6 +63,9 @@ addopts = [
     "--forked",  # Fork each test for isolation
     "--tb=short",  # Shorter tracebacks
 ]
+markers = [
+    "timing: marks tests as timing-sensitive (file watchers, etc.)",
+]
 
 [tool.coverage.run]
 source = ["leaf"]

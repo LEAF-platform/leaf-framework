@@ -6,7 +6,7 @@ stages:
 variables:
   GIT_DEPTH: 0  # Full history
   # Parallel test isolation settings
-  PYTEST_ADDOPTS: "--forked --dist=worksteal --tb=short"
+  PYTEST_ADDOPTS: "--forked --dist=loadscope --tb=short"
   # Prevent Redis conflicts in parallel execution
   REDIS_URL: "redis://localhost:6379"
   # Use temporary directories for test isolation
@@ -23,8 +23,11 @@ test:
     - poetry lock
     - poetry install --with test,dev
   script:
-    # Run ALL tests with forked process isolation
-    - poetry run pytest -n auto tests/
+    # Run tests with parallel execution but better isolation
+    # Use -n auto for parallel execution, but tests are forked for isolation
+    # loadscope distribution groups tests by module to reduce file watcher conflicts
+    # maxfail=1 stops after first failure to save CI time
+    - poetry run pytest -n auto tests/ --maxfail=5
       --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml
       --cov-report=html:htmlcov --junitxml=test-reports/report.xml
 
