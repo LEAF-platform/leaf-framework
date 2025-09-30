@@ -208,7 +208,7 @@ class TestFileWatcher(unittest.TestCase):
                              num_create)
 
             # Give extra time for observer cleanup in forked mode
-            time.sleep(0.5)
+            time.sleep(1.5)
 
             # Clear topics from first part of test
             topics.clear()
@@ -220,15 +220,41 @@ class TestFileWatcher(unittest.TestCase):
                                   callbacks=[mock_callback],
                                   filenames=tmp_fn)
             watcher.start()
+
+            # Wait for initial file detection event to be processed and debounce to complete
+            time.sleep(2.0)
+
             mthread = Thread(target=mod_file, args=(creation_dir,
                                                     interval, num_mod))
             mthread.start()
             mthread.join()
-            time.sleep(2)  # Increased wait time to ensure all events are processed
+
+            # Actively wait for events to be processed (max 10 seconds)
+            # Debounce delay is 0.75s per event
+            measurement_key = metadata.experiment.measurement()
+            max_wait = 10
+            wait_interval = 0.5
+            elapsed = 0
+            while elapsed < max_wait:
+                measurement_events = topics.get(measurement_key, [])
+                if len(measurement_events) >= num_mod:
+                    break
+                time.sleep(wait_interval)
+                elapsed += wait_interval
+
             watcher.stop()
+
+            # Give extra time for observer thread to fully stop
+            time.sleep(0.5)
+
             # With cleared topics, we should have at least num_mod measurement events
             # Using >= instead of == because file watchers may detect additional events
-            self.assertGreaterEqual(len(topics.get(metadata.experiment.measurement(), [])), num_mod)
+            measurement_events = topics.get(measurement_key, [])
+            if len(measurement_events) < num_mod:
+                print(f"\nDEBUG: Expected >= {num_mod}, got {len(measurement_events)}")
+                print(f"All topic keys: {list(topics.keys())}")
+                print(f"Measurement key: {measurement_key}")
+            self.assertGreaterEqual(len(measurement_events), num_mod)
 
     def test_watch_directory_return_filepath(self):
         with tempfile.TemporaryDirectory() as test_dir:
