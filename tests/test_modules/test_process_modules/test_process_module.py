@@ -28,7 +28,7 @@ from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 
-logger = get_logger(__name__, log_file="test_process_module.log", log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="test_process_module.log")
 
 config_path = os.path.join(curr_dir, "..", "..", "test_config.yaml")
 

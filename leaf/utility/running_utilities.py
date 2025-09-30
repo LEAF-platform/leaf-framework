@@ -17,9 +17,7 @@ from leaf.registry.registry import (
     get_external_input
 )
 
-logger = get_logger(__name__, log_file="global.log",
-                    error_log_file="global_error.log",
-                    log_level=logging.INFO)
+logger = get_logger(__name__, log_file="global.log", error_log_file="global_error.log")
 
 
 def handle_disabled_modules(output: OutputModule, timeout: float) -> None:

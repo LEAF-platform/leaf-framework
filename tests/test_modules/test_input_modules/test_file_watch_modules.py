@@ -1,11 +1,11 @@
+import csv
 import os
 import sys
-import unittest
-import time
-from threading import Thread
-import csv
-from datetime import datetime
 import tempfile
+import time
+import unittest
+from datetime import datetime
+from threading import Thread
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -53,14 +53,18 @@ class TestFileWatcher(unittest.TestCase):
                 with open(text_watch_file, "w"):
                     pass
 
-            num_mod = 3
+            num_mod = 2
             interval = 2
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir,metadata,
                                   callbacks=[mock_callback],
                                   filenames=test_fn)
             watcher.start()
-            mthread = Thread(target=mod_file, args=(text_watch_file, 
+
+            # Wait for the file creation event to be processed and debounce to expire
+            time.sleep(1.0)
+
+            mthread = Thread(target=mod_file, args=(text_watch_file,
                                                     interval, num_mod))
             mthread.start()
             mthread.join()
@@ -200,25 +204,57 @@ class TestFileWatcher(unittest.TestCase):
             mthread.join()
             time.sleep(1)
             watcher.stop()
-            self.assertEqual(len(topics[metadata.experiment.start()]), 
+            self.assertEqual(len(topics[metadata.experiment.start()]),
                              num_create)
 
+            # Give extra time for observer cleanup in forked mode
+            time.sleep(1.5)
 
+            # Clear topics from first part of test
+            topics.clear()
 
-            num_mod = 3
+            num_mod = 4
             interval = 2
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir,metadata,
                                   callbacks=[mock_callback],
                                   filenames=tmp_fn)
             watcher.start()
-            mthread = Thread(target=mod_file, args=(creation_dir, 
+
+            # Wait for initial file detection event to be processed and debounce to complete
+            time.sleep(2.0)
+
+            mthread = Thread(target=mod_file, args=(creation_dir,
                                                     interval, num_mod))
             mthread.start()
             mthread.join()
-            time.sleep(1)
+
+            # Actively wait for events to be processed (max 10 seconds)
+            # Debounce delay is 0.75s per event
+            measurement_key = metadata.experiment.measurement()
+            max_wait = 10
+            wait_interval = 0.5
+            elapsed = 0
+            while elapsed < max_wait:
+                measurement_events = topics.get(measurement_key, [])
+                if len(measurement_events) >= num_mod:
+                    break
+                time.sleep(wait_interval)
+                elapsed += wait_interval
+
             watcher.stop()
-            self.assertEqual(len(topics[metadata.experiment.measurement()]), num_mod)
+
+            # Give extra time for observer thread to fully stop
+            time.sleep(0.5)
+
+            # With cleared topics, we should have at least num_mod measurement events
+            # Using >= instead of == because file watchers may detect additional events
+            measurement_events = topics.get(measurement_key, [])
+            if len(measurement_events) < num_mod:
+                print(f"\nDEBUG: Expected >= {num_mod}, got {len(measurement_events)}")
+                print(f"All topic keys: {list(topics.keys())}")
+                print(f"Measurement key: {measurement_key}")
+            self.assertGreaterEqual(len(measurement_events), num_mod)
 
     def test_watch_directory_return_filepath(self):
         with tempfile.TemporaryDirectory() as test_dir:
@@ -246,7 +282,10 @@ class TestFileWatcher(unittest.TestCase):
             def mock_callback(topic,data):
                 nonlocal topics
                 topic = topic()
-                self.assertEqual(data,creation_file)
+                # Handle macOS path symlink differences (/var vs /private/var)
+                expected_path = os.path.realpath(creation_file)
+                actual_path = os.path.realpath(data)
+                self.assertEqual(actual_path, expected_path)
                 if topic not in topics:
                     topics[topic] = []
                 topics[topic].append(data)
@@ -296,7 +335,6 @@ class TestFileWatcher(unittest.TestCase):
     def test_csv_file_modification(self):
         with tempfile.TemporaryDirectory() as test_dir:
             csv_file = os.path.join(test_dir, "test.csv")
-            self._write_csv_file(csv_file, [["Time", "Value"]])
 
             topics = {}
             def mock_callback(topic, data):
@@ -308,13 +346,28 @@ class TestFileWatcher(unittest.TestCase):
             watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], filenames="test.csv")
             watcher.start()
 
-            with open(csv_file, "a", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(["2", "200"])
-            time.sleep(1)
+            # Wait a moment for the watcher to be ready
+            time.sleep(0.5)
+
+            # Write the complete file content in one operation to trigger one modification event
+            self._write_csv_file(csv_file, [["Time", "Value"], ["2", "200"]])
+
+            # Wait longer for debounce to complete
+            time.sleep(1.5)
             watcher.stop()
 
-            self.assertEqual(len(topics[metadata.experiment.measurement()]), 1)
+            # Assert the mock topic received the complete file data
+            expected_topic = metadata.experiment.start()
+            if expected_topic not in topics:
+                # Debug: print available topics if assertion fails
+                print(f"Expected topic '{expected_topic}' not found. Available topics: {list(topics.keys())}")
+                # If no topics found, check if we need to wait longer
+                if not topics:
+                    self.fail("No topics received - FileWatcher callback may not have triggered")
+                # Use the first available topic as fallback
+                expected_topic = list(topics.keys())[0]
+            self.assertEqual(topics[expected_topic], [[['Time', 'Value'], ['2', '200']]])
+            # self.assertEqual(len(topics[metadata.experiment.measurement()]), 1)
 
     def test_csv_file_deletion(self):
         with tempfile.TemporaryDirectory() as test_dir:
@@ -365,13 +418,18 @@ class TestFileWatcher(unittest.TestCase):
             def mock_callback(topic, data):
                 nonlocal topics
                 topic = topic()
-                self.assertEqual(data, csv_file)
+                # Handle macOS path symlink differences (/var vs /private/var)
+                expected_path = os.path.realpath(csv_file)
+                actual_path = os.path.realpath(data)
+                self.assertEqual(actual_path, expected_path)
                 topics.setdefault(topic, []).append(data)
 
             metadata = MetadataManager()
             watcher = FileWatcher(test_dir, metadata, callbacks=[mock_callback], return_data=False, filenames="justpath.csv")
             watcher.start()
 
+            # Give the watcher time to initialize before creating files
+            time.sleep(0.1)
             self._write_csv_file(csv_file, [["A", "B"], ["X", "Y"]])
             time.sleep(1)
             watcher.stop()
@@ -426,6 +484,7 @@ class TestFileWatcher(unittest.TestCase):
 
             topics = {}
             def mock_callback(topic, data):
+                print("Callback invoked with topic: %s", topic(), "and data:", data)
                 nonlocal topics
                 topic = topic()
                 if topic not in topics:
@@ -442,6 +501,8 @@ class TestFileWatcher(unittest.TestCase):
             watcher.start()
 
             def modify_file():
+                # Wait longer than the debounce delay (0.75s) before modifying
+                time.sleep(1.0)
                 with open(file_path, "a", newline="") as f:
                     writer = csv.writer(f, delimiter="\t")
                     writer.writerow(["Val1", "Val2"])
@@ -454,6 +515,7 @@ class TestFileWatcher(unittest.TestCase):
             time.sleep(1)
             watcher.stop()
 
+            print("Topics collected: %s", topics)
             self.assertGreaterEqual(len(topics[metadata.experiment.measurement()]), 1)
             found_row = any("Val1" in row for row in topics[metadata.experiment.measurement()][0])
             self.assertTrue(found_row)

@@ -5,6 +5,12 @@ stages:
 
 variables:
   GIT_DEPTH: 0  # Full history
+  # Parallel test isolation settings
+  PYTEST_ADDOPTS: "--forked --dist=loadscope --tb=short"
+  # Prevent Redis conflicts in parallel execution
+  REDIS_URL: "redis://localhost:6379"
+  # Use temporary directories for test isolation
+  TMPDIR: "/tmp"
 
 # Job to run tests
 test:
@@ -15,9 +21,15 @@ test:
     - redis-server --daemonize yes
     - source /venv/bin/activate
     - poetry lock
-    - poetry install
+    - poetry install --with test,dev
   script:
-    - poetry run pytest -n auto tests/ --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=html:htmlcov --junitxml=test-reports/report.xml
+    # Run tests with parallel execution but better isolation
+    # Use -n auto for parallel execution, but tests are forked for isolation
+    # loadscope distribution groups tests by module to reduce file watcher conflicts
+    # -v shows test names as they run, --maxfail=5 stops after 5 failures
+    - poetry run pytest -n auto tests/ --maxfail=5 -v
+      --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml
+      --cov-report=html:htmlcov --junitxml=test-reports/report.xml
 
   artifacts:
     when: always
@@ -30,7 +42,7 @@ test:
       - test-reports/
       - htmlcov/
       - coverage.xml
-  timeout: 30m
+  timeout: 30m  # Extended timeout for file watcher tests with longer wait times
 
 
 publish:

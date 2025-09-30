@@ -7,8 +7,7 @@ from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.utility.logger.logger_utils import get_logger
 
-logger = get_logger(__name__, log_file="external_events.log", 
-                    log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="external_events.log")
 
 class ExternalEventPhase(PhaseModule):
     def __init__(self,

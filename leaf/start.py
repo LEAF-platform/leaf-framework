@@ -25,6 +25,7 @@ from leaf.modules.output_modules.output_module import OutputModule
 from leaf.registry.registry import discover_from_config
 from leaf.utility.logger.logger_utils import get_logger
 from leaf.utility.logger.logger_utils import set_log_dir
+from leaf.utility.logger.logger_utils import set_global_log_level
 from leaf.utility.running_utilities import build_output_module
 from leaf.utility.running_utilities import handle_disabled_modules
 from leaf.utility.running_utilities import process_instance
@@ -44,9 +45,7 @@ ERROR_LOG_FILE = "global_error.log"
 CONFIG_FILE_NAME = "configuration.yaml"
 
 set_log_dir(ERROR_LOG_DIR)
-logger = get_logger(__name__, log_file=LOG_FILE, 
-                    error_log_file=ERROR_LOG_FILE, 
-                    log_level=logging.INFO)
+logger = get_logger(__name__, log_file=LOG_FILE, error_log_file=ERROR_LOG_FILE)
 
 adapters: list[Any] = []
 adapter_threads: list[threading.Thread] = []
@@ -113,6 +112,12 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     )
 
     parser.add_argument("--shutdown", action="store_true", help=argparse.SUPPRESS)
+    
+    parser.add_argument(
+        "--no-signals",
+        action="store_true",
+        help=argparse.SUPPRESS # Hidden option for testing purposes only
+    )
 
     return parser.parse_args(args=args)
 
@@ -267,21 +272,24 @@ def run_adapters(
                 elif error.severity == SeverityLevel.WARNING:
                     if isinstance(error, ClientUnreachableError):
                         logger.warning(
-                            f"Client unreachable (attempt {client_warning_retry_count + 1}): {error}", 
+                            f"Client unreachable (attempt {client_warning_retry_count + 1}): {error}",
                             exc_info=error)
-                        if output.is_enabled():
-                            if client_warning_retry_count >= max_warning_retries:
-                                logger.error(f"Disabling client {output.__class__.__name__}.", 
-                                             exc_info=error)
-                                output.disable()
-                                client_warning_retry_count = 0
-                            else:
-                                client_warning_retry_count += 1
-                                output.disconnect()
-                                time.sleep(cooldown_period_warning)
-                                output.connect()
+                        # Only disable/reconnect if the error is from the primary output module
+                        if hasattr(error, 'client') and error.client == output:
+                            if output.is_enabled():
+                                if client_warning_retry_count >= max_warning_retries:
+                                    logger.error(f"Disabling client {output.__class__.__name__}.",
+                                                 exc_info=error)
+                                    output.disable()
+                                    client_warning_retry_count = 0
+                                else:
+                                    client_warning_retry_count += 1
+                                    output.disconnect()
+                                    time.sleep(cooldown_period_warning)
+                                    output.connect()
+                        # If error is from a fallback module, just log it (don't disable primary)
                     else:
-                        logger.warning(f"Warning encountered: {error}", 
+                        logger.warning(f"Warning encountered: {error}",
                                        exc_info=error)
 
                 elif error.severity == SeverityLevel.INFO:
@@ -301,6 +309,7 @@ def run_adapters(
         logger.info("Proxy stopped.")
 
     logger.info("All adapter threads have been stopped.")
+    return None
 
 
 def create_configuration(args: argparse.Namespace) -> None:
@@ -353,16 +362,17 @@ def main(args: Optional[list[str]] = None) -> None:
     welcome_message()
 
     # Load configuration file first.
+    if not context.args.config:
+        logger.info("No configuration file provided, using default configuration...")
+        # Load default configuration
+        from pathlib import Path
+        context.args.config = Path(os.path.dirname(os.path.realpath(__file__))) / "config" / "configuration.yaml"
+        logger.info(f"Using default configuration: {context.args.config}")
+    
     if not os.path.exists(context.args.config):
         raise FileNotFoundError(
             f"Configuration file {context.args.config} does not exist. Please provide a valid configuration file."
         )
-    if not context.args.config or not os.path.exists(context.args.config):
-        logger.error("No configuration file provided...")
-        # Load default configuration
-        from pathlib import Path
-        context.args.config = Path(os.path.dirname(os.path.realpath(__file__))) / "config" / "configuration.yaml"
-        logger.info(f"No configuration file provided, using {context.args.config}")
     try:
         with open(context.args.config, "r") as f:
             content = f.read()
@@ -377,14 +387,16 @@ def main(args: Optional[list[str]] = None) -> None:
         return
 
     if context.args.debug:
+        set_global_log_level(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
         logger.debug("Debug logging enabled.")
 
     create_configuration(context.args)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    sys.excepthook = handle_exception
+    if not getattr(context.args, 'no_signals', False):
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        sys.excepthook = handle_exception
 
     if context.config_yaml is not None:
         logger.info(context.__dict__)

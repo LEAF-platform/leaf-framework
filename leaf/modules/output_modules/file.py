@@ -66,13 +66,13 @@ class FILE(OutputModule):
 
             with open(self.filename, 'w') as f:
                 json.dump(file_data, f, indent=4)
+            # Reset global failure counter on successful transmission
+            OutputModule.reset_failure_count()
             return True
 
         except (OSError, IOError, json.JSONDecodeError) as e:
             self._handle_file_error(e)
-            if self._fallback:
-                return self._fallback.transmit(topic, data=data)
-            return False
+            return self.fallback(topic, data)
 
     def retrieve(self, topic: str) -> Any | None:
         """

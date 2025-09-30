@@ -9,7 +9,9 @@ from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import ClientUnreachableError
 from leaf.error_handler.exceptions import SeverityLevel
 from leaf.modules.output_modules.output_module import OutputModule
-from leaf.start import logger
+from leaf.utility.logger.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="output_module.log")
 
 
 class KEYDB(OutputModule):
@@ -89,7 +91,7 @@ class KEYDB(OutputModule):
         """
         try:
             self._client = redis.StrictRedis(host=self.host, port=self.port, db=self.db)
-            logger.info("Connected to KeyDB.")
+            logger.info(f"Connected to KeyDB server at {self.host}:{self.port}, DB: {self.db}")
         except redis.RedisError as e:
             self._handle_redis_error(e)
 
@@ -129,7 +131,9 @@ class KEYDB(OutputModule):
 
         try:
             self._client.lpush(topic, data)
-            logger.info(f"Pushed data to key '{topic}' in KeyDB.")
+            logger.info(f"Pushed data to key '{topic}' in KeyDB {self._client} with {self._client.llen(topic)} rows.")
+            # Reset global failure counter on successful transmission
+            OutputModule.reset_failure_count()
             return True
         except redis.RedisError as e:
             self._handle_redis_error(e)
@@ -226,8 +230,7 @@ class KEYDB(OutputModule):
                 # Decode bytes to string if necessary
                 random_key = random_key.decode("utf-8")
 
-
-            logger.debug(f"Popping from key '{random_key}' in KeyDB.")
+            logger.info(f"Popping from key '{random_key}' in KeyDB.")
             result = self._client.lpop(random_key)
 
             if not result:
@@ -239,6 +242,7 @@ class KEYDB(OutputModule):
                 if self._client.llen(random_key) is None:
                     logger.info(f"Key '{random_key}' is empty after popping.")
                     self._client.delete(random_key)
+                logger.info(f"Popped key '{random_key}' from KeyDB.")
                 return random_key, result
             # if isinstance(result, list):
             #     popped_value = result.pop(0)

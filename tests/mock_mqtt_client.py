@@ -1,5 +1,7 @@
 import re
 import json
+from typing import Any, Optional
+
 import paho.mqtt.client as mqtt
 from paho.mqtt.client import MQTTMessage
 from paho.mqtt.enums import MQTTErrorCode
@@ -8,15 +10,22 @@ from leaf.modules.output_modules.mqtt import MQTT
 
 class MockBioreactorClient(MQTT):
     def __init__(self, broker_address: str, port: int=1883,
-                 username: str|None=None,password: str|None=None,
-                 remove_flush: bool=False):
-        super().__init__(broker_address, port, 
-                         username=username,password=password,clientid=None)
+                 username: str|None=None,password: str|None=None, remove_flush: bool=False):
+        super().__init__(broker_address, port, username=username,password=password,clientid=None)
         self.messages = {}
         self.num_msg = 0
         self.client.on_message = self.on_message
         self._subs = []
         self._remove_flush = remove_flush
+        self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
+
+    def on_connect(self, client, userdata, flags, reason_code, properties):
+        self.client.publish("test/topic", "test message")
+
+    def on_disconnect(self, client: mqtt.Client, userdata: Any, flags: Any, rc: int, properties: Optional[Any] = None,
+    ) -> None:
+        self.flush("test/topic")
 
     def on_message(self, client: mqtt.Client, userdata: str, msg: MQTTMessage) -> None:
         topic = msg.topic

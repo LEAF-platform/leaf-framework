@@ -1,5 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
+import os
+import sys
 import time
 from typing import Optional
 from typing import Any
@@ -16,6 +18,10 @@ class OutputModule(ABC):
     data to external systems such as databases or network services.
     Supports fallback behavior and connection management.
     """
+
+    # Class-level failure tracking across all output modules
+    _global_failure_count = 0
+    _max_failures_before_reboot = int(os.getenv("LEAF_MAX_FAILURES_BEFORE_REBOOT", "5"))
 
     def __init__(
         self,
@@ -121,10 +127,54 @@ class OutputModule(ABC):
         if self._fallback is not None:
             return self._fallback.transmit(topic, data)
         else:
-            self._handle_exception(ClientUnreachableError(
-                "Cannot store data, no output mechanisms available."
-            ))
+            self._handle_no_fallback_available()
             return False
+
+    def _handle_no_fallback_available(self) -> None:
+        """
+        Handle the case when no fallback output mechanisms are available.
+        Increments failure counter and triggers app reboot if threshold is exceeded.
+        """
+        OutputModule._global_failure_count += 1
+
+        error_msg = (f"Cannot store data, no output mechanisms available. "
+                    f"Failure count: {OutputModule._global_failure_count}/"
+                    f"{OutputModule._max_failures_before_reboot}")
+
+        self._handle_exception(ClientUnreachableError(error_msg))
+
+        if OutputModule._global_failure_count >= OutputModule._max_failures_before_reboot:
+            from leaf.utility.logger.logger_utils import get_logger
+            logger = get_logger(__name__)
+            logger.critical(
+                f"Maximum failures ({OutputModule._max_failures_before_reboot}) reached. "
+                "All output mechanisms have failed. Triggering application exit."
+            )
+            self._trigger_exit()
+
+    def _trigger_exit(self) -> None:
+        """
+        Trigger application exit by exiting the process.
+        The application should be managed by a process supervisor that will restart it.
+        """
+        from leaf.utility.logger.logger_utils import get_logger
+        logger = get_logger(__name__)
+        logger.critical("Initiating application exit due to complete output failure.")
+
+        # Reset the failure counter for next restart
+        OutputModule._global_failure_count = 0
+
+        # Exit with code 1 to indicate an error condition
+        # This should trigger a restart if running under a process supervisor
+        os._exit(1)
+
+    @classmethod
+    def reset_failure_count(cls) -> None:
+        """
+        Reset the global failure counter.
+        Should be called when any output module successfully transmits data.
+        """
+        cls._global_failure_count = 0
 
     def set_fallback(self, fallback: "OutputModule") -> None:
         """

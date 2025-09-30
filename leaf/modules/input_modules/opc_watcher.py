@@ -11,7 +11,8 @@ try:
     import logging
     logging.getLogger('opcua').setLevel(logging.WARNING)
 except ImportError:
-    from leaf.start import logger
+    from leaf.utility.logger.logger_utils import get_logger
+    logger = get_logger(__name__, log_file="input_module.log")
     logger.warning("OPC UA library not available. OPCWatcher will not function.")
     OPCUA_AVAILABLE = False
     Client = Node = Subscription = DataChangeNotification = None  # Placeholders
@@ -31,6 +32,7 @@ class OPCWatcher(EventWatcher):
                  port: int,
                  topics: set[str],
                  exclude_topics: list[str],
+                 interval: int = 1,
                  callbacks: Optional[List[Callable[..., Any]]] = None,
                  error_holder: Optional[ErrorHolder] = None) -> None:
         """
@@ -53,8 +55,9 @@ class OPCWatcher(EventWatcher):
         self._sub: Subscription|None = None
         self._handler = self._dispatch_callback
         self._handles: list[Any] = []
-        from leaf.start import logger
-        self.logger = logger
+        self._interval = interval
+        from leaf.utility.logger.logger_utils import get_logger
+        self.logger = get_logger(__name__, log_file="input_module.log")
 
     def datachange_notification(self, node: Node, val: int|str|float, data: DataChangeNotification) -> None:
         self.logger.debug(f"OPC datachange_notification: node={node.nodeid.Identifier}, value={val}")
@@ -123,7 +126,7 @@ class OPCWatcher(EventWatcher):
             self.logger.warn("Client is not connected.")
             return
         try:
-            self._sub = self._client.create_subscription(1000, self)  # 1s interval
+            self._sub = self._client.create_subscription(self._interval * 1000, self)  # second interval converted to ms
             for topic in self._topics:
                 if topic in self._exclude_topics:
                     self.logger.info("Excluded topic: {}".format(topic))
@@ -133,6 +136,14 @@ class OPCWatcher(EventWatcher):
                     handle = self._sub.subscribe_data_change(node)
                     self._handles.append(handle)
                     self.logger.info(f"Subscribed to: {topic}")
+                    # Send a dummy value to trigger the callback
+                    self._dispatch_callback(self._metadata_manager.experiment.measurement, {
+                        "node": node.nodeid.Identifier,
+                        "value": node.get_value(),
+                        "timestamp": time.time(),
+                        "data": None # Are we using this object in the opc measurement adapter?
+                    })
+
                 except Exception as e:
                     self.logger.error(f"Failed to subscribe to {topic}: {e}")
                     if "ServiceFault" in str(e):

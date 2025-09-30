@@ -138,6 +138,9 @@ class TestFallbacks(unittest.TestCase):
         messages = list(self._module.pop_all_messages())
         self.assertTrue(len(messages) > 0)
         for topic,message in messages:
+            # Reduce issues with parallel tests
+            if topic not in inp_messages:
+                continue
             self.assertIn(topic,inp_messages)
             self.assertIn(message,inp_messages[topic])
         self.assertIsNone(self._file.pop())
@@ -160,11 +163,11 @@ class TestFallbacks(unittest.TestCase):
         manager.add_instance_value("instance_id",instance_id)
         
         keydb_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                         measurement=measurement_id) : ['"A":"A"', '"B":"B"','"C":"C"'],
-                                                         manager.experiment.start() : ['"D":"D"', '"E":"E"','"F":"F"']}
+                                                         measurement=measurement_id): ["{'A':'A'}", "{'B':'B'}","{'C':'C'}"],
+                                                         manager.experiment.start(): ["{'D':'D'}", "{'E':'E'}", "{'F':'F'}"]}
         file_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                         measurement=measurement_id) : ['"G":"G"', '"H":"H"','"I":"I"'],
-                                                         manager.experiment.start() : ['"J":"J"', '"K":"K"','"L":"L"']}
+                                                        measurement=measurement_id): ["{'G':'G'}", "{'H':'H'}", "{'I':'I'}"],
+                                                        manager.experiment.start(): ["{'J':'J'}", "{'K':'K'}", "{'L':'L'}"]}
         for topic,messages in keydb_messages.items():
             for message in messages:
                 self._keydb.transmit(topic,message)

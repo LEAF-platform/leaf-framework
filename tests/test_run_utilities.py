@@ -19,9 +19,7 @@ from leaf_register.metadata import MetadataManager
 from leaf.utility.running_utilities import handle_disabled_modules
 from leaf.utility.logger.logger_utils import get_logger
 
-logger = get_logger(__name__, log_file="test_run_utilities.log",
-                     error_log_file="test_run_utilities_error.log",
-                     log_level=logging.DEBUG)
+logger = get_logger(__name__, log_file="test_run_utilities.log", error_log_file="test_run_utilities_error.log")
 
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
