@@ -20,6 +20,11 @@ class LEAFError(Exception):
         """Return the severity of the error."""
         return self._severity
     
+    def to_json(self):
+        return {"type" : self.__class__.__name__,
+                "severity" : str(self._severity),
+                "message" : self._message}
+    
     def upgrade_severity(self) -> None:
         """
         Upgrade the severity of the error to the next level.
@@ -49,7 +54,7 @@ class LEAFError(Exception):
     def __eq__(self, value):
         if not isinstance(value,LEAFError):
             return False
-        return self._message == self._message and self.severity == self.severity
+        return self._message == value._message and self.severity == value.severity
 
 class InputError(LEAFError):
     """

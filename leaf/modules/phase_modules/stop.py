@@ -2,6 +2,7 @@ from typing import Any, Optional
 from leaf.modules.phase_modules.control import ControlPhase
 from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
+from leaf.error_handler.exceptions import InterpreterError
 
 
 class StopPhase(ControlPhase):
@@ -41,7 +42,11 @@ class StopPhase(ControlPhase):
         """
         # Leaving unused until stop experiment metadata is agreed upon.
         if self._interpreter is not None:
-            data = self._interpreter.experiment_stop(data)
+            try:
+                data = self._interpreter.experiment_stop(data)
+            except Exception as ex:
+                leaf_exp = InterpreterError(ex)
+                self._handle_exception(leaf_exp)
         data = super().update(data)
         data += [(self._metadata_manager.running(), False)]
         data += [(self._metadata_manager.experiment.start(), None)]

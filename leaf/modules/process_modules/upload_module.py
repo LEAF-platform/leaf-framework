@@ -36,7 +36,7 @@ class UploadProcess(DiscreteProcess):
                          metadata_manager=metadata_manager, 
                          error_holder=error_holder)
 
-    def process_input(self, topic, data):
+    def process_input(self, topic: str, data: dict):
         """
         Dispatches phases based on artifical actions (start,measurement and stop.)
         Process input data by passing it to the appropriate phase.
@@ -44,8 +44,8 @@ class UploadProcess(DiscreteProcess):
             topic (str): The topic to activate a specific phase.
             data (dict): The data to be processed by the phase.
         """
-        if topic != self._metadata_manager.experiment.start:
-            assert(topic == self._metadata_manager.details)
+        if topic() != self._metadata_manager.experiment.start():
+            assert(topic() == self._metadata_manager.details())
             return super().process_input(topic, data)
         
         # Start

@@ -9,26 +9,26 @@ import yaml
 import tempfile
 import uuid
 
-
-
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
-from leaf.adapters.core_adapters.start_stop_adapter import StartStopAdapter
-from leaf.modules.input_modules.csv_watcher import CSVWatcher
+from leaf.adapters.core_adapters.discrete_experiment_adapter import DiscreteExperimentAdapter
+from leaf.modules.input_modules.file_watcher import FileWatcher
 from leaf.modules.output_modules.mqtt import MQTT
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
 from leaf.adapters.equipment_adapter import AbstractInterpreter
 
 curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "test_config.yaml")
 
-with open(curr_dir + "/../test_config.yaml", "r") as file:
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
 port = int(config["OUTPUTS"][0]["port"])
+
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
@@ -40,6 +40,7 @@ test_file_dir = os.path.join(curr_dir, "..", "static_files")
 initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
 all_data_file = os.path.join(test_file_dir, "biolector1_full.csv")
+
 
 class MockBioreactorInterpreter(AbstractInterpreter):
     def __init__(self) -> None:
@@ -56,8 +57,8 @@ class MockBioreactorInterpreter(AbstractInterpreter):
         return
     
 def _create_file(adapter) -> None:
-    watch_file = os.path.join(adapter._watcher._path,
-                              adapter._watcher._file_name)
+    watch_file = os.path.join(adapter._watcher._paths[0],
+                              adapter._watcher._filenames[0])
     if os.path.isfile(watch_file):
         os.remove(watch_file)
     shutil.copyfile(initial_file, watch_file)
@@ -65,8 +66,8 @@ def _create_file(adapter) -> None:
 
 
 def _modify_file(adapter) -> None:
-    watch_file = os.path.join(adapter._watcher._path,
-                              adapter._watcher._file_name)
+    watch_file = os.path.join(adapter._watcher._paths[0],
+                              adapter._watcher._filenames[0])
     with open(measurement_file, "r") as src:
         content = src.read()
     with open(watch_file, "a") as dest:
@@ -75,8 +76,8 @@ def _modify_file(adapter) -> None:
 
 
 def _delete_file(adapter) -> None:
-    watch_file = os.path.join(adapter._watcher._path,
-                              adapter._watcher._file_name)
+    watch_file = os.path.join(adapter._watcher._paths[0],
+                              adapter._watcher._filenames[0])
     if os.path.isfile(watch_file):
         os.remove(watch_file)
 
@@ -90,35 +91,36 @@ class TestAdapterArray(unittest.TestCase):
         unique_id1 = str(uuid.uuid4())
         unique_id2 = str(uuid.uuid4())
         self.watch_file1 = os.path.join(
-            self.temp_dir1.name, f"TestAdapterArray_{unique_id1}.txt"
+            self.temp_dir1.name, f"TestAdapterArray_{unique_id1}.csv"
         )
         self.watch_file2 = os.path.join(
-            self.temp_dir2.name, f"TestAdapterArray_{unique_id2}.txt"
+            self.temp_dir2.name, f"TestAdapterArray_{unique_id2}.csv"
         )
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
         self.output = MQTT(broker, port, username=un, password=pw)
 
         instance_data1 = {
             "instance_id": f"TestAdapterArray_{unique_id1}",
-            "institute": f"Institute_{unique_id1}",
-            "equipment_id" : f"Equipment_{unique_id1}",
-        }
+            "institute": f"Institute_{unique_id1}"}
+        equipment_data = {"adapter_id" : f"Equipment_{unique_id1}",}
         metadata_manager1 = MetadataManager()
-        metadata_manager1.add_equipment_data(instance_data1)
-        watcher1 = CSVWatcher(self.watch_file1,metadata_manager1)
-        self._adapter = StartStopAdapter(instance_data1, watcher1,
+        metadata_manager1.add_equipment_data(equipment_data)
+        watcher1 = FileWatcher(self.temp_dir1.name,metadata_manager1,
+                               filenames=f"TestAdapterArray_{unique_id1}.csv")
+        self._adapter = DiscreteExperimentAdapter(instance_data1, watcher1,
                                          self.output,
                                          MockBioreactorInterpreter(),
                                          metadata_manager=metadata_manager1)
         instance_data2 = {
             "instance_id": f"TestAdapterArray_{unique_id2}",
-            "institute": f"Institute_{unique_id2}",
-            "equipment_id" : f"Equipment_{unique_id2}",
-        }
+            "institute": f"Institute_{unique_id2}"}
+        equipment_data2 = {"adapter_id" : f"Equipment_{unique_id2}",}
+
         metadata_manager2 = MetadataManager()
-        metadata_manager2.add_equipment_data(instance_data2)
-        watcher2 = CSVWatcher(self.watch_file2,metadata_manager2)
-        self._adapter2 = StartStopAdapter(instance_data2, watcher2, 
+        metadata_manager2.add_equipment_data(equipment_data2)
+        watcher2 = FileWatcher(self.temp_dir2.name,metadata_manager2,
+                               filenames=f"TestAdapterArray_{unique_id2}.csv")
+        self._adapter2 = DiscreteExperimentAdapter(instance_data2, watcher2, 
                                           self.output,
                                           MockBioreactorInterpreter(),
                                           metadata_manager=metadata_manager2)
@@ -182,10 +184,10 @@ class TestAdapterArray(unittest.TestCase):
             self.assertTrue(len(self.mock_client.messages[details_topic]) == 1)
             details_data = self.mock_client.messages[details_topic][0]
 
-            self.assertIn("instance_id", details_data)
+            self.assertIn("instance_id", details_data["instance"])
             self.assertEqual(
-                adapter._metadata_manager.get_equipment_data()["instance_id"],
-                details_data["instance_id"],
+                adapter._metadata_manager.get_instance_data()["instance_id"],
+                details_data["instance"]["instance_id"],
             )
 
     def test_start(self) -> None:
@@ -300,7 +302,7 @@ class TestAdapterArray(unittest.TestCase):
 
         self.mock_client.reset_messages()
 
-    def _flush_topics(self, adapter: StartStopAdapter) -> None:
+    def _flush_topics(self, adapter: DiscreteExperimentAdapter) -> None:
         details_topic = adapter._metadata_manager.details()
         start_topic = adapter._metadata_manager.experiment.start()
         stop_topic = adapter._metadata_manager.experiment.stop()

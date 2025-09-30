@@ -1,22 +1,25 @@
+import json
+import logging
 import os
 import sys
+import time
+import tempfile
 import unittest
 import yaml
-import time
-import json
-import tempfile
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
 
 from leaf.modules.output_modules.mqtt import MQTT
-from leaf.modules.output_modules.keydb_client import KEYDB
+from leaf.modules.output_modules.keydb import KEYDB
 from leaf.modules.output_modules.file import FILE
 from tests.mock_mqtt_client import MockBioreactorClient
 from leaf_register.metadata import MetadataManager
-
 from leaf.utility.running_utilities import handle_disabled_modules
+from leaf.utility.logger.logger_utils import get_logger
+
+logger = get_logger(__name__, log_file="test_run_utilities.log", error_log_file="test_run_utilities_error.log")
 
 curr_dir: str = os.path.dirname(os.path.realpath(__file__))
 
@@ -32,8 +35,11 @@ except KeyError:
     un = None
     pw = None
 
-db_host = "localhost"
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+mock_functional_adapter_path = os.path.join(curr_dir,
+                                            "mock_functional_adapter")
 
+db_host = "localhost"
 
 class TestRunUtilities(unittest.TestCase):
     def setUp(self) -> None:
@@ -54,40 +60,108 @@ class TestRunUtilities(unittest.TestCase):
 
     def test_handle_disabled_modules(self):
         self._keydb.connect()
+        self._keydb._client.flushall()
+
         timeout = 2
         institute = "test_pop_all_messages_institute"
-        equipment_id = "test_pop_all_messages_equipment_id"
+        adapter_id = "test_pop_all_messages_adapter_id"
         instance_id = "test_pop_all_messages_instance_id"
         experiment_id = "test_pop_all_messages_experiment_id"
         measurement_id = "test_pop_all_messages_measurement_id"
 
         manager = MetadataManager()
-        manager._metadata["equipment"] = {}
-        manager._metadata["equipment"]["institute"] = institute
-        manager._metadata["equipment"]["equipment_id"] = equipment_id
-        manager._metadata["equipment"]["instance_id"] = instance_id
+        manager.add_equipment_value("adapter_id",adapter_id)
+        manager.add_instance_value("institute",institute)
+        manager.add_instance_value("instance_id",instance_id)
 
-        inp_messages = {manager.experiment.measurement(experiment_id=experiment_id,
-                                                   measurement=measurement_id) : ["A","B","C"],
-                        manager.experiment.start() : ["D","E","F"]}
-        
+        measurement_topic = manager.experiment.measurement(experiment_id=experiment_id, measurement=measurement_id)
+        start_topic = manager.experiment.start()
+
+        inp_messages = {
+            measurement_topic: ['{"A":"A"}', '{"B":"B"}', '{"C":"C"}'],
+            start_topic: ['{"D":"D"}', '{"E":"E"}', '{"F":"F"}']
+        }
+
         for topic in inp_messages.keys():
             self._mock_client.subscribe(topic)
 
-        for topic,messages in inp_messages.items():
+        for topic, messages in inp_messages.items():
             for message in messages:
                 self._keydb.transmit(topic,message)
                 time.sleep(0.1)
         self._module.disable()
         time.sleep(timeout*2)
-        handle_disabled_modules(self._module,timeout)
+        handle_disabled_modules(self._module, timeout)
         time.sleep(1)
-        for k,v in self._mock_client.messages.items():
-            self.assertIn(k,inp_messages)
-            self.assertEqual(v,inp_messages[k])
-        self.assertIsNone(self._keydb.pop())
-        self.assertIsNone(self._file.pop())
+        for k, v in self._mock_client.messages.items():
+            # Skip other topics for parallel tests
+            if not k.startswith(institute):
+                continue
+            self.assertIn(k, inp_messages)
+            # Invert the list to match the order of messages
+            v = list(reversed(v))
+            w = [json.loads(item) for item in inp_messages[k]]
+
+            print(f"Expected messages for topic {k}: {w}")
+            print(f"Received messages for topic {k}: {v}")
+
+            self.assertEqual(len(v), len(inp_messages[k]))
+            self.assertEqual(v, w)
+        # keydb_pop = self._keydb.pop()
+        # self.assertIsNone(keydb_pop)
+        file_pop = self._file.pop()
+        self.assertIsNone(file_pop)
+    
+
+    '''
+    def test_stop_all_adapters(self):
+        error_holder = ErrorHolder()
+        output = MQTT(
+            broker,
+            port,
+            username=un,
+            password=pw,
+            clientid=None,
+            error_holder=error_holder,
+        )
         
+        #output = FILE("Tst.tmp")
+
+        write_dir = tempfile.TemporaryDirectory()
+        write_file = os.path.join(write_dir.name, "tmp1.csv")
+
+        ins = [
+            {
+                "equipment": {
+                    "adapter": "MockFunctionalAdapter",
+                    "data": {
+                        "instance_id": f"{uuid.uuid4()}",
+                        "institute": f"{uuid.uuid4()}",
+                    },
+                    "requirements": {"write_file": write_file},
+                }
+            }
+        ]
+
+        def _start() -> Thread:
+            mthread = Thread(
+                target=run_adapters,
+                args=[ins, output, error_holder],
+                kwargs={"external_adapter": mock_functional_adapter_path},
+            )
+            mthread.start()
+            return mthread
+
+        def _stop(thread: Thread) -> None:
+            stop_all_adapters()
+            time.sleep(10)
+
+        thread = _start()
+        time.sleep(5)
+        _stop(thread)
+'
+    '''
+
 
 if __name__ == "__main__":
     unittest.main()

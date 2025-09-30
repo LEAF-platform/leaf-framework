@@ -1,6 +1,16 @@
 # Define stages of the pipeline
 stages:
   - test
+  - publish
+
+variables:
+  GIT_DEPTH: 0  # Full history
+  # Parallel test isolation settings
+  PYTEST_ADDOPTS: "--forked --dist=loadscope --tb=short"
+  # Prevent Redis conflicts in parallel execution
+  REDIS_URL: "redis://localhost:6379"
+  # Use temporary directories for test isolation
+  TMPDIR: "/tmp"
 
 # Job to run tests
 test:
@@ -11,16 +21,51 @@ test:
     - redis-server --daemonize yes
     - source /venv/bin/activate
     - poetry lock
-    - poetry install
-    - poetry env info  # Debug Poetry environment
-    - poetry show  # Check installed dependencies
+    - poetry install --with test,dev
   script:
-    - poetry show pytest-xdist  # Verify pytest-xdist is installed
-    - poetry run pytest tests/ --junitxml=test-reports/report.xml
+    # Run tests with parallel execution but better isolation
+    # Use -n auto for parallel execution, but tests are forked for isolation
+    # loadscope distribution groups tests by module to reduce file watcher conflicts
+    # -v shows test names as they run, --maxfail=5 stops after 5 failures
+    - poetry run pytest -n auto tests/ --maxfail=5 -v
+      --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml
+      --cov-report=html:htmlcov --junitxml=test-reports/report.xml
+
   artifacts:
     when: always
     reports:
       junit: test-reports/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
     paths:
       - test-reports/
-  timeout: 1h
+      - htmlcov/
+      - coverage.xml
+  timeout: 30m  # Extended timeout for file watcher tests with longer wait times
+
+
+publish:
+  stage: publish
+  image: python:3.12
+  before_script:
+    - pip install poetry
+    - poetry config virtualenvs.create false
+    - poetry config pypi-token.pypi "$PYPI_TOKEN"
+  script:
+    - latest_tag=$(git describe --tags --abbrev=0)
+    - commit_count=$(git rev-list ${latest_tag}..HEAD --count)
+    - base_version=${latest_tag#v}
+    - new_version="${base_version}.${commit_count}"
+    - echo "New version $new_version"
+    # update version in pyproject.toml without committing or tagging
+    - sed -i -E "s/^(version\s*=\s*\")0\.0\.0(\".*)$/\1${new_version}\2/" pyproject.toml
+    - head -n 10 pyproject.toml
+    # And publish
+    - poetry config virtualenvs.create false
+    - poetry build
+    - ls -l dist/
+    - poetry publish
+  only:
+    - main
+    - dev

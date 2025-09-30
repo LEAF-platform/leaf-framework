@@ -10,10 +10,6 @@ RUN pip install --upgrade pip && \
 
 # Install all adapters
 RUN pip install git+https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-hello-world
-RUN pip install git+https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-irods
-RUN pip install git+https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-minknow
-RUN pip install git+https://gitlab.com/LabEquipmentAdapterFramework/leaf-adapters/leaf-maq
-
 
 # Start the application
 ENTRYPOINT ["bash", "/app/start.sh"]

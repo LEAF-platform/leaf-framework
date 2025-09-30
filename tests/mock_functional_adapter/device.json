@@ -1,3 +1,13 @@
 {
-  "equipment_id": "MockFunctionalAdapter"
+  "adapter_id": "MockFunctionalAdapter",
+  "equipment_data": {
+    "version": "1.0",
+    "manufacturer": "Demo Manufacturer",
+    "device_type": "DEMO",
+    "application": "DEMO application"
+  },
+  "requirements": {
+    "interval": "int"
+  },
+  "adapter_data": {}
 }

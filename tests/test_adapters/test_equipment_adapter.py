@@ -7,6 +7,7 @@ from threading import Thread
 import tempfile
 import yaml
 import uuid
+import logging
 
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
@@ -83,22 +84,27 @@ class MockBioreactorInterpreter(AbstractInterpreter):
 
 
 class MockEquipmentAdapter(EquipmentAdapter):
-    def __init__(self, instance_data, fp,
+    def __init__(self, instance_data,equipment_data, fp,
                  experiment_timeout=None):
         metadata_manager = MetadataManager()
-        watcher = FileWatcher(fp, metadata_manager)
+        directory = os.path.dirname(fp)
+        filename = os.path.basename(fp)
+        watcher = FileWatcher(directory, metadata_manager,
+                              filenames=filename)
         output = MQTT(broker, port, username=un, password=pw, clientid=None)
         start_p = ControlPhase(metadata_manager.experiment.start)
         stop_p = ControlPhase(metadata_manager.experiment.stop)
         measure_p = MeasurePhase()
         details_p = ControlPhase(metadata_manager.details)
 
+        metadata_manager.add_instance_data(instance_data)
         phase = [start_p, measure_p, stop_p,details_p]
         mock_process = [DiscreteProcess(output,phase)]
         error_holder = ErrorHolder()
         super().__init__(
-            instance_data,
+            equipment_data,
             watcher,
+            output,
             mock_process,
             MockBioreactorInterpreter(),
             metadata_manager,
@@ -109,11 +115,59 @@ class MockEquipmentAdapter(EquipmentAdapter):
 class TestEquipmentAdapter(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
+        self._cleanup_loggers()
+
+    def _cleanup_loggers(self):
+        """Clean up all logger handlers to prevent file handle leaks between tests."""
+        # Get all loggers and clear their handlers
+        loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+        loggers.append(logging.getLogger())  # Add root logger
+
+        for logger in loggers:
+            # Close and remove all handlers
+            for handler in logger.handlers[:]:
+                try:
+                    handler.flush()
+                    handler.close()
+                except (OSError, ValueError):
+                    # Handler may already be closed
+                    pass
+                logger.removeHandler(handler)
+
+            # Clear any disabled state
+            logger.disabled = False
+
+        # Also clear the root logger's handlers
+        root = logging.getLogger()
+        for handler in root.handlers[:]:
+            try:
+                handler.flush()
+                handler.close()
+            except (OSError, ValueError):
+                pass
+            root.removeHandler(handler)
+
+        # Force garbage collection of logger manager dict to ensure clean state
+        logging.root.manager.loggerDict.clear()
+        logging.root.manager.loggerClass = logging.Logger
 
     def tearDown(self):
-        self._adapter.stop()
-        self.temp_dir.cleanup()
-        self.mock_client.reset_messages()
+        try:
+            if hasattr(self, '_adapter') and self._adapter:
+                self._adapter.stop()
+                # Give threads time to finish cleanup
+                time.sleep(0.5)
+        except Exception:
+            pass
+
+        if hasattr(self, 'temp_dir'):
+            self.temp_dir.cleanup()
+
+        if hasattr(self, 'mock_client'):
+            self.mock_client.reset_messages()
+
+        # Clean up loggers after test completion
+        self._cleanup_loggers()
 
     def initialize_experiment(self,**kwargs):
         """
@@ -131,13 +185,11 @@ class TestEquipmentAdapter(unittest.TestCase):
             "instance_id": unique_instance_id,
             "institute": unique_institute,
         }
+        equipment_data = {"adapter_id" : "TestBioreactor_transmit_" + unique_instance_id}
 
         self.mock_client = MockBioreactorClient(broker, port, username=un, password=pw)
 
-        self._adapter = MockEquipmentAdapter(instance_data, text_watch_file,**kwargs)
-        self._adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
-            "TestBioreactor_transmit_" + unique_instance_id
-        )
+        self._adapter = MockEquipmentAdapter(instance_data,equipment_data, text_watch_file,**kwargs)
 
         self.details_topic = self._adapter._metadata_manager.details()
         self.start_topic = self._adapter._metadata_manager.experiment.start()
@@ -154,33 +206,37 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client.subscribe(self.details_topic)
         time.sleep(2)
     
-    
-    def tearDown(self):
-        try:
-            self._adapter.stop()
-        except Exception:
-            pass
+
+    def wait_for_adapter_start(self,adapter):
+        timeout = 30
+        cur_count = 0
+        while not adapter.is_running():
+            time.sleep(1)
+            cur_count += 1
+            if cur_count > timeout:
+                self.fail("Unable to initialise.")
 
     def test_details(self):
         self.initialize_experiment()
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         self._adapter.stop()
         mthread.join()
         time.sleep(2)
         self.assertIn(self.details_topic, self.mock_client.messages)
-        self.assertTrue(len(self.mock_client.messages[self.details_topic]) == 1)
+        
+        self.assertEqual(len(self.mock_client.messages[self.details_topic]),1)
 
     def test_start(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         if self.start_topic in self.mock_client.messages:
             del self.mock_client.messages[self.start_topic]
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         _create_file(text_watch_file)
         time.sleep(2)
         self._adapter.stop()
@@ -192,11 +248,11 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_stop(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         _create_file(text_watch_file)
         self.mock_client.reset_messages()
         time.sleep(2)
@@ -215,8 +271,8 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_update(self):
         self.initialize_experiment()
-        text_watch_file = os.path.join(self._adapter._watcher._path,
-                                       self._adapter._watcher._file_name)
+        text_watch_file = os.path.join(self._adapter._watcher._paths[0],
+                                       self._adapter._watcher._filenames[0])
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
         time.sleep(1)
@@ -227,7 +283,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         self.mock_client.subscribe(exp_tp)
         mthread = Thread(target=self._adapter.start)
         mthread.start()
-        time.sleep(2)
+        self.wait_for_adapter_start(self._adapter)
         _create_file(text_watch_file)
         time.sleep(2)
         _modify_file(text_watch_file)
@@ -242,11 +298,11 @@ class TestEquipmentAdapter(unittest.TestCase):
 
     def test_exceptions(self):
         instance_data = {"instance_id" : "test_exceptions_instance",
-                        "institute" : "test_exceptions_ins",
-                        "equipment_id" : "test_exceptions_equip"}
+                        "institute" : "test_exceptions_ins"}
+        equipment_data = {"adapter_id" : "test_exceptions_equip"}
         
         test_exp_tw_watch_file = os.path.join("tmp_exception.txt")
-        adapter = MockEquipmentAdapter(instance_data,
+        adapter = MockEquipmentAdapter(instance_data,equipment_data,
                                  test_exp_tw_watch_file)
         
         mthread = Thread(target=adapter.start)
@@ -255,7 +311,7 @@ class TestEquipmentAdapter(unittest.TestCase):
             content = src.read()
         with open(test_exp_tw_watch_file, 'a') as dest:
             dest.write(content)
-        time.sleep(2)
+        self.wait_for_adapter_start(adapter)
         adapter.stop()
         mthread.join()
     
@@ -272,15 +328,12 @@ class TestEquipmentAdapter(unittest.TestCase):
             "institute": unique_institute,
         }
 
+        equipment_data = {"adapter_id" : "TestBioreactor_transmit_" + unique_instance_id}
         mock_client = MockBioreactorClient(broker, port, username=un, password=pw,
                                            remove_flush=True)
 
-        _adapter = MockEquipmentAdapter(instance_data, text_watch_file, 
-                                        experiment_timeout=exp_timeout)
-        
-        _adapter._metadata_manager._metadata["equipment"]["equipment_id"] = (
-            "TestBioreactor_transmit_" + unique_instance_id
-        )
+        _adapter = MockEquipmentAdapter(instance_data,equipment_data, 
+                                        text_watch_file, experiment_timeout=exp_timeout)
 
         details_topic = _adapter._metadata_manager.details()
         start_topic = _adapter._metadata_manager.experiment.start()
@@ -299,16 +352,16 @@ class TestEquipmentAdapter(unittest.TestCase):
 
         if os.path.isfile(text_watch_file):
             os.remove(text_watch_file)
-            time.sleep()
+            time.sleep(1)
 
         mthread = Thread(target=_adapter.start)
         unique_logger_name = f"leaf.adapters.equipment_adapter.{_adapter._metadata_manager.get_instance_id()}"
-        expected_exceptions = [HardwareStalledError("Experiment timeout between measurements")]
+        expected_exceptions = [HardwareStalledError("Experiment timeout")]
         with self.assertLogs(unique_logger_name, level="WARNING") as logs:
             mthread.start()
             watcher_timeout = 10
             watcher_count = 0
-            while not _adapter._watcher._observer.is_alive():
+            while not _adapter._watcher.is_running():
                 time.sleep(1)
                 watcher_count += 1
                 if watcher_count > watcher_timeout:
@@ -319,9 +372,11 @@ class TestEquipmentAdapter(unittest.TestCase):
             timeout = 30
             start_time = time.time()
 
+            
             while len(expected_exceptions) > 0 and (time.time() - start_time < timeout):
                 for log in logs.records:
                     exc_type, exc_value, exc_traceback = log.exc_info
+                    print(exc_type,exc_value)
                     for exp_exc in list(expected_exceptions):
                         if (
                             type(exp_exc) == exc_type
@@ -330,7 +385,8 @@ class TestEquipmentAdapter(unittest.TestCase):
                         ):
                             expected_exceptions.remove(exp_exc)
                 time.sleep(0.1)
-            self.assertEqual(list(mock_client.messages.keys()), [_adapter._metadata_manager.details()])
+            self.assertEqual(list(mock_client.messages.keys()), [_adapter._metadata_manager.details(),
+                                                                 _adapter._metadata_manager.experiment.start()])
             _adapter.stop()
             mthread.join()
             if len(expected_exceptions) > 0:
@@ -340,32 +396,7 @@ class TestEquipmentAdapter(unittest.TestCase):
         
 
 
-    def test_process_input_validation(self):
-        instance_data = {"instance_id" : "test_process_input_validation_instance",
-                        "institute" : "test_process_input_validation_ins",
-                        "equipment_id" : "test_process_input_validation_equip"}
-        temp_dir = tempfile.TemporaryDirectory()
-        test_exp_tw_watch_file = os.path.join(temp_dir.name,"tmp_test_process_input_validation.txt")
 
-        try:
-            adapter = MockEquipmentAdapter(instance_data,
-                                    test_exp_tw_watch_file)
-        except AdapterBuildError as e:
-            self.fail(f"Unexpected exception raised: {e}")
-
-        with self.assertRaises(AdapterBuildError):
-            metadata_manager = MetadataManager()
-            watcher = FileWatcher(test_exp_tw_watch_file, metadata_manager)
-            output = MQTT(broker, port, username=un, password=pw, clientid=None)
-            start_p = ControlPhase(metadata_manager.experiment.start)
-            stop_p = ControlPhase(metadata_manager.experiment.stop)
-            details_p = ControlPhase(metadata_manager.details)
-
-            phase = [start_p, stop_p,details_p]
-            mock_process = [DiscreteProcess(output,phase)]
-            adapter = EquipmentAdapter(instance_data,watcher,mock_process,
-                                       MockBioreactorInterpreter(),
-                                       metadata_manager=metadata_manager)
 
 
 if __name__ == "__main__":

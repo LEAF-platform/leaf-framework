@@ -1,12 +1,9 @@
 import os
 import sys
 import unittest
-from threading import Thread
 import yaml
-import time
-import shutil
 import tempfile
-
+import time
 sys.path.insert(0, os.path.join(".."))
 sys.path.insert(0, os.path.join("..", ".."))
 sys.path.insert(0, os.path.join("..", "..", ".."))
@@ -17,11 +14,13 @@ from leaf.modules.phase_modules.start import StartPhase
 from leaf.modules.phase_modules.initialisation import InitialisationPhase
 from leaf.modules.phase_modules.stop import StopPhase
 from leaf_register.metadata import MetadataManager
+from leaf.error_handler.exceptions import LEAFError
+from leaf.adapters.equipment_adapter import AbstractInterpreter
 
-# Current location of this script
-curr_dir: str = os.path.dirname(os.path.realpath(__file__))
+curr_dir = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(curr_dir, "..", "..", "test_config.yaml")
 
-with open(curr_dir + "/../../test_config.yaml", "r") as file:
+with open(config_path, "r") as file:
     config = yaml.safe_load(file)
 
 broker = config["OUTPUTS"][0]["broker"]
@@ -30,14 +29,14 @@ port = int(config["OUTPUTS"][0]["port"])
 try:
     un = config["OUTPUTS"][0]["username"]
     pw = config["OUTPUTS"][0]["password"]
-except:
+except KeyError:
     un = None
     pw = None
 
-curr_dir = os.path.dirname(os.path.realpath(__file__))
 test_file_dir = os.path.join(curr_dir, "..", "..", "static_files")
 initial_file = os.path.join(test_file_dir, "biolector1_metadata.csv")
 measurement_file = os.path.join(test_file_dir, "biolector1_measurement.csv")
+
 
 class TestMeasurePhase(unittest.TestCase):
     def setUp(self) -> None:
@@ -45,10 +44,9 @@ class TestMeasurePhase(unittest.TestCase):
         self.text_watch_file = tempfile.NamedTemporaryFile(delete=False).name
 
         self._metadata_manager = MetadataManager()
-        self._metadata_manager._metadata["equipment"] = {}
-        self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
 
         self._module = MeasurePhase(metadata_manager=self._metadata_manager)
 
@@ -120,13 +118,29 @@ class TestMeasurePhase(unittest.TestCase):
         for chunk, expected_chunk in zip(measurement_messages, expected_chunks):
             self.assertEqual(chunk[1], expected_chunk)
 
+
+    def test_interpreter_error_handle(self):
+        self._module._maximum_message_size = 10
+        exp_id = "test_measure_phase_max_measurement"
+        class MockInterpreter:
+            def __init__(self):
+                self.id = exp_id
+            def measurement(self,data):
+                return 1/0
+            
+        interpreter = MockInterpreter()
+        self._module.set_interpreter(interpreter)
+        
+        content = []
+        with self.assertRaises(LEAFError):
+            self._module.update(content)
+
 class TestControlPhase(unittest.TestCase):
     def setUp(self) -> None:
         self._metadata_manager = MetadataManager()
-        self._metadata_manager._metadata["equipment"] = {}
-        self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = ControlPhase(self._metadata_manager.experiment.start, 
                                     metadata_manager=self._metadata_manager)
 
@@ -143,10 +157,9 @@ class TestControlPhase(unittest.TestCase):
 class TestStartPhase(unittest.TestCase):
     def setUp(self) -> None:
         self._metadata_manager = MetadataManager()
-        self._metadata_manager._metadata["equipment"] = {}
-        self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = StartPhase(metadata_manager=self._metadata_manager)
         
     def test_start_phase(self) -> None:
@@ -163,10 +176,9 @@ class TestStartPhase(unittest.TestCase):
 class TestStopPhase(unittest.TestCase):
     def setUp(self) -> None:
         self._metadata_manager = MetadataManager()
-        self._metadata_manager._metadata["equipment"] = {}
-        self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = StopPhase(metadata_manager=self._metadata_manager)
         
     def test_stop_phase(self) -> None:
@@ -180,13 +192,44 @@ class TestStopPhase(unittest.TestCase):
         for k,v in expected_values.items():
             self.assertIn((k,v),res)
 
+
+    def test_stop_phase_with_interpreter(self):
+        class ConcreteInterpreter(AbstractInterpreter):
+            def __init__(self, error_holder = None):
+                super().__init__(error_holder)
+
+            def metadata(self, data):
+                return super().metadata(data)
+
+            def measurement(self, data):
+                return super().measurement(data)
+        
+        interpreter = ConcreteInterpreter()
+        module = StopPhase(metadata_manager=self._metadata_manager)
+        module.set_interpreter(interpreter)
+
+        data = {}
+        interpreter.metadata({})
+        
+        time.sleep(1)
+        res = module.update(data)
+
+        for topic,data in res:
+            if topic == self._metadata_manager.experiment.stop():
+                self.assertIn(interpreter.EXPERIMENT_ID_KEY,data)
+                self.assertIn(interpreter.TIMESTAMP_KEY,data)
+                self.assertIn(interpreter.RUNTIME_KEY,data)
+                break
+        else:
+            self.fail()
+        
+
 class TestInitialisationPhase(unittest.TestCase):
     def setUp(self) -> None:
         self._metadata_manager = MetadataManager()
-        self._metadata_manager._metadata["equipment"] = {}
-        self._metadata_manager._metadata["equipment"]["institute"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["equipment_id"] = "test_transmit"
-        self._metadata_manager._metadata["equipment"]["instance_id"] = "test_transmit"
+        self._metadata_manager.add_equipment_value("adapter_id","test_transmit")
+        self._metadata_manager.add_instance_value("institute","test_transmit")
+        self._metadata_manager.add_instance_value("instance_id","test_transmit")
         self._module = InitialisationPhase(metadata_manager=self._metadata_manager)
         
     def test_initialisation_phase(self) -> None:
