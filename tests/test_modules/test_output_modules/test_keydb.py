@@ -102,21 +102,47 @@ class TestKeyDB(unittest.TestCase):
         # Connect to the KeyDB instance
         try:
             keydb_client = redis.Redis(host=host, port=port, db=db)
+            # Test the connection
+            keydb_client.ping()
             print("Connected to KeyDB successfully")
         except redis.ConnectionError as e:
             print("Failed to connect to KeyDB:", e)
             self.fail("Could not connect to KeyDB")
+        except Exception as e:
+            print(f"KeyDB ping failed: {e}")
+            self.fail(f"KeyDB not responding: {e}")
+
+        # Flush the test database before starting
+        keydb_client.flushdb()
+        print("Flushed KeyDB test database")
 
         # Start the leaf application in a separate thread
         thread = threading.Thread(target=run_leaf, args=[config], daemon=True)
         thread.start()
+        print("LEAF thread started")
+
+        # Set a timeout to avoid hanging forever
+        timeout = 60  # seconds
+        start_time = time.time()
+
         # If thread is killed due to error, we want to know
         while True:
             try:
+                # Check timeout
+                if time.time() - start_time > timeout:
+                    current_keys = sorted(keydb_client.keys("keydb_test_instance*"))
+                    self.fail(
+                        f"Test timed out after {timeout} seconds. "
+                        f"Expected 2 keys but found {len(current_keys)}: {current_keys}"
+                    )
+
                 # Check if the thread is still alive
                 if not thread.is_alive():
-                    print("LEAF thread has finished")
-                    break
+                    current_keys = sorted(keydb_client.keys("keydb_test_instance*"))
+                    print(f"LEAF thread has finished unexpectedly. Keys found: {current_keys}")
+                    self.fail(
+                        f"LEAF thread stopped early. Expected 2 keys but found {len(current_keys)}: {current_keys}"
+                    )
                 # Obtain data from KeyDB
                 keys = sorted(keydb_client.keys("keydb_test_instance*"))
                 self.logger.info("Current keys in KeyDB: %s", keys)
