@@ -26,8 +26,8 @@ test:
     # Run tests with parallel execution but better isolation
     # Use -n auto for parallel execution, but tests are forked for isolation
     # loadscope distribution groups tests by module to reduce file watcher conflicts
-    # maxfail=1 stops after first failure to save CI time
-    - poetry run pytest -n auto tests/ --maxfail=5
+    # -v shows test names as they run, --maxfail=5 stops after 5 failures
+    - poetry run pytest -n auto tests/ --maxfail=5 -v
       --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml
       --cov-report=html:htmlcov --junitxml=test-reports/report.xml
 
@@ -42,7 +42,7 @@ test:
       - test-reports/
       - htmlcov/
       - coverage.xml
-  timeout: 20m  # Sufficient time for all tests with forked isolation
+  timeout: 30m  # Extended timeout for file watcher tests with longer wait times
 
 
 publish:
