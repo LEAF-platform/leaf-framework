@@ -1,20 +1,19 @@
-import os
-import time
+import csv
 import errno
 import fnmatch
-import logging
-import csv
+import os
+import time
 from datetime import datetime
-from typing import Optional
 from typing import Callable
 from typing import List
+from typing import Optional
 from typing import Union
 
+from leaf_register.metadata import MetadataManager
 from watchdog.events import FileSystemEvent
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from leaf_register.metadata import MetadataManager
 from leaf.error_handler.error_holder import ErrorHolder
 from leaf.error_handler.exceptions import AdapterBuildError
 from leaf.error_handler.exceptions import InputError
