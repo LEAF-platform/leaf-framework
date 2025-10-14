@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import subprocess
@@ -29,17 +30,8 @@ TAB_CLASSES = 'leaf-tab'
 # Color constants
 STATUS_COLORS = {
     'online': 'status-online',
-    'offline': 'status-offline', 
+    'offline': 'status-offline',
     'warning': 'status-warning'
-}
-
-BUTTON_COLORS = {
-    'primary': 'bg-blue-500 hover:bg-blue-600',
-    'success': 'bg-green-500 hover:bg-green-600',
-    'danger': 'bg-red-500 hover:bg-red-600',
-    'warning': 'bg-orange-500 hover:bg-orange-600',
-    'info': 'bg-gray-500 hover:bg-gray-600',
-    'purple': 'bg-purple-500 hover:bg-purple-600'
 }
 
 # Define adapter_content outside to maintain scope
@@ -131,132 +123,43 @@ def uninstall_adapter(installed_adapter: Dict) -> None:
 def start_nicegui(port: int = DEFAULT_PORT) -> None:
     """
     Start the LEAF NiceGUI web interface.
-    
+
     Creates a web-based interface for managing LEAF system configuration,
     viewing logs, managing adapters, and accessing documentation.
-    
+
     Args:
         port: Port number to run the web server on (default: 8080)
     """
+    # Load markdown content and CSS from files
+    curr_dir = Path(os.path.dirname(os.path.realpath(__file__)))
+    markdown_dir = curr_dir / "markdown"
+
+    with open(markdown_dir / "configuration_help.md", 'r') as f:
+        config_help_md = f.read()
+
+    with open(markdown_dir / "documentation_main.md", 'r') as f:
+        docs_main_md = f.read()
+
+    with open(markdown_dir / "documentation_protips.md", 'r') as f:
+        docs_protips_md = f.read()
+
+    with open(curr_dir / "styles.css", 'r') as f:
+        custom_css = f.read()
+
+    with open(curr_dir / "scripts.js", 'r') as f:
+        custom_js = f.read()
+
     ui.page('/')
-    
-    # Add custom CSS for enhanced styling and leaf favicon with dark mode support
-    ui.add_head_html('''
+
+    # Add custom CSS, JS, and leaf favicon
+    ui.add_head_html(f'''
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMTZDOCAxNiAxNiA8IDE2IDhDMTYgOCAyNCAxNiAyNCAxNkMyNCAxNiAxNiAyNCAxNiAyNEMxNiAyNCA4IDE2IDggMTZaIiBmaWxsPSIjNDA5NkZGIiBzdHJva2U9IiMyNTYzRUIiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K">
         <style>
-            /* Light mode styles */
-            .leaf-gradient {
-                background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            }
-            .leaf-card {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(229, 231, 235, 0.8);
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                border-radius: 12px;
-                transition: all 0.3s ease;
-            }
-            .leaf-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
-            }
-            .leaf-header {
-                background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            }
-            .leaf-tab {
-                transition: all 0.2s ease;
-                border-radius: 8px 8px 0 0;
-            }
-            .leaf-tab:hover {
-                background: rgba(255, 255, 255, 0.1);
-            }
-            .status-indicator {
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                display: inline-block;
-                margin-right: 8px;
-                animation: pulse 2s infinite;
-            }
-            .status-online { background-color: #6b7280; }
-            .status-offline { background-color: #9ca3af; }
-            .status-warning { background-color: #d1d5db; }
-            
-            /* Dark mode styles */
-            .dark .leaf-card {
-                background: rgba(31, 41, 55, 0.95);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(55, 65, 81, 0.4);
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            }
-            .dark .leaf-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
-                border: 1px solid rgba(75, 85, 99, 0.6);
-            }
-            .dark .leaf-header {
-                background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            }
-            .dark .leaf-tab:hover {
-                background: rgba(0, 0, 0, 0.2);
-            }
-            
-            /* Enhanced animations */
-            @keyframes pulse {
-                0% { opacity: 1; }
-                50% { opacity: 0.5; }
-                100% { opacity: 1; }
-            }
-            
-            /* Dark mode tab styling */
-            .dark .q-tabs {
-                background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
-            }
-            
-            /* Dark mode button styling */
-            .dark .bg-gray-50 {
-                background-color: #1f2937 !important;
-            }
-            .dark .border-t {
-                border-color: #374151 !important;
-            }
-            
-            /* Dark mode help cards */
-            .dark .bg-blue-50 {
-                background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
-                border-color: #6b7280 !important;
-            }
-            .dark .bg-green-50 {
-                background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
-                border-color: #6b7280 !important;
-            }
-            .dark .bg-amber-50 {
-                background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
-                border-color: #6b7280 !important;
-            }
-
-            /* Dark mode configuration help box */
-            .dark .bg-gradient-to-br.from-blue-50.to-indigo-50 {
-                background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
-                border-color: #6b7280 !important;
-            }
-            .dark .text-gray-700 {
-                color: #e5e7eb !important;
-            }
-            
-            /* Dark mode text colors */
-            .dark .text-gray-800 {
-                color: #f3f4f6 !important;
-            }
-            .dark .text-gray-700 {
-                color: #e5e7eb !important;
-            }
-            .dark .text-gray-600 {
-                color: #d1d5db !important;
-            }
+            {custom_css}
         </style>
+        <script>
+            {custom_js}
+        </script>
     ''')
 
     # Dark mode toggle
@@ -266,10 +169,7 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
     with ui.header().classes('leaf-header').style('padding: 16px; color: white;'):
         with ui.row().classes('justify-between items-center w-full'):
             with ui.row().classes('items-center'):
-                import base64
-
                 # Load SVG from images/icon.svg
-                curr_dir: Path = Path(os.path.dirname(os.path.realpath(__file__)))
                 svg_path: Path = curr_dir / "images" / "icon.svg"
                 if os.path.exists(svg_path):
                     with open(svg_path, 'r') as svg_file:
@@ -311,19 +211,8 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
         docs_tab = ui.tab('Documentation', icon='help').classes('leaf-tab')
         adapters_tab = ui.tab('Adapters', icon='extension').classes('leaf-tab')
 
-    # Function to scroll log to bottom when switching to logs tab
-    def scroll_log_to_bottom():
-        ui.run_javascript('''
-            setTimeout(() => {
-                const logElement = document.querySelector('.q-virtual-scroll__content');
-                if (logElement) {
-                    logElement.parentElement.scrollTop = logElement.parentElement.scrollHeight;
-                }
-            }, 100);
-        ''')
-
-    # Attach event handler to logs tab
-    logs_tab.on('click', scroll_log_to_bottom)
+    # Attach event handler to logs tab to scroll to bottom
+    logs_tab.on('click', lambda: ui.run_javascript('scrollLogToBottom()'))
 
     with ui.tab_panels(tabs, value=logs_tab).classes('w-full'):
         # Configuration tab
@@ -334,7 +223,6 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                 ui.label('LEAF Configuration').classes('text-2xl font-bold text-gray-800 ml-2')
             
             # Code editor for YAML
-            curr_dir: Path = Path(os.path.dirname(os.path.realpath(__file__)))
             configuration_path: Path = curr_dir / ".." / 'config' / 'configuration.yaml'
             if os.path.exists(configuration_path):
                 with open(configuration_path, 'r') as file:
@@ -356,40 +244,7 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                 with ui.column().classes('w-[35%] flex-shrink-0'):
                     ui.label('Configuration Help').classes('text-lg font-semibold mb-3 text-gray-800')
                     with ui.card().classes('bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 h-96 overflow-y-auto shadow-sm'):
-                        ui.markdown('''                          
-                            #### Equipment Instances
-                            Define your laboratory equipment:
-                            ```yaml
-                            EQUIPMENT_INSTANCES:
-                              - equipment:
-                                  adapter: HelloWorld
-                                  data:
-                                    instance_id: my_device
-                                    institute: university_lab
-                                  requirements:
-                                    interval: 30
-                            ```
-                            
-                            #### Outputs
-                            Configure data destinations:
-                            ```yaml
-                            OUTPUTS:
-                              - plugin: KEYDB
-                                host: localhost
-                                port: 6379
-                                fallback: FILE
-                            ```
-                            
-                            #### Available Adapters
-                            - **HelloWorld**: Demo adapter for testing
-                            - Install more from the Adapters tab
-                            
-                            #### Pro Tips
-                            - Use proper YAML indentation (2 spaces)
-                            - Check logs for validation errors
-                            - Test configurations incrementally
-                            - Use fallback chains for reliability
-                            ''').classes('p-4 text-sm text-gray-700')
+                        ui.markdown(config_help_md).classes('p-4 text-sm text-gray-700')
 
             # Button to start/restart the adapters
             def restart_app(restart: bool) -> None:
@@ -535,70 +390,7 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                     with ui.row().classes('w-full gap-6'):
                         # Main documentation - Left side (50%)
                         with ui.column().classes('w-45/100'):
-                            ui.markdown('''
-                            # LEAF System Overview
-                            
-                            **LEAF (Laboratory Equipment Adapter Framework)** is a powerful system for monitoring laboratory equipment and transmitting data to various cloud destinations.
-                            
-                            ## Quick Start Guide
-                            
-                            ### Step 1: Configure Your Setup
-                            1. Navigate to the **Configuration** tab
-                            2. Edit the YAML configuration to define your equipment and outputs
-                            3. Save and restart the application
-                            
-                            ### Step 2: Install Adapters
-                            1. Go to the **Adapters** tab
-                            2. Browse available adapters in the marketplace
-                            3. Install adapters for your specific equipment
-                            
-                            ### Step 3: Monitor Operations
-                            1. Check the **Logs** tab for system activity
-                            2. Monitor equipment status and data flow
-                            3. Debug any issues using the live log feed
-                            
-                            ## Configuration Structure
-                            
-                            ### Equipment Instances
-                            Define your laboratory equipment with specific adapters:
-                            ```yaml
-                            EQUIPMENT_INSTANCES:
-                              - equipment:
-                                  adapter: HelloWorld
-                                  data:
-                                    instance_id: my_bioreactor_01
-                                    institute: university_lab
-                                  requirements:
-                                    interval: 30  # seconds
-                            ```
-                            
-                            ### Output Destinations  
-                            Configure where data should be sent:
-                            ```yaml
-                            OUTPUTS:
-                              - plugin: MQTT
-                                broker: localhost
-                                port: 1883
-                                fallback: KEYDB
-                              
-                              - plugin: KEYDB
-                                host: localhost
-                                port: 6379
-                                db: 0
-                                fallback: FILE
-                            ```
-                            
-                            ## Available Adapters
-                            
-                            See the **Adapters** tab for a full list of available adapters and plugins.
-                            
-                            ## Use Cases
-                            
-                            - **Bioreactor Monitoring**: Track pH, temperature, dissolved oxygen
-                            - **Analytical Instruments**: Connect HPLC, spectrophotometers
-                            - **Environmental Monitoring**: Temperature, humidity sensors
-                            - **Process Control**: Automated laboratory workflows
-                            ''').classes('prose max-w-none text-sm')
+                            ui.markdown(docs_main_md).classes('prose max-w-none text-sm')
                         
                         # Quick reference sidebar - Right side (50%)
                         with ui.column().classes('w-45/100 gap-4'):
@@ -637,16 +429,6 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
                             with ui.card().classes('bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 w-full'):
                                 with ui.card_section().classes('w-full'):
                                     ui.label('Pro Tips').classes('text-lg font-bold text-gray-800 mb-3')
-                                    ui.markdown('''
-                                    • **Test configurations** gradually by adding one equipment instance at a time
-
-                                    • **Monitor logs** regularly for early issue detection
-
-                                    • **Use fallback chains** in outputs for reliability
-
-                                    • **Check adapter compatibility** before installation
-
-                                    • **Backup configurations** before major changes
-                                    ''').classes('text-sm text-gray-700')
+                                    ui.markdown(docs_protips_md).classes('text-sm text-gray-700')
 
     ui.run(reload=False, port=port)
