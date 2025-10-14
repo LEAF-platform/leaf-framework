@@ -323,12 +323,11 @@ def create_configuration(args: argparse.Namespace) -> None:
         with open(args.config, "r") as src:
             content = src.read()
         with open(os.path.join(config_dir, CONFIG_FILE_NAME), "w") as dest:
-            logger.info(f"Configuration file content: {content}")
             if not content.strip():
                 logger.warning(f"Configuration file {args.config} is empty, skipping copy.")
             else:
                 dest.write(content)
-                logger.info(f"Configuration file {CONFIG_FILE_NAME} successfully created. with {len(content)} lines.")
+                logger.info(f"Configuration file {CONFIG_FILE_NAME} successfully created.")
 
     args.config = os.path.join(config_dir, CONFIG_FILE_NAME)
 
