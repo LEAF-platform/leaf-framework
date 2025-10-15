@@ -149,11 +149,19 @@ def start_nicegui(port: int = DEFAULT_PORT) -> None:
     with open(curr_dir / "scripts.js", 'r') as f:
         custom_js = f.read()
 
-    ui.page('/')
+    # Load the actual LEAF icon from images/icon.svg
+    svg_path: Path = curr_dir / "images" / "icon.svg"
+    favicon_b64 = "PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMTZDOCAxNiAxNiA8IDE2IDhDMTYgOCAyNCAxNiAyNCAxNkMyNCAxNiAxNiAyNCAxNiAyNEMxNiAyNCA4IDE2IDggMTZaIiBmaWxsPSIjNDA5NkZGIiBzdHJva2U9IiMyNTYzRUIiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K"
 
-    # Add custom CSS, JS, and leaf favicon
+    if os.path.exists(svg_path):
+        with open(svg_path, 'r') as svg_file:
+            svg = svg_file.read()
+            favicon_b64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+
+    # Add custom CSS, JS, and LEAF favicon - set title here
     ui.add_head_html(f'''
-        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMTZDOCAxNiAxNiA8IDE2IDhDMTYgOCAyNCAxNiAyNCAxNkMyNCAxNiAxNiAyNCAxNiAyNEMxNiAyNCA4IDE2IDggMTZaIiBmaWxsPSIjNDA5NkZGIiBzdHJva2U9IiMyNTYzRUIiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K">
+        <title>LEAF - Laboratory Equipment Adapter Framework</title>
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{favicon_b64}">
         <style>
             {custom_css}
         </style>
